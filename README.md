@@ -33,32 +33,19 @@ It is noteworthy that **HccePose(BF)** not only achieves high-precision 6D pose 
 
 ## 🔧 Environment Setup
 
-### 1️⃣ Update System and Basic Tools
 ```bash
 apt-get update && apt-get install -y wget software-properties-common gnupg2 python3-pip
-```
-### 2️⃣ Install OpenGL and Rendering Dependencies
-```bash
+
 apt-get update && apt-get install -y libegl1-mesa-dev libgles2-mesa-dev libx11-dev libxext-dev libxrender-dev
-```
-### 3️⃣ Upgrade Python Tools
-```bash
+
 python3 -m pip install --upgrade setuptools pip
-```
-### 4️⃣ Install PyTorch (CUDA 11.8)
-```bash
+
 pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118
-```
-### 5️⃣ Install Build Essentials and OpenGL Runtime
-```bash
+
 apt-get update apt-get install pkg-config libglvnd0 libgl1 libglx0 libegl1 libgles2 libglvnd-dev libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev cmake curl ninja-build
-```
-### 6️⃣ Install Core Python Libraries
-```bash
+
 pip install ultralytics==8.3.70 fvcore==0.1.5.post20221221 pybind11==2.12.0 trimesh==4.2.2 ninja==1.11.1.1 kornia==0.7.2 open3d==0.19.0 transformations==2024.6.1 numpy==1.26.4 opencv-python==4.9.0.80 opencv-contrib-python==4.9.0.80
-```
-### 7️⃣ Install Additional Utilities
-```bash
+
 pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle glumpy Pillow vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d
 ```
 

@@ -33,32 +33,19 @@ HccePose 是目前基于单幅 RGB 图像的最先进 6D 位姿估计方法。�
 
 ## 🔧 环境配置
 
-### 1️⃣ 更新系统与基础工具
 ```bash
 apt-get update && apt-get install -y wget software-properties-common gnupg2 python3-pip
-```
-### 2️⃣ 安装 OpenGL 与渲染依赖
-```bash
+
 apt-get update && apt-get install -y libegl1-mesa-dev libgles2-mesa-dev libx11-dev libxext-dev libxrender-dev
-```
-### 3️⃣ 升级 Python 工具
-```bash
+
 python3 -m pip install --upgrade setuptools pip
-```
-### 4️⃣ 安装 PyTorch（CUDA 11.8 版本）
-```bash
+
 pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118
-```
-### 5️⃣ 安装编译工具与 OpenGL
-```bash
+
 apt-get update apt-get install pkg-config libglvnd0 libgl1 libglx0 libegl1 libgles2 libglvnd-dev libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev cmake curl ninja-build
-```
-### 6️⃣ 安装核心 Python 库
-```bash
+
 pip install ultralytics==8.3.70 fvcore==0.1.5.post20221221 pybind11==2.12.0 trimesh==4.2.2 ninja==1.11.1.1 kornia==0.7.2 open3d==0.19.0 transformations==2024.6.1 numpy==1.26.4 opencv-python==4.9.0.80 opencv-contrib-python==4.9.0.80
-```
-### 7️⃣ 安装附加依赖库
-```bash
+
 pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle glumpy Pillow vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d
 ```
 
