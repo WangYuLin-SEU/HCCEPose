@@ -162,7 +162,38 @@ Network Outputs:
 
 ---
 
+## 📅 Update Plan
+
+We are currently organizing and updating the following modules:
+
+- 📁 HccePose weights for the seven core BOP datasets
+
+- 🧪 BOP Challenge testing pipeline
+
+- 🔁 6D pose inference via inter-frame tracking
+
+- 🏷️ Real-world 6D pose dataset preparation based on HccePose
+
+- ⚙️ PBR + Real training workflow
+
+- 📘 Tutorials on object preprocessing, data rendering, and model training
+
+All components are expected to be completed by the end of 2025, with continuous daily updates whenever possible.
+
+---
+
 ## 🏆 BOP LeaderBoards
 ### <img src="/show_vis/bop-6D-loc.png" width=100%>
 ### <img src="/show_vis/bop-2D-seg.png" width=100%>
 
+
+***
+If you find our work useful, please cite it as follows: 
+```bibtex
+@ARTICLE{KASAL,
+  author = {Yulin Wang, Mengting Hu, Hongli Li, and Chen Luo},
+  title  = {HccePose(BF): Predicting Front & Back Surfaces to Construct Ultra-Dense 2D-3D Correspondences for Pose Estimation}, 
+  journal= {2025 IEEE/CVF International Conference on Computer Vision}, 
+  year   = {2025}
+}
+```

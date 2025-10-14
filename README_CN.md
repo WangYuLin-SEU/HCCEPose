@@ -156,6 +156,38 @@ if __name__ == '__main__':
 
 ---
 
+## 📅 更新计划
+
+我们目前正在整理和更新以下模块：
+
+- 📁 七个核心 BOP 数据集的 HccePose 权重文件
+
+- 🧪 BOP 挑战测试流程
+
+- 🔁 基于前后帧跟踪的 6D 位姿推理
+
+- 🏷️ 基于 HccePose 的真实场景 6D 位姿数据集制备
+
+- ⚙️ PBR + Real 训练流程
+
+- 📘 关于物体预处理、数据渲染及模型训练的教程
+
+预计所有模块将在 2025 年底前完成，并尽可能 每日持续更新。
+
+---
+
 ## 🏆 BOP榜单
 <img src="/show_vis/bop-6D-loc.png" width=100%>
 <img src="/show_vis/bop-2D-seg.png" width=100%>
+
+
+***
+如果您觉得我们的工作有帮助，请按以下方式引用：
+```bibtex
+@ARTICLE{KASAL,
+  author = {Yulin Wang, Mengting Hu, Hongli Li, and Chen Luo},
+  title  = {HccePose(BF): Predicting Front & Back Surfaces to Construct Ultra-Dense 2D-3D Correspondences for Pose Estimation}, 
+  journal= {2025 IEEE/CVF International Conference on Computer Vision}, 
+  year   = {2025}
+}
+```
