@@ -61,6 +61,101 @@ pip install ultralytics==8.3.70 fvcore==0.1.5.post20221221 pybind11==2.12.0 trim
 pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle glumpy Pillow vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d
 ```
 
+## ✏️ 快速开始
+针对 **Bin-Picking** 问题，本项目提供了一个基于 **HccePose** 的简易应用示例。  
+为降低复现难度，示例使用的物体（由普通 3D 打印机以白色 PLA 材料打印）和相机（小米手机）均为常见易得设备。  
+
+您可以：
+- 多次打印示例物体
+- 任意摆放打印物体
+- 使用手机自由拍摄
+- 直接利用本项目提供的权重完成 2D 检测、2D 分割与 6D 位姿估计
+---
+### 📦 示例文件资源  
+> 请保持文件夹层级结构不变
+
+| 类型             | 资源链接                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------ |
+| 🎨 物体 3D 模型    | [models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/models)     |
+| 📁 YOLOv11 权重  | [yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/yolo11)     |
+| 📂 HccePose 权重 | [HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/HccePose) |
+| 🖼️ 测试图片       | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs)                |
+| 🎥 测试视频        | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos)            |
+
+> ⚠️ 注意：
+文件名以 train 开头的压缩包仅在训练阶段使用，快速开始部分只需下载上述测试文件。
+
+---
+
+### ⏳ 模型与加载器
+测试时，需要从以下模块导入：
+- `HccePose.tester` → 提供集成式测试器（2D 检测、分割、6D 位姿估计全流程）
+- `HccePose.bop_loader` → 基于 BOP 格式的数据加载器，用于加载物体模型文件和训练数据
+
+---
+
+### 📸 示例测试
+下图展示了实验场景：  
+我们将多个白色 3D 打印物体放入碗中，并放置在白色桌面上，随后用手机拍摄。  
+原始图像示例如下 👇  
+<div align="center">
+ <img src="/test_imgs/IMG_20251007_165718.jpg" width="40%">
+</div>
+
+该图像来自：[示例图片链接](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/test_imgs/IMG_20251007_165718.jpg)
+
+随后，可直接使用以下脚本进行 6D 位姿估计与可视化：
+
+```python
+import cv2
+import numpy as np
+from HccePose.tester import Tester
+from HccePose.bop_loader import bop_dataset
+if __name__ == '__main__':
+    dataset_path = '/root/xxxxxx/demo-bin-picking'
+    bop_dataset_item = bop_dataset(dataset_path)
+    CUDA_DEVICE = '0'
+    # show_op = False
+    show_op = True
+    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
+    obj_id = 1
+    for name in ['IMG_20251007_165718']:
+        file_name = '/root/xxxxxx/test_imgs/%s.jpg'%name
+        image = cv2.cvtColor(cv2.imread(file_name), cv2.COLOR_RGB2BGR)
+        cam_K = np.array([
+            [2.83925618e+03, 0.00000000e+00, 2.02288638e+03],
+            [0.00000000e+00, 2.84037288e+03, 1.53940473e+03],
+            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
+        ])
+        results_dict = Tester_item.perdict(cam_K, image, [obj_id],
+                                                        conf = 0.85, confidence_threshold = 0.85)
+        cv2.imwrite(file_name.replace('.jpg','_show_2d.jpg'), results_dict['show_2D_results'])
+        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis0.jpg'), results_dict['show_6D_vis0'])
+        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis1.jpg'), results_dict['show_6D_vis1'])
+        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict['show_6D_vis2'])
+    pass
+```
+### 🎯 可视化结果
+
+2D 检测结果 (_show_2d.jpg)：
+
+<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_2d.jpg" width="40%"> </div>
+
+---
+
+网络输出结果：
+
+- 基于 HCCE 的前后表面坐标编码
+
+- 物体掩膜
+
+- 解码后的 3D 坐标可视化
+
+<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_6d_vis0.jpg" width="100%"> 
+<img src="/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="100%"> </div> 
+
+---
+
 ## 🏆 BOP榜单
-### <img src="/show_vis/bop-6D-loc.png" width=100%>
-### <img src="/show_vis/bop-2D-seg.png" width=100%>
+<img src="/show_vis/bop-6D-loc.png" width=100%>
+<img src="/show_vis/bop-2D-seg.png" width=100%>

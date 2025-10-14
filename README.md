@@ -61,6 +61,107 @@ pip install ultralytics==8.3.70 fvcore==0.1.5.post20221221 pybind11==2.12.0 trim
 pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle glumpy Pillow vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d
 ```
 
+## ✏️ Quick Start
+
+This project provides a simple **HccePose-based** application example for the **Bin-Picking** task.  
+To reduce reproduction difficulty, both the objects (3D printed with standard white PLA material) and the camera (Xiaomi smartphone) are easily accessible devices.
+
+You can:
+- Print the sample object multiple times  
+- Randomly place the printed objects  
+- Capture photos freely using your phone  
+- Directly perform **2D detection**, **2D segmentation**, and **6D pose estimation** using the pretrained weights provided in this project  
+
+---
+
+### 📦 Example Files  
+> Please keep the folder hierarchy unchanged.
+
+| Type | Resource Link |
+|------|----------------|
+| 🎨 Object 3D Models | [models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/models) |
+| 📁 YOLOv11 Weights | [yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/yolo11) |
+| 📂 HccePose Weights | [HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/HccePose) |
+| 🖼️ Test Images | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs) |
+| 🎥 Test Videos | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos) |
+
+> ⚠️ Note:  
+Files beginning with `train_` are only required for training.  
+For this **Quick Start** section, only the above test files are needed.
+
+---
+
+### ⏳ Model and Loader
+During testing, import the following modules:
+- `HccePose.tester` → Integrated testing module covering **2D detection**, **segmentation**, and **6D pose estimation**.  
+- `HccePose.bop_loader` → BOP-format dataset loader for loading object models and training data.
+
+---
+
+### 📸 Example Test
+The following image shows the experimental setup:  
+Several white 3D-printed objects are placed inside a bowl on a white table, then photographed with a mobile phone.  
+
+Example input image 👇  
+<div align="center">
+ <img src="/test_imgs/IMG_20251007_165718.jpg" width="40%">
+</div>
+
+Source image: [Example Link](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/test_imgs/IMG_20251007_165718.jpg)
+
+You can directly use the following script for **6D pose estimation** and visualization:
+
+```python
+import cv2
+import numpy as np
+from HccePose.tester import Tester
+from HccePose.bop_loader import bop_dataset
+if __name__ == '__main__':
+    dataset_path = '/root/xxxxxx/demo-bin-picking'
+    bop_dataset_item = bop_dataset(dataset_path)
+    CUDA_DEVICE = '0'
+    # show_op = False
+    show_op = True
+    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
+    obj_id = 1
+    for name in ['IMG_20251007_165718']:
+        file_name = '/root/xxxxxx/test_imgs/%s.jpg'%name
+        image = cv2.cvtColor(cv2.imread(file_name), cv2.COLOR_RGB2BGR)
+        cam_K = np.array([
+            [2.83925618e+03, 0.00000000e+00, 2.02288638e+03],
+            [0.00000000e+00, 2.84037288e+03, 1.53940473e+03],
+            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
+        ])
+        results_dict = Tester_item.perdict(cam_K, image, [obj_id],
+                                                        conf = 0.85, confidence_threshold = 0.85)
+        cv2.imwrite(file_name.replace('.jpg','_show_2d.jpg'), results_dict['show_2D_results'])
+        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis0.jpg'), results_dict['show_6D_vis0'])
+        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis1.jpg'), results_dict['show_6D_vis1'])
+        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict['show_6D_vis2'])
+    pass
+```
+
+### 🎯 Visualization Results
+
+2D Detection Result (_show_2d.jpg):
+
+<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_2d.jpg" width="40%"> </div>
+
+---
+
+Network Outputs:
+
+- HCCE-based front and back surface coordinate encodings
+
+- Object mask
+
+- Decoded 3D coordinate visualizations
+
+<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_6d_vis0.jpg" width="100%"> 
+<img src="/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="100%"> </div>
+
+---
+
 ## 🏆 BOP LeaderBoards
 ### <img src="/show_vis/bop-6D-loc.png" width=100%>
 ### <img src="/show_vis/bop-2D-seg.png" width=100%>
