@@ -1,5 +1,17 @@
-### HccePose(BF)
-[中文](./README_CN.md) | [English](./README.md)
+### <center> HccePose(BF) </center>
+
+<p align="center">
+  <a href="https://arxiv.org/abs/2510.10177">
+    <img src="https://img.shields.io/badge/arXiv-2510.10177-B31B1B.svg?logo=arxiv" alt="arXiv">
+  </a>
+  <a href="https://huggingface.co/datasets/SEU-WYL/HccePose">
+    <img src="https://img.shields.io/badge/HuggingFace-HccePose-FFD21E.svg?logo=huggingface&logoColor=white" alt="HuggingFace">
+  </a>
+</p>
+
+<p align="center">
+  <a href="./README.md">English</b> | <a href="./README_CN.md">中文</a>
+</p>
 
 <img src="/show_vis/VID_20251011_215403.gif" width=100%>
 <img src="/show_vis/VID_20251011_215255.gif" width=100%>
@@ -53,4 +65,3 @@ pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle g
 ### <img src="/show_vis/bop-6D-loc.png" width=100%>
 ### <img src="/show_vis/bop-2D-seg.png" width=100%>
 
-https://huggingface.co/datasets/SEU-WYL/HccePose
