@@ -1,4 +1,4 @@
-### <center> HccePose(BF) </center>
+<h2 align="center">HccePose (BF)</h2>
 
 <p align="center">
   <a href="https://arxiv.org/abs/2510.10177">
@@ -12,9 +12,9 @@
 <p align="center">
   <a href="./README.md">English</b> | <a href="./README_CN.md">中文</a>
 </p>
-
+<!-- 
 <img src="/show_vis/VID_20251011_215403.gif" width=100%>
-<img src="/show_vis/VID_20251011_215255.gif" width=100%>
+<img src="/show_vis/VID_20251011_215255.gif" width=100%> -->
 
 ## 🧩 简介
 HccePose 是目前基于单幅 RGB 图像的最先进 6D 位姿估计方法。该方法提出了一种 **层次化连续坐标编码（Hierarchical Continuous Coordinate Encoding, HCCE）** 机制，将物体表面点的三个坐标分量分别编码为层次化的连续代码。通过这种层次化的编码方式，神经网络能够有效学习 2D 图像特征与物体 3D 表面坐标之间的对应关系。

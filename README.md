@@ -1,4 +1,4 @@
-### <center> HccePose(BF) </center>
+<h2 align="center">HccePose (BF)</h2>
 
 <p align="center">
   <a href="https://arxiv.org/abs/2510.10177">
@@ -12,9 +12,9 @@
 <p align="center">
   <a href="./README.md">English</b> | <a href="./README_CN.md">中文</a>
 </p>
-
+<!-- 
 <img src="/show_vis/VID_20251011_215403.gif" width=100%>
-<img src="/show_vis/VID_20251011_215255.gif" width=100%>
+<img src="/show_vis/VID_20251011_215255.gif" width=100%> -->
 
 ## 🧩 Introduction
 HccePose represents the state-of-the-art method for 6D object pose estimation based on a single RGB image. It introduces a **Hierarchical Continuous Coordinate Encoding (HCCE)** scheme, which encodes the three coordinate components of object surface points into hierarchical continuous codes. Through this hierarchical encoding, the neural network can effectively learn the correspondence between 2D image features and 3D surface coordinates of the object.
