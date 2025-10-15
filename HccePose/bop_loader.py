@@ -11,7 +11,7 @@ if sys0 == "Linux":
     os.environ["PYOPENGL_PLATFORM"] = "egl"
 sys.path.insert(0, os.getcwd())
 current_directory = sys.argv[0]
-pa_ = os.path.join(os.path.dirname(os.path.dirname(current_directory)), 'bop_toolkit')
+pa_ = os.path.join(os.path.dirname(current_directory), 'bop_toolkit')
 sys.path.append(pa_)
 from bop_toolkit.bop_toolkit_lib import inout, renderer, misc, pose_error
 

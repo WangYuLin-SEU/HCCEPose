@@ -1,12 +1,12 @@
 import os, torch, kornia, time, cv2, random
 import numpy as np 
 from ultralytics import YOLO
-from bop_loader import bop_dataset
-from network_model import HccePose_BF_Net
-from network_model import load_checkpoint
+from HccePose.bop_loader import bop_dataset
+from HccePose.network_model import HccePose_BF_Net
+from HccePose.network_model import load_checkpoint
 import torchvision.transforms as transforms
-from visualization import vis_rgb_mask_Coord, vis_rgb_mask_Coord_origin
-from PnP_solver import solve_PnP, solve_PnP_comb
+from HccePose.visualization import vis_rgb_mask_Coord, vis_rgb_mask_Coord_origin
+from HccePose.PnP_solver import solve_PnP, solve_PnP_comb
 
 composed_transforms_img = transforms.Compose([
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
