@@ -44,7 +44,19 @@ HccePose 是目前基于单幅 RGB 图像的最先进 6D 位姿估计方法。�
   - RGB 视频序列的推理与可视化
 
 ## 🔧 环境配置
+### 下载 HccePose 项目并解压BOP等工具包
+```bash
+# 克隆项目
+git clone https://github.com/WangYuLin-SEU/HCCEPose.git
+cd HCCEPose
 
+# 解压工具包
+unzip bop_toolkit.zip
+unzip blenderproc.zip
+```
+### 配置 Ubuntu 系统环境
+
+⚠️ 需要提前安装 带有 EGL 支持的显卡驱动
 ```bash
 apt-get update && apt-get install -y wget software-properties-common gnupg2 python3-pip
 
@@ -107,20 +119,24 @@ pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle g
 随后，可直接使用以下脚本进行 6D 位姿估计与可视化：
 
 ```python
-import cv2
+import cv2, os, sys
 import numpy as np
-from HccePose.tester import Tester
 from HccePose.bop_loader import bop_dataset
+from HccePose.tester import Tester
 if __name__ == '__main__':
-    dataset_path = '/root/xxxxxx/demo-bin-picking'
+
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
+    test_img_path = os.path.join(current_dir, 'test_imgs')
     bop_dataset_item = bop_dataset(dataset_path)
+    obj_id = 1
     CUDA_DEVICE = '0'
     # show_op = False
     show_op = True
-    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
-    obj_id = 1
+    
     for name in ['IMG_20251007_165718']:
-        file_name = '/root/xxxxxx/test_imgs/%s.jpg'%name
+        file_name = os.path.join(test_img_path, '%s.jpg'%name)
         image = cv2.cvtColor(cv2.imread(file_name), cv2.COLOR_RGB2BGR)
         cam_K = np.array([
             [2.83925618e+03, 0.00000000e+00, 2.02288638e+03],
