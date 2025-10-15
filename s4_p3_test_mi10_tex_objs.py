@@ -1,22 +1,29 @@
-import cv2
+# Author: Yulin Wang (yulinwang@seu.edu.cn)
+# School of Mechanical Engineering, Southeast University, China
+
+import cv2, os, sys
 import numpy as np
-from HccePose.tester import Tester
 from HccePose.bop_loader import bop_dataset
+from HccePose.tester import Tester
 
 if __name__ == '__main__':
     
-    dataset_path = '/root/xxxxxx/demo-tex-objs'
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-tex-objs')
+    test_img_path = os.path.join(current_dir, 'test_imgs')
     bop_dataset_item = bop_dataset(dataset_path)
+    obj_ids = bop_dataset_item.obj_id_list
     CUDA_DEVICE = '0'
     # show_op = False
     show_op = True
+    
     Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
-    obj_ids = bop_dataset_item.obj_id_list
     for name in ['IMG_20251009_142305',
                  'IMG_20251009_142310',
                  'IMG_20251009_142316',
                  'IMG_20251009_142319']:
-        file_name = '/root/xxxxxx/test_imgs/%s.jpg'%name
+        file_name = os.path.join(test_img_path, '%s.jpg'%name)
         image = cv2.cvtColor(cv2.imread(file_name), cv2.COLOR_RGB2BGR)
         cam_K = np.array([
             [2.83925618e+03, 0.00000000e+00, 2.02288638e+03],
