@@ -24,18 +24,18 @@ In the pose estimation process, the network trained with HCCE predicts the 3D su
 It is noteworthy that **HccePose(BF)** not only achieves high-precision 6D pose estimation but also delivers state-of-the-art performance in 2D segmentation from a single RGB image. The continuous and hierarchical nature of HCCE enhances the network’s ability to learn accurate object masks, offering substantial advantages over existing methods.
 ### <img src="/show_vis/fig2.jpg" width=100%>
 ## 🚀 Features
-##### 🔹 Object Preprocessing
+#### 🔹 Object Preprocessing
 - Object renaming and centering  
 - Rotation symmetry calibration (8 symmetry types) based on [**KASAL**](https://github.com/WangYuLin-SEU/KASAL)  
 - Export to [**BOP format**](https://github.com/thodan/bop_toolkit)
 
-##### 🔹 Training Data Preparation
+#### 🔹 Training Data Preparation
 - Synthetic data generation and rendering using [**BlenderProc**](https://github.com/DLR-RM/BlenderProc)
 
-##### 🔹 2D Detection
+#### 🔹 2D Detection
 - Label generation and model training using [**Ultralytics**](https://github.com/ultralytics)
 
-##### 🔹 6D Pose Estimation
+#### 🔹 6D Pose Estimation
 - Preparation of **front** and **back** surface 3D coordinate labels  
 - Distributed training (DDP) implementation of **HccePose**  
 - Testing and visualization via **Dataloader**  
@@ -103,14 +103,14 @@ For this **Quick Start** section, only the above test files are needed.
 
 ---
 
-##### ⏳ Model and Loader
+#### ⏳ Model and Loader
 During testing, import the following modules:
 - `HccePose.tester` → Integrated testing module covering **2D detection**, **segmentation**, and **6D pose estimation**.  
 - `HccePose.bop_loader` → BOP-format dataset loader for loading object models and training data.
 
 ---
 
-##### 📸 Example Test
+#### 📸 Example Test
 The following image shows the experimental setup:  
 Several white 3D-printed objects are placed inside a bowl on a white table, then photographed with a mobile phone.  
 
@@ -158,7 +158,7 @@ if __name__ == '__main__':
 ```
 ---
 
-##### 🎯 Visualization Results
+#### 🎯 Visualization Results
 
 2D Detection Result (_show_2d.jpg):
 
@@ -178,7 +178,7 @@ Network Outputs:
 
 --- 
 
-##### 🎥 6D Pose Estimation in Videos
+#### 🎥 6D Pose Estimation in Videos
 
 The single-frame pose estimation pipeline can be easily extended to video sequences, enabling continuous-frame 6D pose estimation, as shown in the following example:
 
@@ -255,7 +255,7 @@ if __name__ == '__main__':
 
 --- 
 
-##### 🎯 Visualization Results
+#### 🎯 Visualization Results
 
 **Original Video:**
 <img src="/show_vis/VID_20251009_141247.gif" width=100%>
