@@ -24,18 +24,18 @@ In the pose estimation process, the network trained with HCCE predicts the 3D su
 It is noteworthy that **HccePose(BF)** not only achieves high-precision 6D pose estimation but also delivers state-of-the-art performance in 2D segmentation from a single RGB image. The continuous and hierarchical nature of HCCE enhances the network’s ability to learn accurate object masks, offering substantial advantages over existing methods.
 ### <img src="/show_vis/fig2.jpg" width=100%>
 ## 🚀 Features
-### 🔹 Object Preprocessing
+##### 🔹 Object Preprocessing
 - Object renaming and centering  
 - Rotation symmetry calibration (8 symmetry types) based on [**KASAL**](https://github.com/WangYuLin-SEU/KASAL)  
 - Export to [**BOP format**](https://github.com/thodan/bop_toolkit)
 
-### 🔹 Training Data Preparation
+##### 🔹 Training Data Preparation
 - Synthetic data generation and rendering using [**BlenderProc**](https://github.com/DLR-RM/BlenderProc)
 
-### 🔹 2D Detection
+##### 🔹 2D Detection
 - Label generation and model training using [**Ultralytics**](https://github.com/ultralytics)
 
-### 🔹 6D Pose Estimation
+##### 🔹 6D Pose Estimation
 - Preparation of **front** and **back** surface 3D coordinate labels  
 - Distributed training (DDP) implementation of **HccePose**  
 - Testing and visualization via **Dataloader**  
@@ -44,7 +44,7 @@ It is noteworthy that **HccePose(BF)** not only achieves high-precision 6D pose 
   - RGB videos  
 
 ## 🔧 Environment Setup
-### Download the HccePose Project and Unzip BOP-related Toolkits
+Download the HccePose Project and Unzip BOP-related Toolkits
 ```bash
 # Clone the project
 git clone https://github.com/WangYuLin-SEU/HCCEPose.git
@@ -54,9 +54,9 @@ cd HCCEPose
 unzip bop_toolkit.zip
 unzip blenderproc.zip
 ```
-### Configure Ubuntu System Environment
+Configure Ubuntu System Environment
 
-⚠️ A GPU driver with EGL support must be pre-installed.
+> ⚠️ A GPU driver with EGL support must be pre-installed.
 ```bash
 apt-get update && apt-get install -y wget software-properties-common gnupg2 python3-pip
 
@@ -86,14 +86,14 @@ You can:
 
 ---
 
-### 📦 Example Files  
+
 > Please keep the folder hierarchy unchanged.
 
 | Type | Resource Link |
 |------|----------------|
-| 🎨 Object 3D Models | [models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/models) |
-| 📁 YOLOv11 Weights | [yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/yolo11) |
-| 📂 HccePose Weights | [HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/HccePose) |
+| 🎨 Object 3D Models | [demo-bin-picking/models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/models) |
+| 📁 YOLOv11 Weights | [demo-bin-picking/yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/yolo11) |
+| 📂 HccePose Weights | [demo-bin-picking/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/HccePose) |
 | 🖼️ Test Images | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs) |
 | 🎥 Test Videos | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos) |
 
@@ -103,14 +103,14 @@ For this **Quick Start** section, only the above test files are needed.
 
 ---
 
-### ⏳ Model and Loader
+##### ⏳ Model and Loader
 During testing, import the following modules:
 - `HccePose.tester` → Integrated testing module covering **2D detection**, **segmentation**, and **6D pose estimation**.  
 - `HccePose.bop_loader` → BOP-format dataset loader for loading object models and training data.
 
 ---
 
-### 📸 Example Test
+##### 📸 Example Test
 The following image shows the experimental setup:  
 Several white 3D-printed objects are placed inside a bowl on a white table, then photographed with a mobile phone.  
 
@@ -156,14 +156,14 @@ if __name__ == '__main__':
         cv2.imwrite(file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict['show_6D_vis2'])
     pass
 ```
+---
 
-### 🎯 Visualization Results
+##### 🎯 Visualization Results
 
 2D Detection Result (_show_2d.jpg):
 
 <div align="center"> <img src="/show_vis/IMG_20251007_165718_show_2d.jpg" width="40%"> </div>
 
----
 
 Network Outputs:
 
@@ -178,7 +178,7 @@ Network Outputs:
 
 --- 
 
-## 🎥 6D Pose Estimation in Videos
+##### 🎥 6D Pose Estimation in Videos
 
 The single-frame pose estimation pipeline can be easily extended to video sequences, enabling continuous-frame 6D pose estimation, as shown in the following example:
 
@@ -255,7 +255,7 @@ if __name__ == '__main__':
 
 --- 
 
-### 🎯 Visualization Results
+##### 🎯 Visualization Results
 
 **Original Video:**
 <img src="/show_vis/VID_20251009_141247.gif" width=100%>
@@ -266,6 +266,21 @@ if __name__ == '__main__':
 ---
 
 In addition, by passing a list of multiple object IDs to `HccePose.tester`, multi-object 6D pose estimation can also be achieved.  
+
+> Please keep the folder hierarchy unchanged.
+
+| Type | Resource Link |
+|------|----------------|
+| 🎨 Object 3D Models | [demo-tex-objs/models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/models) |
+| 📁 YOLOv11 Weights | [demo-tex-objs/yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/yolo11) |
+| 📂 HccePose Weights | [demo-tex-objs/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/HccePose) |
+| 🖼️ Test Images | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs) |
+| 🎥 Test Videos | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos) |
+
+> ⚠️ Note:  
+Files beginning with `train_` are only required for training.  
+For this **Quick Start** section, only the above test files are needed.
+
 **Original Video:**
 <img src="/show_vis/VID_20251009_141731.gif" width=100%>
 

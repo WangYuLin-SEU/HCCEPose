@@ -24,18 +24,18 @@ HccePose 是目前基于单幅 RGB 图像的最先进 6D 位姿估计方法。�
 值得注意的是，**HccePose(BF)** 不仅在 6D 位姿估计中实现了高精度结果，同时在基于单幅 RGB 图像的 2D 分割任务中也达到了当前最优性能。HCCE 的连续性与层次化特征显著增强了网络对物体掩膜的学习能力，相较现有方法具有显著优势。
 ### <img src="/show_vis/fig2.jpg" width=100%>
 ## 🚀 特点
-### 🔹 物体预处理
+##### 🔹 物体预处理
 - 物体的重命名与中心化处理
 - 基于 [**KASAL**](https://github.com/WangYuLin-SEU/KASAL) 的旋转对称标定（支持 8 类旋转对称类型）
 - 支持导出为 [**BOP format**](https://github.com/thodan/bop_toolkit) 格式
 
-### 🔹 训练数据制备
+##### 🔹 训练数据制备
 - 基于 [**BlenderProc**](https://github.com/DLR-RM/BlenderProc) 的合成数据生成与物理渲染，用于高质量训练数据集的构建
 
-### 🔹 2D 检测
+##### 🔹 2D 检测
 - 基于 [**Ultralytics**](https://github.com/ultralytics) 的标签制备与检测模型训练
 
-### 🔹 6D 位姿估计
+##### 🔹 6D 位姿估计
 - 生成物体 **正面** 与 **背面** 的 3D 坐标标签
 - 提供基于分布式训练（DDP）的 **HccePose** 训练代码
 - 支持基于 Dataloader 的测试与可视化模块
@@ -44,7 +44,7 @@ HccePose 是目前基于单幅 RGB 图像的最先进 6D 位姿估计方法。�
   - RGB 视频序列的推理与可视化
 
 ## 🔧 环境配置
-### 下载 HccePose 项目并解压BOP等工具包
+下载 HccePose 项目并解压BOP等工具包
 ```bash
 # 克隆项目
 git clone https://github.com/WangYuLin-SEU/HCCEPose.git
@@ -54,7 +54,7 @@ cd HCCEPose
 unzip bop_toolkit.zip
 unzip blenderproc.zip
 ```
-### 配置 Ubuntu 系统环境
+配置 Ubuntu 系统环境
 
 ⚠️ 需要提前安装 带有 EGL 支持的显卡驱动
 ```bash
@@ -83,14 +83,14 @@ pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle g
 - 使用手机自由拍摄
 - 直接利用本项目提供的权重完成 2D 检测、2D 分割与 6D 位姿估计
 ---
-### 📦 示例文件资源  
+
 > 请保持文件夹层级结构不变
 
 | 类型             | 资源链接                                                                                             |
 | -------------- | ------------------------------------------------------------------------------------------------ |
-| 🎨 物体 3D 模型    | [models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/models)     |
-| 📁 YOLOv11 权重  | [yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/yolo11)     |
-| 📂 HccePose 权重 | [HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/HccePose) |
+| 🎨 物体 3D 模型    | [demo-bin-picking/models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/models)     |
+| 📁 YOLOv11 权重  | [demo-bin-picking/yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/yolo11)     |
+| 📂 HccePose 权重 | [demo-bin-picking/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/HccePose) |
 | 🖼️ 测试图片       | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs)                |
 | 🎥 测试视频        | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos)            |
 
@@ -99,14 +99,14 @@ pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle g
 
 ---
 
-### ⏳ 模型与加载器
+##### ⏳ 模型与加载器
 测试时，需要从以下模块导入：
 - `HccePose.tester` → 提供集成式测试器（2D 检测、分割、6D 位姿估计全流程）
 - `HccePose.bop_loader` → 基于 BOP 格式的数据加载器，用于加载物体模型文件和训练数据
 
 ---
 
-### 📸 示例测试
+##### 📸 示例测试
 下图展示了实验场景：  
 我们将多个白色 3D 打印物体放入碗中，并放置在白色桌面上，随后用手机拍摄。  
 原始图像示例如下 👇  
@@ -151,13 +151,15 @@ if __name__ == '__main__':
         cv2.imwrite(file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict['show_6D_vis2'])
     pass
 ```
-### 🎯 可视化结果
+
+---
+
+##### 🎯 可视化结果
 
 2D 检测结果 (_show_2d.jpg)：
 
 <div align="center"> <img src="/show_vis/IMG_20251007_165718_show_2d.jpg" width="40%"> </div>
 
----
 
 网络输出结果：
 
@@ -171,7 +173,7 @@ if __name__ == '__main__':
 <img src="/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="100%"> </div> 
 
 ---
-## 🎥 视频的6D位姿估计
+##### 🎥 视频的6D位姿估计
 基于单帧图像的位姿估计流程，可以轻松扩展至视频序列，从而实现对连续帧的 6D 位姿估计，代码如下：
 ```python
 import cv2, os, sys
@@ -246,7 +248,7 @@ if __name__ == '__main__':
 
 ---
 
-### 🎯 可视化结果
+##### 🎯 可视化结果
 **原始视频：**
 <img src="/show_vis/VID_20251009_141247.gif" width=100%>
 
@@ -256,6 +258,20 @@ if __name__ == '__main__':
 ---
 
 此外，通过向`HccePose.tester`传入多个物体的id列表，即可实现对多物体的 6D 位姿估计。
+
+> 请保持文件夹层级结构不变
+
+| 类型             | 资源链接                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------ |
+| 🎨 物体 3D 模型    | [demo-tex-objs/models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/models)     |
+| 📁 YOLOv11 权重  | [demo-tex-objs/yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/yolo11)     |
+| 📂 HccePose 权重 | [demo-tex-objs/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/HccePose) |
+| 🖼️ 测试图片       | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs)                |
+| 🎥 测试视频        | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos)            |
+
+> ⚠️ 注意：
+文件名以 train 开头的压缩包仅在训练阶段使用，快速开始部分只需下载上述测试文件。
+
 **原始视频：**
 <img src="/show_vis/VID_20251009_141731.gif" width=100%>
 
