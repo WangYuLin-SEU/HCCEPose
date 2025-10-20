@@ -42,8 +42,7 @@ def write_csv(filepath, obj_id_l, scene_id_l, img_id_l, r_l, t_l, score_l):
 
 if __name__ == '__main__':
     np.random.seed(0)
-    # nohup python -u /root/autodl-tmp/HCCEPose/s4_p2_test_bf_pbr_bop_challenge.py > log1.file 2>&1 &
-    
+
     dataset_name = 'lmo'
     
     sys.path.insert(0, os.getcwd())
@@ -206,6 +205,5 @@ if __name__ == '__main__':
     
     write_csv(os.path.join(dataset_path, 'det6d_%s.csv'%dataset_name), obj_id_l, scene_id_l, img_id_l, r_l, t_l, score_l)
 
-    os.system('/usr/bin/shutdown')
     pass
             
