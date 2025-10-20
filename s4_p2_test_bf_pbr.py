@@ -1,4 +1,4 @@
-import os, torch, time
+import os, sys, torch, time
 import numpy as np
 from HccePose.bop_loader import bop_dataset, test_bop_dataset_back_front
 from HccePose.network_model import HccePose_BF_Net, load_checkpoint
@@ -8,20 +8,22 @@ from HccePose.PnP_solver import solve_PnP, solve_PnP_comb
 from HccePose.visualization import vis_rgb_mask_Coord
 from HccePose.metric import add_s
 if __name__ == '__main__':
-
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
     
-    dataset_path = '/root/xxxxxx/demo-bin-picking'
     train_folder_name = 'train_pbr'
     obj_id = 1
     
     CUDA_DEVICE = '0'
-    vis_op = False
-
+    
+    # vis_op = False
+    vis_op = True
+    
     pnp_op = 'ransac+comb' # ['epnp', 'ransac', 'ransac+vvs', 'ransac+comb', 'ransac+vvs+comb']
     pnp_op_l = [['epnp', 'ransac', 'ransac+vvs', 'ransac+comb', 'ransac+vvs+comb'],[0,2,1]]
     
     batch_size = 24
-    save_freq = 100
     num_workers = 12
     
     
@@ -86,8 +88,7 @@ if __name__ == '__main__':
             pred_back_code = torch.cat([pred_back_code, pred_back_code_raw], dim=-1)
             
             if vis_op is not None:
-                vis_rgb_mask_Coord(rgb_c, pred_mask, pred_front_code, pred_back_code)
-            
+                vis_rgb_mask_Coord(rgb_c, pred_mask, pred_front_code, pred_back_code, img_path='show_vis.jpg')
             
             pred_mask_np = pred_mask.detach().cpu().numpy()
             pred_front_code_0_np = pred_front_code_0.detach().cpu().numpy()
