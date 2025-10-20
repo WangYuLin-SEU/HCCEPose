@@ -306,7 +306,7 @@ if __name__ == '__main__':
 #### 示例：LM-O 数据集
 
 以 BOP 中最广泛使用的 **LM-O 数据集** 为例，  
-我们采用了 **BOP2022 挑战** 中的 [默认 2D 检测器](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip)（GDRNPP），  
+我们采用了 **BOP2023 挑战** 中的 [默认 2D 检测器](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip)（GDRNPP），  
 对 **HccePose(BF)** 进行了测试，并保存了以下结果文件：
 
 - 2D 分割结果：[seg2d_lmo.json](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/lmo/seg2d_lmo.json)

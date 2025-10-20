@@ -315,7 +315,7 @@ to evaluate **HccePose(BF)** across the seven core BOP datasets.
 
 As an example, we evaluated **HccePose(BF)** on the widely used **LM-O dataset** from the BOP benchmark.  
 We adopted the [default 2D detector](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip) (GDRNPP)  
-from the **BOP 2022 Challenge** and obtained the following output files:
+from the **BOP 2023 Challenge** and obtained the following output files:
 
 - 2D segmentation results: [seg2d_lmo.json](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/lmo/seg2d_lmo.json)
 - 6D pose results: [det6d_lmo.csv](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/lmo/det6d_lmo.csv)
