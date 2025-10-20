@@ -283,9 +283,7 @@ if __name__ == '__main__':
 
 ## 🧪 BOP挑战测试
 
-您可以使用脚本  
-[`s4_p2_test_bf_pbr_bop_challenge.py`](/s4_p2_test_bf_pbr_bop_challenge.py)  
-来测试 **HccePose** 在七个 BOP 核心数据集上的表现。
+您可以使用脚本[`s4_p2_test_bf_pbr_bop_challenge.py`](/s4_p2_test_bf_pbr_bop_challenge.py)来测试 **HccePose** 在七个 BOP 核心数据集上的表现。
 
 ---
 
@@ -305,15 +303,12 @@ if __name__ == '__main__':
 
 #### 示例：LM-O 数据集
 
-以 BOP 中最广泛使用的 **LM-O 数据集** 为例，  
-我们采用了 **BOP2023 挑战** 中的 [默认 2D 检测器](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip)（GDRNPP），  
-对 **HccePose(BF)** 进行了测试，并保存了以下结果文件：
+以 BOP 中最广泛使用的 **LM-O 数据集** 为例，我们采用了 **BOP2023 挑战** 中的 [默认 2D 检测器](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip)（GDRNPP），对 **HccePose(BF)** 进行了测试，并保存了以下结果文件：
 
 - 2D 分割结果：[seg2d_lmo.json](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/lmo/seg2d_lmo.json)
 - 6D 位姿结果：[det6d_lmo.csv](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/lmo/det6d_lmo.csv)
 
-我们于 **2025 年 10 月 20 日** 提交了这两个文件。  
-测试结果如下图所示。  
+我们于 **2025 年 10 月 20 日** 提交了这两个文件。测试结果如下图所示。  
 **6D 定位分数** 与 2024 年提交结果保持一致，  
 **2D 分割分数** 提高了 **0.002**，这得益于我们修复了一些细微的程序 bug。
 ### <img src="/show_vis/BOP-website-lmo.png" width=100%>
@@ -322,9 +317,7 @@ if __name__ == '__main__':
 
 #### ⚙️ 说明
 
-- 如果您发现某些权重文件的轮数为 `0`，这并不是错误。  
-  **HccePose(BF)** 的权重文件都是基于仅使用前表面训练的标准 HccePose 再训练得到的，  
-  在某些情况下，初始权重即能达到最佳性能。
+- 如果您发现某些权重文件的轮数为 `0`，这并不是错误。**HccePose(BF)** 的权重文件都是基于仅使用前表面训练的标准 HccePose 再训练得到的，在某些情况下，初始权重即能达到最佳性能。
 
 ---
 

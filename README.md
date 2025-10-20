@@ -291,9 +291,7 @@ For this **Quick Start** section, only the above test files are needed.
 
 ## 🧪 BOP Challenge Testing
 
-You can use the script  
-[`s4_p2_test_bf_pbr_bop_challenge.py`](/s4_p2_test_bf_pbr_bop_challenge.py)  
-to evaluate **HccePose(BF)** across the seven core BOP datasets.
+You can use the script [`s4_p2_test_bf_pbr_bop_challenge.py`](/s4_p2_test_bf_pbr_bop_challenge.py) to evaluate **HccePose(BF)** across the seven core BOP datasets.
 
 ---
 
@@ -313,15 +311,12 @@ to evaluate **HccePose(BF)** across the seven core BOP datasets.
 
 #### Example: LM-O Dataset
 
-As an example, we evaluated **HccePose(BF)** on the widely used **LM-O dataset** from the BOP benchmark.  
-We adopted the [default 2D detector](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip) (GDRNPP)  
-from the **BOP 2023 Challenge** and obtained the following output files:
+As an example, we evaluated **HccePose(BF)** on the widely used **LM-O dataset** from the BOP benchmark. We adopted the [default 2D detector](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip) (GDRNPP) from the **BOP 2023 Challenge** and obtained the following output files:
 
 - 2D segmentation results: [seg2d_lmo.json](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/lmo/seg2d_lmo.json)
 - 6D pose results: [det6d_lmo.csv](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/lmo/det6d_lmo.csv)
 
-These two files were submitted on **October 20, 2025**.  
-The results are shown below.  
+These two files were submitted on **October 20, 2025**. The results are shown below.  
 The **6D localization score** remains consistent with the 2024 submission,  
 while the **2D segmentation score** improved by **0.002**, thanks to the correction of minor implementation bugs.
 
@@ -331,9 +326,7 @@ while the **2D segmentation score** improved by **0.002**, thanks to the correct
 
 #### ⚙️ Notes
 
-- If some pretrained weights show an iteration count of `0`, this is **not an error**.  
-  All **HccePose(BF)** weights are fine-tuned from the standard HccePose model trained using only the front surface.  
-  In some cases, the initial weights already achieve optimal performance.
+- If some pretrained weights show an iteration count of `0`, this is **not an error**. All **HccePose(BF)** weights are fine-tuned from the standard HccePose model trained using only the front surface. In some cases, the initial weights already achieve optimal performance.
 
 ---
 
