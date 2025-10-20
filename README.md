@@ -341,9 +341,9 @@ while the **2D segmentation score** improved by **0.002**, thanks to the correct
 
 We are currently organizing and updating the following modules:
 
-- 📁 HccePose(BF) weights for the seven core BOP datasets
+- 📁 ~~HccePose(BF) weights for the seven core BOP datasets~~
 
-- 🧪 BOP Challenge testing pipeline
+- 🧪 ~~BOP Challenge testing pipeline~~
 
 - 🔁 6D pose inference via inter-frame tracking
 
