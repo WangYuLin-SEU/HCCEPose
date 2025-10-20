@@ -13,7 +13,7 @@ sys.path.insert(0, os.getcwd())
 current_directory = sys.argv[0]
 pa_ = os.path.join(os.path.dirname(current_directory), 'bop_toolkit')
 sys.path.append(pa_)
-from bop_toolkit.bop_toolkit_lib import inout, renderer, misc, pose_error
+from bop_toolkit.bop_toolkit_lib import inout, renderer, misc, pose_error, pycoco_utils
 
 def load_json2dict(path):
     with open(path, 'r') as f:
@@ -42,14 +42,12 @@ def pad_square_fp32(GT_Bbox, padding_ratio):
     center_y = GT_Bbox[1] + 0.5 * GT_Bbox[3]
     width = GT_Bbox[2]
     height = GT_Bbox[3]
-    scale_ratio = 1 + 0.0
-    shift_ratio = 0.25 * 0.0
-    bbox_center = np.array([center_x + width * shift_ratio, center_y + height * shift_ratio]) 
-    augmented_width = width * scale_ratio * padding_ratio
-    augmented_height = height * scale_ratio * padding_ratio
-    w = max(augmented_width, augmented_height) 
-    augmented_Box = np.array([bbox_center[0]-w/2, bbox_center[1]-w/2, w, w])
-    return augmented_Box
+    bbox_center = np.array([center_x, center_y]) 
+    padded_width = width * padding_ratio
+    padded_height = height * padding_ratio
+    w = max(padded_width, padded_height) 
+    padded_Box = np.array([bbox_center[0]-w/2, bbox_center[1]-w/2, w, w])
+    return padded_Box
 
 def crop_square_resize(img, Bbox, crop_size=None, interpolation=None):
     Bbox = Bbox.copy()
@@ -214,6 +212,7 @@ class bop_dataset():
                 if rgb_suffix is not None:
                     img_info_i['rgb'] = os.path.join(scene_path_i, rgb_folder_name, camera_key_pad + rgb_suffix)
                     img_info_i['depth'] = os.path.join(scene_path_i, dep_folder_name, camera_key_pad + dep_suffix)
+                    img_info_i.update(camera_i)
                     if scene_gt_info_i is not None:
                         for j in range(len(scene_gt_info_i)):
                             scene_gt_i_j_for_obj = {
@@ -668,6 +667,33 @@ class test_bop_dataset_back_front(Dataset):
         self.bbox_2D = bbox_2D
         self.bop_dataset_item = bop_dataset_item
         self.dataset_info = bop_dataset_item.load_folder(folder_name, vis = 0.2)
+        
+        self.obj_info_w_bbox_2D = {}
+        if bbox_2D is not None:
+            bbox_2D_dict = load_json2dict(bbox_2D)
+            for bbox_2D_i in bbox_2D_dict:
+                scene_id = str(bbox_2D_i['scene_id']).rjust(6, '0')
+                image_id = str(bbox_2D_i['image_id']).rjust(6, '0')
+                category_id = str(bbox_2D_i['category_id']).rjust(6, '0')
+                img_info_i = self.dataset_info['img_info'][scene_id + '_' + image_id]
+                if 'obj_'+category_id not in self.obj_info_w_bbox_2D:
+                    self.obj_info_w_bbox_2D['obj_'+category_id] = []
+                obj_info_i = {
+                    'scene' : scene_id,
+                    'image' : image_id,
+                    'rgb' : img_info_i['rgb'],
+                    'depth' : img_info_i['depth'],
+                    'bbox' : bbox_2D_i['bbox'],
+                    'score' : bbox_2D_i['score'],
+                    'cam_K' : img_info_i['cam_K'],
+                    'depth_scale' : img_info_i['depth_scale'],
+                    
+                }
+                self.obj_info_w_bbox_2D['obj_'+category_id].append(obj_info_i)
+        self.dataset_info['obj_info_origin'] = self.dataset_info['obj_info']
+        self.dataset_info['obj_info'] = self.obj_info_w_bbox_2D
+        
+        
         self.folder_name = folder_name
         self.nSamples = 0
         self.padding_ratio = padding_ratio
@@ -697,8 +723,8 @@ class test_bop_dataset_back_front(Dataset):
         return self.nSamples
 
     def __getitem__(self, index):
-        info_ = self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')][index]
         
+        info_ = self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')][index]
         cam_K = np.array(info_['cam_K']).reshape((3,3))
         if 'cam_R_m2c' in info_ and 'cam_t_m2c' in info_:
             cam_R_m2c = np.array(info_['cam_R_m2c']).reshape((3,3))
@@ -707,17 +733,24 @@ class test_bop_dataset_back_front(Dataset):
             cam_R_m2c = np.eye(3)
             cam_t_m2c = np.zeros((3, 1))
         rgb = cv2.imread(info_['rgb'])
-        mask_vis = cv2.imread(info_['mask_visib_path'], 0)
-        label_image_name = os.path.basename(info_['mask_path']).split('.')[0]
-        front_label_image_path = os.path.join(self.target_dir_front, info_['scene'], label_image_name + '.png')
-        back_label_image_path = os.path.join(self.target_dir_back, info_['scene'], label_image_name + '.png')
-        GT_Front = cv2.imread(front_label_image_path)
-        GT_Back = cv2.imread(back_label_image_path)
+        if 'mask_path' in info_: mask_vis = cv2.imread(info_['mask_visib_path'], 0)
+        else: mask_vis = None
+        if mask_vis is None: mask_vis = np.zeros((self.crop_size_gt, self.crop_size_gt))
+        if 'mask_path' in info_:
+            label_image_name = os.path.basename(info_['mask_path']).split('.')[0]
+            front_label_image_path = os.path.join(self.target_dir_front, info_['scene'], label_image_name + '.png')
+            back_label_image_path = os.path.join(self.target_dir_back, info_['scene'], label_image_name + '.png')
+            GT_Front = cv2.imread(front_label_image_path)
+            GT_Back = cv2.imread(back_label_image_path)
+        else:
+            GT_Front, GT_Back = None, None
         if GT_Front is None: GT_Front = np.zeros((self.crop_size_gt, self.crop_size_gt, 3))
         if GT_Back is None: GT_Back = np.zeros((self.crop_size_gt, self.crop_size_gt, 3))
-        if self.bbox_2D is not None:Bbox = pad_square_fp32(np.array(self.bbox_2D[index]), padding_ratio=self.padding_ratio)
-        else:Bbox = pad_square_fp32(np.array(info_['bbox_visib']), padding_ratio=self.padding_ratio)
-        mask_vis_b = cv2.boundingRect(mask_vis)
+        if self.bbox_2D is not None:
+            Bbox = pad_square_fp32(np.array(info_['bbox']), padding_ratio=self.padding_ratio)
+        else:
+            Bbox = pad_square_fp32(np.array(info_['bbox_visib']), padding_ratio=self.padding_ratio)
+        # mask_vis_b = cv2.boundingRect(mask_vis)
         rgb_c = crop_square_resize(rgb, Bbox, self.crop_size_img, interpolation=cv2.INTER_LINEAR)
         mask_vis_c = crop_square_resize(mask_vis, Bbox, self.crop_size_gt, interpolation=cv2.INTER_NEAREST)
         GT_Front_c = crop_square_resize(GT_Front, Bbox, self.crop_size_gt, interpolation=cv2.INTER_NEAREST)
@@ -725,8 +758,11 @@ class test_bop_dataset_back_front(Dataset):
         GT_Back_c = crop_square_resize(GT_Back, Bbox, self.crop_size_gt, interpolation=cv2.INTER_NEAREST)
         GT_Back_hcce = self.hcce_encode(GT_Back_c)
         rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce = self.preprocess(rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce)
-        return rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce, Bbox, cam_K, cam_R_m2c, cam_t_m2c
+        if self.bbox_2D is None: return rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce, Bbox, cam_K, cam_R_m2c, cam_t_m2c, 
+        else: return rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce, Bbox, cam_K, cam_R_m2c, cam_t_m2c, int(info_['scene']), int(info_['image']), info_['score']
 
+        
+            
     def hcce_encode(self, code_img, iteration=8):
         code_img = [code_img[:, :, 0], code_img[:, :, 1], code_img[:, :, 2]]
         hcce_images = np.zeros((code_img[0].shape[0], code_img[0].shape[1], iteration * 3))

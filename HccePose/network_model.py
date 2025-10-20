@@ -520,17 +520,21 @@ class HccePose_BF_Net(nn.Module):
         
         return class_id_image
     
-    @torch.inference_mode()
+    # @torch.inference_mode()
     def inference_batch(self, inputs, Bbox, thershold=0.5):
 
         pred_mask, pred_front_back_code = self.net(inputs)
-        pred_mask = self.activation_function(pred_mask).round().clamp(0,1)
+        pred_mask = self.activation_function(pred_mask)
+        pred_mask[pred_mask > thershold] = 1.0
+        pred_mask[pred_mask <= thershold] = 0.0
         pred_mask = pred_mask[:, 0, ...]
         
         pred_front_code_raw = ((pred_front_back_code.permute(0, 2, 3, 1)+1)/2).clone().clamp(0,1)[...,:24]
         pred_back_code_raw = ((pred_front_back_code.permute(0, 2, 3, 1)+1)/2).clone().clamp(0,1)[...,24:]
         
-        pred_front_back_code = self.activation_function(pred_front_back_code).round().clamp(0,1)
+        pred_front_back_code = self.activation_function(pred_front_back_code)
+        pred_front_back_code[pred_front_back_code > thershold] = 1.0
+        pred_front_back_code[pred_front_back_code <= thershold] = 0.0
         
         pred_front_back_code = pred_front_back_code.permute(0, 2, 3, 1)
         pred_front_code = pred_front_back_code[...,:24]
@@ -538,10 +542,9 @@ class HccePose_BF_Net(nn.Module):
         pred_front_code = self.hcce_decode(pred_front_code) / 255
         pred_back_code = self.hcce_decode(pred_back_code) / 255
         if self.coord_image is None:
-            x = torch.arange(pred_front_code.shape[2] , device=pred_front_code.device) / pred_front_code.shape[2] 
-            y = torch.arange(pred_front_code.shape[1] , device=pred_front_code.device) / pred_front_code.shape[1] 
+            x = torch.arange(pred_front_code.shape[2] , device=pred_front_code.device).to(torch.float32) / pred_front_code.shape[2] 
+            y = torch.arange(pred_front_code.shape[1] , device=pred_front_code.device).to(torch.float32) / pred_front_code.shape[1] 
             X, Y = torch.meshgrid(x, y, indexing='xy')  
-            self.coord_image = torch.cat([X[..., None], Y[..., None]], dim=-1) 
             self.coord_image = torch.cat([X[..., None], Y[..., None]], dim=-1) 
         coord_image = self.coord_image[None,...].repeat(pred_front_code.shape[0],1,1,1)
         coord_image[..., 0] = coord_image[..., 0] * Bbox[:, None, None, 2] + Bbox[:, None, None, 0]
