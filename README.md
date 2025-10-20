@@ -17,7 +17,7 @@
 <img src="/show_vis/VID_20251011_215255.gif" width=100%> -->
 
 ## 🧩 Introduction
-HccePose represents the state-of-the-art method for 6D object pose estimation based on a single RGB image. It introduces a **Hierarchical Continuous Coordinate Encoding (HCCE)** scheme, which encodes the three coordinate components of object surface points into hierarchical continuous codes. Through this hierarchical encoding, the neural network can effectively learn the correspondence between 2D image features and 3D surface coordinates of the object.
+HccePose(BF) represents the state-of-the-art method for 6D object pose estimation based on a single RGB image. It introduces a **Hierarchical Continuous Coordinate Encoding (HCCE)** scheme, which encodes the three coordinate components of object surface points into hierarchical continuous codes. Through this hierarchical encoding, the neural network can effectively learn the correspondence between 2D image features and 3D surface coordinates of the object.
 
 In the pose estimation process, the network trained with HCCE predicts the 3D surface coordinates of the object from a single RGB image, which are then used in a **Perspective-n-Point (PnP)** algorithm to solve for the 6D pose. Unlike traditional methods that only learn the visible front surface of objects, **HccePose(BF)** additionally learns the 3D coordinates of the back surface, thereby constructing denser 2D–3D correspondences and significantly improving pose estimation accuracy.
 
@@ -37,14 +37,14 @@ It is noteworthy that **HccePose(BF)** not only achieves high-precision 6D pose 
 
 #### 🔹 6D Pose Estimation
 - Preparation of **front** and **back** surface 3D coordinate labels  
-- Distributed training (DDP) implementation of **HccePose**  
+- Distributed training (DDP) implementation of **HccePose(BF)**  
 - Testing and visualization via **Dataloader**  
-- **HccePose (YOLOv11)** inference and visualization on:
+- **HccePose(BF) (YOLOv11)** inference and visualization on:
   - Single RGB images  
   - RGB videos  
 
 ## 🔧 Environment Setup
-Download the HccePose Project and Unzip BOP-related Toolkits
+Download the HccePose(BF) Project and Unzip BOP-related Toolkits
 ```bash
 # Clone the project
 git clone https://github.com/WangYuLin-SEU/HCCEPose.git
@@ -75,7 +75,7 @@ pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle g
 
 ## ✏️ Quick Start
 
-This project provides a simple **HccePose-based** application example for the **Bin-Picking** task.  
+This project provides a simple **HccePose(BF)-based** application example for the **Bin-Picking** task.  
 To reduce reproduction difficulty, both the objects (3D printed with standard white PLA material) and the camera (Xiaomi smartphone) are easily accessible devices.
 
 You can:
@@ -289,17 +289,65 @@ For this **Quick Start** section, only the above test files are needed.
 
 ---
 
+## 🧪 BOP Challenge Testing
+
+You can use the script  
+[`s4_p2_test_bf_pbr_bop_challenge.py`](/s4_p2_test_bf_pbr_bop_challenge.py)  
+to evaluate **HccePose(BF)** across the seven core BOP datasets.
+
+---
+
+#### Pretrained Weights
+
+| Dataset | Weights Link |
+|----------|---------------|
+| **LM-O** | [Hugging Face - LM-O](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/lmo/HccePose) |
+| **YCB-V** | [Hugging Face - YCB-V](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/ycbv/HccePose) |
+| **T-LESS** | [Hugging Face - T-LESS](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/tless/HccePose) |
+| **TUD-L** | [Hugging Face - TUD-L](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/tudl/HccePose) |
+| **HB** | [Hugging Face - HB](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/hb/HccePose) |
+| **ITODD** | [Hugging Face - ITODD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/itodd/HccePose) |
+| **IC-BIN** | [Hugging Face - IC-BIN](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/icbin/HccePose) |
+
+---
+
+#### Example: LM-O Dataset
+
+As an example, we evaluated **HccePose(BF)** on the widely used **LM-O dataset** from the BOP benchmark.  
+We adopted the [default 2D detector](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip) (GDRNPP)  
+from the **BOP 2022 Challenge** and obtained the following output files:
+
+- 2D segmentation results: [seg2d_lmo.json](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/lmo/seg2d_lmo.json)
+- 6D pose results: [det6d_lmo.csv](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/lmo/det6d_lmo.csv)
+
+These two files were submitted on **October 20, 2025**.  
+The results are shown below.  
+The **6D localization score** remains consistent with the 2024 submission,  
+while the **2D segmentation score** improved by **0.002**, thanks to the correction of minor implementation bugs.
+
+### <img src="/show_vis/BOP-website-lmo.png" width=100%>
+
+---
+
+#### ⚙️ Notes
+
+- If some pretrained weights show an iteration count of `0`, this is **not an error**.  
+  All **HccePose(BF)** weights are fine-tuned from the standard HccePose model trained using only the front surface.  
+  In some cases, the initial weights already achieve optimal performance.
+
+---
+
 ## 📅 Update Plan
 
 We are currently organizing and updating the following modules:
 
-- 📁 HccePose weights for the seven core BOP datasets
+- 📁 HccePose(BF) weights for the seven core BOP datasets
 
 - 🧪 BOP Challenge testing pipeline
 
 - 🔁 6D pose inference via inter-frame tracking
 
-- 🏷️ Real-world 6D pose dataset preparation based on HccePose
+- 🏷️ Real-world 6D pose dataset preparation based on HccePose(BF)
 
 - ⚙️ PBR + Real training workflow
 

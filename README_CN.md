@@ -17,7 +17,7 @@
 <img src="/show_vis/VID_20251011_215255.gif" width=100%> -->
 
 ## 🧩 简介
-HccePose 是目前基于单幅 RGB 图像的最先进 6D 位姿估计方法。该方法提出了一种 **层次化连续坐标编码（Hierarchical Continuous Coordinate Encoding, HCCE）** 机制，将物体表面点的三个坐标分量分别编码为层次化的连续代码。通过这种层次化的编码方式，神经网络能够有效学习 2D 图像特征与物体 3D 表面坐标之间的对应关系。
+HccePose(BF) 是目前基于单幅 RGB 图像的最先进 6D 位姿估计方法。该方法提出了一种 **层次化连续坐标编码（Hierarchical Continuous Coordinate Encoding, HCCE）** 机制，将物体表面点的三个坐标分量分别编码为层次化的连续代码。通过这种层次化的编码方式，神经网络能够有效学习 2D 图像特征与物体 3D 表面坐标之间的对应关系。
 
 在位姿估计过程中，经过 HCCE 训练的网络可根据单幅 RGB 图像预测物体的 3D 表面坐标，并结合 **Perspective-n-Point (PnP)** 算法求解 6D 位姿。与传统方法仅学习物体可见正表面不同，**HccePose(BF)** 还学习了物体背表面的 3D 坐标，从而建立了更稠密的 2D–3D 对应关系，显著提升了位姿估计精度。
 
@@ -37,14 +37,14 @@ HccePose 是目前基于单幅 RGB 图像的最先进 6D 位姿估计方法。�
 
 #### 🔹 6D 位姿估计
 - 生成物体 **正面** 与 **背面** 的 3D 坐标标签
-- 提供基于分布式训练（DDP）的 **HccePose** 训练代码
+- 提供基于分布式训练（DDP）的 **HccePose(BF)** 训练代码
 - 支持基于 Dataloader 的测试与可视化模块
-- **HccePose (YOLOv11)** 的推理与可视化:
+- **HccePose(BF) (YOLOv11)** 的推理与可视化:
   - 单幅 RGB 图像的推理与可视化
   - RGB 视频序列的推理与可视化
 
 ## 🔧 环境配置
-下载 HccePose 项目并解压BOP等工具包
+下载 HccePose(BF) 项目并解压BOP等工具包
 ```bash
 # 克隆项目
 git clone https://github.com/WangYuLin-SEU/HCCEPose.git
@@ -74,7 +74,7 @@ pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle g
 ```
 
 ## ✏️ 快速开始
-针对 **Bin-Picking** 问题，本项目提供了一个基于 **HccePose** 的简易应用示例。  
+针对 **Bin-Picking** 问题，本项目提供了一个基于 **HccePose(BF)** 的简易应用示例。  
 为降低复现难度，示例使用的物体（由普通 3D 打印机以白色 PLA 材料打印）和相机（小米手机）均为常见易得设备。  
 
 您可以：
@@ -280,17 +280,65 @@ if __name__ == '__main__':
 
 ---
 
+
+## 🧪 BOP挑战测试
+
+您可以使用脚本  
+[`s4_p2_test_bf_pbr_bop_challenge.py`](/s4_p2_test_bf_pbr_bop_challenge.py)  
+来测试 **HccePose** 在七个 BOP 核心数据集上的表现。
+
+---
+
+#### 训练权重文件
+
+| 数据集 | 权重链接 |
+|----------|---------------|
+| **LM-O** | [Hugging Face - LM-O](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/lmo/HccePose) |
+| **YCB-V** | [Hugging Face - YCB-V](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/ycbv/HccePose) |
+| **T-LESS** | [Hugging Face - T-LESS](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/tless/HccePose) |
+| **TUD-L** | [Hugging Face - TUD-L](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/tudl/HccePose) |
+| **HB** | [Hugging Face - HB](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/hb/HccePose) |
+| **ITODD** | [Hugging Face - ITODD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/itodd/HccePose) |
+| **IC-BIN** | [Hugging Face - IC-BIN](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/icbin/HccePose) |
+
+---
+
+#### 示例：LM-O 数据集
+
+以 BOP 中最广泛使用的 **LM-O 数据集** 为例，  
+我们采用了 **BOP2022 挑战** 中的 [默认 2D 检测器](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip)（GDRNPP），  
+对 **HccePose(BF)** 进行了测试，并保存了以下结果文件：
+
+- 2D 分割结果：[seg2d_lmo.json](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/lmo/seg2d_lmo.json)
+- 6D 位姿结果：[det6d_lmo.csv](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/lmo/det6d_lmo.csv)
+
+我们于 **2025 年 10 月 20 日** 提交了这两个文件。  
+测试结果如下图所示。  
+**6D 定位分数** 与 2024 年提交结果保持一致，  
+**2D 分割分数** 提高了 **0.002**，这得益于我们修复了一些细微的程序 bug。
+### <img src="/show_vis/BOP-website-lmo.png" width=100%>
+
+---
+
+#### ⚙️ 说明
+
+- 如果您发现某些权重文件的轮数为 `0`，这并不是错误。  
+  **HccePose(BF)** 的权重文件都是基于仅使用前表面训练的标准 HccePose 再训练得到的，  
+  在某些情况下，初始权重即能达到最佳性能。
+
+---
+
 ## 📅 更新计划
 
 我们目前正在整理和更新以下模块：
 
-- 📁 七个核心 BOP 数据集的 HccePose 权重文件
+- 📁 七个核心 BOP 数据集的 HccePose(BF) 权重文件
 
 - 🧪 BOP 挑战测试流程
 
 - 🔁 基于前后帧跟踪的 6D 位姿推理
 
-- 🏷️ 基于 HccePose 的真实场景 6D 位姿数据集制备
+- 🏷️ 基于 HccePose(BF) 的真实场景 6D 位姿数据集制备
 
 - ⚙️ PBR + Real 训练流程
 
