@@ -41,6 +41,10 @@ HccePose(BF) 提出了一种 **层次化连续坐标编码（Hierarchical Contin
   - RGB 视频序列的推理与可视化
 
 ## 🔧 环境配置
+
+<details>
+<summary>配置细节</summary>
+
 下载 HccePose(BF) 项目并解压BOP等工具包
 ```bash
 # 克隆项目
@@ -69,6 +73,8 @@ pip install ultralytics==8.3.70 fvcore==0.1.5.post20221221 pybind11==2.12.0 trim
 
 pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle glumpy Pillow vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d
 ```
+
+</details>
 
 ## ✏️ 快速开始
 针对 **Bin-Picking** 问题，本项目提供了一个基于 **HccePose(BF)** 的简易应用示例。  
@@ -176,6 +182,10 @@ if __name__ == '__main__':
 
 ---
 #### 🎥 视频的6D位姿估计
+
+<details>
+<summary>具体内容</summary>
+
 基于单帧图像的位姿估计流程，可以轻松扩展至视频序列，从而实现对连续帧的 6D 位姿估计，代码如下：
 <details>
 <summary>点击展开代码</summary>
@@ -285,8 +295,9 @@ if __name__ == '__main__':
 **检测结果：**
 <img src="/show_vis/VID_20251009_141731_vis.gif" width=100%>
 
----
+</details>
 
+---
 
 ## 🧪 BOP挑战测试
 

@@ -41,6 +41,10 @@
   - RGB videos  
 
 ## 🔧 Environment Setup
+
+<details>
+<summary>Configuration Details</summary>
+
 Download the HccePose(BF) Project and Unzip BOP-related Toolkits
 ```bash
 # Clone the project
@@ -69,6 +73,8 @@ pip install ultralytics==8.3.70 fvcore==0.1.5.post20221221 pybind11==2.12.0 trim
 
 pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle glumpy Pillow vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d
 ```
+
+</details>
 
 ## ✏️ Quick Start
 
@@ -183,6 +189,9 @@ Network Outputs:
 
 #### 🎥 6D Pose Estimation in Videos
 
+<details>
+<summary>Detailed Content</summary>
+
 The single-frame pose estimation pipeline can be easily extended to video sequences, enabling continuous-frame 6D pose estimation, as shown in the following example:
 
 <details>
@@ -294,6 +303,8 @@ For this **Quick Start** section, only the above test files are needed.
 
 **Detection Results:**
 <img src="/show_vis/VID_20251009_141731_vis.gif" width=100%>
+
+</details>
 
 ---
 
