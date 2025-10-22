@@ -20,25 +20,7 @@
 HccePose(BF) 提出了一种 **层次化连续坐标编码（Hierarchical Continuous Coordinate Encoding, HCCE）** 机制，将物体表面点的三个坐标分量分别编码为层次化的连续代码。通过这种层次化的编码方式，神经网络能够有效学习 2D 图像特征与物体 3D 表面坐标之间的对应关系，也显著增强了网络对物体掩膜的学习能力。与传统方法仅学习物体可见正表面不同，**HccePose(BF)** 还学习了物体背表面的 3D 坐标，从而建立了更稠密的 2D–3D 对应关系，显著提升了位姿估计精度。
 
 ### <img src="/show_vis/fig2.jpg" width=100%>
-## 🚀 特点
-#### 🔹 物体预处理
-- 物体的重命名与中心化处理
-- 基于 [**KASAL**](https://github.com/WangYuLin-SEU/KASAL) 的旋转对称标定（支持 8 类旋转对称类型）
-- 支持导出为 [**BOP format**](https://github.com/thodan/bop_toolkit) 格式
 
-#### 🔹 训练数据制备
-- 基于 [**BlenderProc**](https://github.com/DLR-RM/BlenderProc) 的合成数据生成与物理渲染，用于高质量训练数据集的构建
-
-#### 🔹 2D 检测
-- 基于 [**Ultralytics**](https://github.com/ultralytics) 的标签制备与检测模型训练
-
-#### 🔹 6D 位姿估计
-- 生成物体 **正面** 与 **背面** 的 3D 坐标标签
-- 提供基于分布式训练（DDP）的 **HccePose(BF)** 训练代码
-- 支持基于 Dataloader 的测试与可视化模块
-- **HccePose(BF) (YOLOv11)** 的推理与可视化:
-  - 单幅 RGB 图像的推理与可视化
-  - RGB 视频序列的推理与可视化
 
 ## 🔧 环境配置
 

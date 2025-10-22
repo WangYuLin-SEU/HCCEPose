@@ -20,25 +20,7 @@
 **HccePose(BF)** introduces a **Hierarchical Continuous Coordinate Encoding (HCCE)** mechanism that encodes the three coordinate components of object surface points into hierarchical continuous codes. Through this hierarchical encoding scheme, the neural network can effectively learn the correspondence between 2D image features and 3D surface coordinates of the object, while significantly enhancing its capability to learn accurate object masks. Unlike traditional methods that only learn the visible front surface of objects, **HccePose(BF)** additionally learns the 3D coordinates of the back surface, thereby establishing denser 2D–3D correspondences and substantially improving pose estimation accuracy.
 
 ### <img src="/show_vis/fig2.jpg" width=100%>
-## 🚀 Features
-#### 🔹 Object Preprocessing
-- Object renaming and centering  
-- Rotation symmetry calibration (8 symmetry types) based on [**KASAL**](https://github.com/WangYuLin-SEU/KASAL)  
-- Export to [**BOP format**](https://github.com/thodan/bop_toolkit)
 
-#### 🔹 Training Data Preparation
-- Synthetic data generation and rendering using [**BlenderProc**](https://github.com/DLR-RM/BlenderProc)
-
-#### 🔹 2D Detection
-- Label generation and model training using [**Ultralytics**](https://github.com/ultralytics)
-
-#### 🔹 6D Pose Estimation
-- Preparation of **front** and **back** surface 3D coordinate labels  
-- Distributed training (DDP) implementation of **HccePose(BF)**  
-- Testing and visualization via **Dataloader**  
-- **HccePose(BF) (YOLOv11)** inference and visualization on:
-  - Single RGB images  
-  - RGB videos  
 
 ## 🔧 Environment Setup
 
