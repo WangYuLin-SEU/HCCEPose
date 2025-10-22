@@ -445,9 +445,10 @@ As an example, we evaluated **HccePose(BF)** on the widely used **LM-O dataset**
 These two files were submitted on **October 20, 2025**. The results are shown below.  
 The **6D localization score** remains consistent with the 2024 submission,  
 while the **2D segmentation score** improved by **0.002**, thanks to the correction of minor implementation bugs.
-
+<details>
+<summary>Click to expand</summary>
 ### <img src="/show_vis/BOP-website-lmo.png" width=100%>
-
+</details>
 ---
 
 #### ⚙️ Notes
@@ -470,7 +471,7 @@ We are currently organizing and updating the following modules:
 
 - ⚙️ PBR + Real training workflow
 
-- 📘 Tutorials on object preprocessing, data rendering, and model training
+- 📘 Tutorials on ~~object preprocessing~~, data rendering, and model training
 
 All components are expected to be completed by the end of 2025, with continuous daily updates whenever possible.
 
