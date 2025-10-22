@@ -97,6 +97,10 @@ During testing, import the following modules:
 
 #### 📸 Example Test
 The following image shows the experimental setup:  
+
+<details>
+<summary>Click to expand</summary>
+
 Several white 3D-printed objects are placed inside a bowl on a white table, then photographed with a mobile phone.  
 
 Example input image 👇  
@@ -105,6 +109,8 @@ Example input image 👇
 </div>
 
 Source image: [Example Link](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/test_imgs/IMG_20251007_165718.jpg)
+
+</details>
 
 You can directly use the following script for **6D pose estimation** and visualization:
 
@@ -290,11 +296,130 @@ For this **Quick Start** section, only the above test files are needed.
 
 ---
 
+## 🧱 Custom Object Dataset
+
+#### 🎨 Object Preprocessing
+
+<details>
+<summary>Click to expand</summary>
+
+Using the [`demo-bin-picking`](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking) dataset as an example, we first designed the object in **SolidWorks** and exported it as an STL mesh file.  
+STL file link: 🔗 https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/raw-demo-models/multi-objs/board.STL
+
+<img src="/show_vis/Design-3DMesh.jpg" width=100%>
+
+Then, the STL file was imported into **MeshLab**, and surface colors were filled using the `Vertex Color Filling` tool.
+
+<img src="/show_vis/color-filling.png" width=100%>
+<img src="/show_vis/color-filling-2.png" width=100%>
+
+After coloring, the object was exported as a **non-binary PLY file** containing vertex colors and normals.
+
+<img src="/show_vis/export-3d-mesh-ply.png" width=100%>
+
+The exported model center might not coincide with the coordinate origin, as shown below:
+
+<img src="/show_vis/align-center.png" width=100%>
+
+To align the model center with the origin, use the script **`s1_p1_obj_rename_center.py`**.  
+This script loads the PLY file, aligns the model center, and renames it following BOP conventions.  
+The `obj_id` must be set manually as a unique non-negative integer for each object.  
+Example:
+
+| `input_ply` | `obj_id` | `output_ply` |
+| :---: | :---: | :---: |
+| `board.ply` | `1` | `obj_000001.ply` |
+| `board.ply` | `2` | `obj_000002.ply` |
+
+After centering and renaming all objects, place them into a folder named `models` with the following structure:
+
+```bash
+Dataset_Name
+|--- models
+      |--- obj_000001.ply
+      ...
+      |--- obj_000015.ply
+```
+
+---
+
+</details>
+
+#### 🌀 Rotational Symmetry Analysis
+
+<details>
+<summary>Click to expand</summary>
+
+In 6D pose estimation tasks, many objects exhibit various types of rotational symmetry, such as cylindrical, conical, or polyhedral symmetry. For such objects, the KASAL tool is used to analyze and export symmetry priors in BOP format.
+
+KASAL project: 🔗 https://github.com/WangYuLin-SEU/KASAL
+
+Installation:
+
+```bash
+pip install kasal-6d
+```
+
+Launch the **KASAL GUI** with:
+
+```python
+from kasal.app.polyscope_app import app
+mesh_path = 'demo-bin-picking'
+app(mesh_path)
+```
+
+KASAL automatically scans all PLY or OBJ files under `mesh_path` (excluding generated `_sym.ply` files).
+
+<img src="/show_vis/kasal-1.png" width=100%>
+
+In the interface:
+* Use `Symmetry Type` to select the symmetry category
+* For n-fold pyramidal or prismatic symmetry, set `N (n-fold)`
+* Enable `ADI-C` for texture-symmetric objects
+* If the result is inaccurate, use `axis xyz` for manual fitting
+
+KASAL defines **8 symmetry types**.
+Selecting the wrong one will result in visual anomalies, helping verify your choice.
+
+<img src="/show_vis/kasal-2.png" width=100%>
+
+Click `Cal Current Obj` to compute the object’s symmetry axis.
+Symmetry priors will be saved as:
+* Symmetry prior file: `obj_000001_sym_type.json`
+* Visualization file: `obj_000001_sym.ply`
+
+---
+
+</details>
+
+#### 🧾 Generating BOP-Format Model Information
+
+<details>
+<summary>Click to expand</summary>
+
+Run `s1_p3_obj_infos.py` to traverse all `ply` files and their symmetry priors in the `models` folder.
+This script generates a standard `models_info.json` file in BOP format.
+
+Example structure:
+
+```bash
+Dataset_Name
+|--- models
+      |--- models_info.json
+      |--- obj_000001.ply
+      ...
+      |--- obj_000015.ply
+```
+
+This file serves as the foundation for PBR rendering, YOLOv11 training, and HccePose(BF) model training.
+
+</details>
+
+---
+
 ## 🧪 BOP Challenge Testing
 
 You can use the script [`s4_p2_test_bf_pbr_bop_challenge.py`](/s4_p2_test_bf_pbr_bop_challenge.py) to evaluate **HccePose(BF)** across the seven core BOP datasets.
-
----
 
 #### Pretrained Weights
 

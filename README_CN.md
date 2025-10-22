@@ -93,6 +93,8 @@ pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle g
 
 #### 📸 示例测试
 下图展示了实验场景：  
+<details>
+<summary>点击展开</summary>
 我们将多个白色 3D 打印物体放入碗中，并放置在白色桌面上，随后用手机拍摄。  
 原始图像示例如下 👇  
 <div align="center">
@@ -100,6 +102,8 @@ pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle g
 </div>
 
 该图像来自：[示例图片链接](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/test_imgs/IMG_20251007_165718.jpg)
+
+</details>
 
 随后，可直接使用以下脚本进行 6D 位姿估计与可视化：
 
@@ -281,11 +285,125 @@ if __name__ == '__main__':
 
 ---
 
+
+## 🧱 自定义物体数据集
+
+#### 🎨 物体预处理
+
+<details>
+<summary>点击展开</summary>
+
+以 [`demo-bin-picking`](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking) 数据集为例，我们首先使用 **SolidWorks** 设计物体模型，并导出为 STL 格式的三维网格文件。  
+STL 文件下载链接：🔗 https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/raw-demo-models/multi-objs/board.STL
+
+<img src="/show_vis/Design-3DMesh.jpg" width=100%>
+
+随后，在 **MeshLab** 中导入该 STL 文件，并使用 `Vertex Color Filling` 工具为模型表面着色。
+
+<img src="/show_vis/color-filling.png" width=100%>
+<img src="/show_vis/color-filling-2.png" width=100%>
+
+接着，将物体模型以 **非二进制 PLY 格式** 导出，并确保包含顶点颜色与法向量信息。
+
+<img src="/show_vis/export-3d-mesh-ply.png" width=100%>
+
+导出的模型中心通常与坐标系原点不重合（如下图所示）：
+
+<img src="/show_vis/align-center.png" width=100%>
+
+为解决模型中心偏移问题，可使用脚本 **`s1_p1_obj_rename_center.py`**：该脚本会加载 PLY 文件，将模型中心对齐至坐标系原点，并根据 BOP 规范重命名文件。用户需手动设置非负整数参数 `obj_id`，每个物体对应唯一编号。  
+
+例如：
+
+| `input_ply` | `obj_id` | `output_ply` |
+| :---: | :---: | :---: |
+| `board.ply` | `1` | `obj_000001.ply` |
+| `board.ply` | `2` | `obj_000002.ply` |
+
+
+当所有物体完成中心化与重命名后，将这些文件放入名为 `models` 的文件夹中，目录结构如下：
+
+```bash
+数据集名称
+|--- models
+      |--- obj_000001.ply
+      ...
+      |--- obj_000015.ply
+```
+
+---
+
+</details>
+
+#### 🌀 物体旋转对称分析
+
+<details>
+<summary>点击展开</summary>
+
+在位姿估计任务中，许多物体存在多种旋转对称性，如圆柱、圆锥或多面体旋转对称。对于这些旋转对称物体，需要使用 KASAL 工具生成符合 BOP 规范的旋转对称先验。
+
+KASAL 项目地址：🔗 https://github.com/WangYuLin-SEU/KASAL
+
+安装命令：
+
+```bash
+pip install kasal-6d
+```
+
+运行以下代码可启动 **KASAL 图形界面**：
+
+```python
+from kasal.app.polyscope_app import app
+mesh_path = 'demo-bin-picking'
+app(mesh_path)
+```
+
+KASAL 会自动遍历 `mesh_path` 文件夹下所有 PLY 或 OBJ 文件（不加载 `_sym.ply` 等效果文件）。
+
+<img src="/show_vis/kasal-1.png" width=100%>
+
+在使用界面中：
+* 下拉 `Symmetry Type` 选择旋转对称类型
+* 对于 n 阶棱锥或棱柱旋转对称，需设置 `N (n-fold)`
+* 对纹理旋转对称物体，勾选 `ADI-C`
+* 若结果不准确，可通过 `axis xyz` 手动强制拟合
+
+KASAL 将旋转对称划分为 **8 种类型**。若选择错误类型，将在可视化中显示异常，从而可辅助判断设置是否正确。
+
+<img src="/show_vis/kasal-2.png" width=100%>
+
+点击 `Cal Current Obj` 可计算当前物体的旋转对称轴，旋转对称先验将保存为 `_sym_type.json` 文件，例如：
+* 旋转对称先验文件：`obj_000001_sym_type.json`
+* 可视化文件：`obj_000001_sym.ply`
+
+---
+</details>
+
+#### 🧾 BOP 格式模型信息生成
+
+<details>
+<summary>点击展开</summary>
+
+运行脚本 `s1_p3_obj_infos.py`，该脚本会遍历 `models` 文件夹下所有满足 BOP 规范的 `ply` 文件及其对应的旋转对称文件，并最终生成标准的 `models_info.json` 文件。
+
+生成后的目录结构如下：
+
+```bash
+数据集名称
+|--- models
+      |--- models_info.json
+      |--- obj_000001.ply
+      ...
+      |--- obj_000015.ply
+```
+</details>
+
+---
+
+</details>
 ## 🧪 BOP挑战测试
 
 您可以使用脚本[`s4_p2_test_bf_pbr_bop_challenge.py`](/s4_p2_test_bf_pbr_bop_challenge.py)来测试 **HccePose** 在七个 BOP 核心数据集上的表现。
-
----
 
 #### 训练权重文件
 
