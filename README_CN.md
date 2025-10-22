@@ -349,7 +349,7 @@ if __name__ == '__main__':
 ***
 如果您觉得我们的工作有帮助，请按以下方式引用：
 ```bibtex
-@ARTICLE{KASAL,
+@ARTICLE{HccePose-BF,
   author = {Yulin Wang, Mengting Hu, Hongli Li, and Chen Luo},
   title  = {HccePose(BF): Predicting Front & Back Surfaces to Construct Ultra-Dense 2D-3D Correspondences for Pose Estimation}, 
   journal= {2025 IEEE/CVF International Conference on Computer Vision}, 
