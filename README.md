@@ -17,11 +17,8 @@
 <img src="/show_vis/VID_20251011_215255.gif" width=100%> -->
 
 ## 🧩 Introduction
-HccePose(BF) represents the state-of-the-art method for 6D object pose estimation based on a single RGB image. It introduces a **Hierarchical Continuous Coordinate Encoding (HCCE)** scheme, which encodes the three coordinate components of object surface points into hierarchical continuous codes. Through this hierarchical encoding, the neural network can effectively learn the correspondence between 2D image features and 3D surface coordinates of the object.
+**HccePose(BF)** introduces a **Hierarchical Continuous Coordinate Encoding (HCCE)** mechanism that encodes the three coordinate components of object surface points into hierarchical continuous codes. Through this hierarchical encoding scheme, the neural network can effectively learn the correspondence between 2D image features and 3D surface coordinates of the object, while significantly enhancing its capability to learn accurate object masks. Unlike traditional methods that only learn the visible front surface of objects, **HccePose(BF)** additionally learns the 3D coordinates of the back surface, thereby establishing denser 2D–3D correspondences and substantially improving pose estimation accuracy.
 
-In the pose estimation process, the network trained with HCCE predicts the 3D surface coordinates of the object from a single RGB image, which are then used in a **Perspective-n-Point (PnP)** algorithm to solve for the 6D pose. Unlike traditional methods that only learn the visible front surface of objects, **HccePose(BF)** additionally learns the 3D coordinates of the back surface, thereby constructing denser 2D–3D correspondences and significantly improving pose estimation accuracy.
-
-It is noteworthy that **HccePose(BF)** not only achieves high-precision 6D pose estimation but also delivers state-of-the-art performance in 2D segmentation from a single RGB image. The continuous and hierarchical nature of HCCE enhances the network’s ability to learn accurate object masks, offering substantial advantages over existing methods.
 ### <img src="/show_vis/fig2.jpg" width=100%>
 ## 🚀 Features
 #### 🔹 Object Preprocessing
@@ -123,6 +120,9 @@ Source image: [Example Link](https://github.com/WangYuLin-SEU/HCCEPose/blob/main
 
 You can directly use the following script for **6D pose estimation** and visualization:
 
+<details>
+<summary>Click to expand code</summary>
+
 ```python
 import cv2, os, sys
 import numpy as np
@@ -156,6 +156,9 @@ if __name__ == '__main__':
         cv2.imwrite(file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict['show_6D_vis2'])
     pass
 ```
+
+</details>
+
 ---
 
 #### 🎯 Visualization Results
@@ -181,6 +184,9 @@ Network Outputs:
 #### 🎥 6D Pose Estimation in Videos
 
 The single-frame pose estimation pipeline can be easily extended to video sequences, enabling continuous-frame 6D pose estimation, as shown in the following example:
+
+<details>
+<summary>Click to expand code</summary>
 
 ```python
 import cv2, os, sys
@@ -252,6 +258,8 @@ if __name__ == '__main__':
         out_2.release()
     pass
 ```
+
+</details>
 
 --- 
 

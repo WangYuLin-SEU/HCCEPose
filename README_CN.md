@@ -17,11 +17,8 @@
 <img src="/show_vis/VID_20251011_215255.gif" width=100%> -->
 
 ## 🧩 简介
-HccePose(BF) 是目前基于单幅 RGB 图像的最先进 6D 位姿估计方法。该方法提出了一种 **层次化连续坐标编码（Hierarchical Continuous Coordinate Encoding, HCCE）** 机制，将物体表面点的三个坐标分量分别编码为层次化的连续代码。通过这种层次化的编码方式，神经网络能够有效学习 2D 图像特征与物体 3D 表面坐标之间的对应关系。
+HccePose(BF) 提出了一种 **层次化连续坐标编码（Hierarchical Continuous Coordinate Encoding, HCCE）** 机制，将物体表面点的三个坐标分量分别编码为层次化的连续代码。通过这种层次化的编码方式，神经网络能够有效学习 2D 图像特征与物体 3D 表面坐标之间的对应关系，也显著增强了网络对物体掩膜的学习能力。与传统方法仅学习物体可见正表面不同，**HccePose(BF)** 还学习了物体背表面的 3D 坐标，从而建立了更稠密的 2D–3D 对应关系，显著提升了位姿估计精度。
 
-在位姿估计过程中，经过 HCCE 训练的网络可根据单幅 RGB 图像预测物体的 3D 表面坐标，并结合 **Perspective-n-Point (PnP)** 算法求解 6D 位姿。与传统方法仅学习物体可见正表面不同，**HccePose(BF)** 还学习了物体背表面的 3D 坐标，从而建立了更稠密的 2D–3D 对应关系，显著提升了位姿估计精度。
-
-值得注意的是，**HccePose(BF)** 不仅在 6D 位姿估计中实现了高精度结果，同时在基于单幅 RGB 图像的 2D 分割任务中也达到了当前最优性能。HCCE 的连续性与层次化特征显著增强了网络对物体掩膜的学习能力，相较现有方法具有显著优势。
 ### <img src="/show_vis/fig2.jpg" width=100%>
 ## 🚀 特点
 #### 🔹 物体预处理
@@ -118,6 +115,9 @@ pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle g
 
 随后，可直接使用以下脚本进行 6D 位姿估计与可视化：
 
+<details>
+<summary>点击展开代码</summary>
+
 ```python
 import cv2, os, sys
 import numpy as np
@@ -152,6 +152,8 @@ if __name__ == '__main__':
     pass
 ```
 
+</details>
+
 ---
 
 #### 🎯 可视化结果
@@ -175,6 +177,9 @@ if __name__ == '__main__':
 ---
 #### 🎥 视频的6D位姿估计
 基于单帧图像的位姿估计流程，可以轻松扩展至视频序列，从而实现对连续帧的 6D 位姿估计，代码如下：
+<details>
+<summary>点击展开代码</summary>
+
 ```python
 import cv2, os, sys
 import numpy as np
@@ -245,6 +250,8 @@ if __name__ == '__main__':
         out_2.release()
     pass
 ```
+
+</details>
 
 ---
 
