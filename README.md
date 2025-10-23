@@ -510,6 +510,7 @@ while the **2D segmentation score** improved by **0.002**, thanks to the correct
 <summary>Click to expand</summary>
 ### <img src="/show_vis/BOP-website-lmo.png" width=100%>
 </details>
+
 ---
 
 #### ⚙️ Notes
