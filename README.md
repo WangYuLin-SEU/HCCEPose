@@ -533,7 +533,7 @@ We are currently organizing and updating the following modules:
 
 - ⚙️ PBR + Real training workflow
 
-- 📘 Tutorials on ~~object preprocessing~~, ~~data rendering~~, and model training
+- 📘 Tutorials on ~~object preprocessing~~, ~~data rendering~~, YOLOv11 label preparation and training, as well as HccePose label preparation and training
 
 All components are expected to be completed by the end of 2025, with continuous daily updates whenever possible.
 
