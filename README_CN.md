@@ -37,7 +37,7 @@ cd HCCEPose
 unzip bop_toolkit.zip
 unzip blenderproc.zip
 ```
-配置 Ubuntu 系统环境
+配置 Ubuntu 系统环境 (Python 3.10)
 
 ⚠️ 需要提前安装 带有 EGL 支持的显卡驱动
 ```bash
@@ -45,15 +45,20 @@ apt-get update && apt-get install -y wget software-properties-common gnupg2 pyth
 
 apt-get update && apt-get install -y libegl1-mesa-dev libgles2-mesa-dev libx11-dev libxext-dev libxrender-dev
 
-python3 -m pip install --upgrade setuptools pip
-
 pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118
 
 apt-get update && apt-get install pkg-config libglvnd0 libgl1 libglx0 libegl1 libgles2 libglvnd-dev libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev cmake curl ninja-build
 
 pip install ultralytics==8.3.70 fvcore==0.1.5.post20221221 pybind11==2.12.0 trimesh==4.2.2 ninja==1.11.1.1 kornia==0.7.2 open3d==0.19.0 transformations==2024.6.1 numpy==1.26.4 opencv-python==4.9.0.80 opencv-contrib-python==4.9.0.80
 
-pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle glumpy Pillow vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d
+pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle glumpy Pillow vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d rich h5py
+
+pip install bpy==3.6.0 --extra-index-url https://download.blender.org/pypi/
+
+python -c "import imageio; imageio.plugins.freeimage.download()"
+
+pip install -U "huggingface_hub[hf_transfer]"
+
 ```
 
 </details>
@@ -86,8 +91,8 @@ pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle g
 
 #### ⏳ 模型与加载器
 测试时，需要从以下模块导入：
-- `HccePose.tester` → 提供集成式测试器（2D 检测、分割、6D 位姿估计全流程）
-- `HccePose.bop_loader` → 基于 BOP 格式的数据加载器，用于加载物体模型文件和训练数据
+- **`HccePose.tester`** → 提供集成式测试器（2D 检测、分割、6D 位姿估计全流程）
+- **`HccePose.bop_loader`** → 基于 BOP 格式的数据加载器，用于加载物体模型文件和训练数据
 
 ---
 
@@ -260,7 +265,7 @@ if __name__ == '__main__':
 
 ---
 
-此外，通过向`HccePose.tester`传入多个物体的id列表，即可实现对多物体的 6D 位姿估计。
+此外，通过向**`HccePose.tester`**传入多个物体的id列表，即可实现对多物体的 6D 位姿估计。
 
 > 请保持文件夹层级结构不变
 
@@ -286,19 +291,19 @@ if __name__ == '__main__':
 ---
 
 
-## 🧱 自定义物体数据集
+## 🧱 自定义数据集
 
 #### 🎨 物体预处理
 
 <details>
 <summary>点击展开</summary>
 
-以 [`demo-bin-picking`](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking) 数据集为例，我们首先使用 **SolidWorks** 设计物体模型，并导出为 STL 格式的三维网格文件。  
+以 [**`demo-bin-picking`**](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking) 数据集为例，我们首先使用 **SolidWorks** 设计物体模型，并导出为 STL 格式的三维网格文件。  
 STL 文件下载链接：🔗 https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/raw-demo-models/multi-objs/board.STL
 
 <img src="/show_vis/Design-3DMesh.jpg" width=100%>
 
-随后，在 **MeshLab** 中导入该 STL 文件，并使用 `Vertex Color Filling` 工具为模型表面着色。
+随后，在 **MeshLab** 中导入该 STL 文件，并使用 **`Vertex Color Filling`** 工具为模型表面着色。
 
 <img src="/show_vis/color-filling.png" width=100%>
 <img src="/show_vis/color-filling-2.png" width=100%>
@@ -311,17 +316,17 @@ STL 文件下载链接：🔗 https://huggingface.co/datasets/SEU-WYL/HccePose/b
 
 <img src="/show_vis/align-center.png" width=100%>
 
-为解决模型中心偏移问题，可使用脚本 **`s1_p1_obj_rename_center.py`**：该脚本会加载 PLY 文件，将模型中心对齐至坐标系原点，并根据 BOP 规范重命名文件。用户需手动设置非负整数参数 `obj_id`，每个物体对应唯一编号。  
+为解决模型中心偏移问题，可使用脚本 **`s1_p1_obj_rename_center.py`**：该脚本会加载 PLY 文件，将模型中心对齐至坐标系原点，并根据 BOP 规范重命名文件。用户需手动设置非负整数参数 **`obj_id`**，每个物体对应唯一编号。  
 
 例如：
 
-| `input_ply` | `obj_id` | `output_ply` |
+| **`input_ply`** | **`obj_id`** | **`output_ply`** |
 | :---: | :---: | :---: |
-| `board.ply` | `1` | `obj_000001.ply` |
-| `board.ply` | `2` | `obj_000002.ply` |
+| **`board.ply`** | **`1`** | **`obj_000001.ply`** |
+| **`board.ply`** | **`2`** | **`obj_000002.ply`** |
 
 
-当所有物体完成中心化与重命名后，将这些文件放入名为 `models` 的文件夹中，目录结构如下：
+当所有物体完成中心化与重命名后，将这些文件放入名为 **`models`** 的文件夹中，目录结构如下：
 
 ```bash
 数据集名称
@@ -358,23 +363,23 @@ mesh_path = 'demo-bin-picking'
 app(mesh_path)
 ```
 
-KASAL 会自动遍历 `mesh_path` 文件夹下所有 PLY 或 OBJ 文件（不加载 `_sym.ply` 等效果文件）。
+KASAL 会自动遍历 **`mesh_path`** 文件夹下所有 PLY 或 OBJ 文件（不加载 **`_sym.ply`** 等效果文件）。
 
 <img src="/show_vis/kasal-1.png" width=100%>
 
 在使用界面中：
-* 下拉 `Symmetry Type` 选择旋转对称类型
-* 对于 n 阶棱锥或棱柱旋转对称，需设置 `N (n-fold)`
-* 对纹理旋转对称物体，勾选 `ADI-C`
-* 若结果不准确，可通过 `axis xyz` 手动强制拟合
+* 下拉 **`Symmetry Type`** 选择旋转对称类型
+* 对于 n 阶棱锥或棱柱旋转对称，需设置 **`N (n-fold)`**
+* 对纹理旋转对称物体，勾选 **`ADI-C`**
+* 若结果不准确，可通过 **`axis xyz`** 手动强制拟合
 
 KASAL 将旋转对称划分为 **8 种类型**。若选择错误类型，将在可视化中显示异常，从而可辅助判断设置是否正确。
 
 <img src="/show_vis/kasal-2.png" width=100%>
 
-点击 `Cal Current Obj` 可计算当前物体的旋转对称轴，旋转对称先验将保存为 `_sym_type.json` 文件，例如：
-* 旋转对称先验文件：`obj_000001_sym_type.json`
-* 可视化文件：`obj_000001_sym.ply`
+点击 **`Cal Current Obj`** 可计算当前物体的旋转对称轴，旋转对称先验将保存为 **`_sym_type.json`** 文件，例如：
+* 旋转对称先验文件：**`obj_000001_sym_type.json`**
+* 可视化文件：**`obj_000001_sym.ply`**
 
 ---
 </details>
@@ -384,7 +389,7 @@ KASAL 将旋转对称划分为 **8 种类型**。若选择错误类型，将在�
 <details>
 <summary>点击展开</summary>
 
-运行脚本 `s1_p3_obj_infos.py`，该脚本会遍历 `models` 文件夹下所有满足 BOP 规范的 `ply` 文件及其对应的旋转对称文件，并最终生成标准的 `models_info.json` 文件。
+运行脚本 **`s1_p3_obj_infos.py`**，该脚本会遍历 **`models`** 文件夹下所有满足 BOP 规范的 **`ply`** 文件及其对应的旋转对称文件，并最终生成标准的 **`models_info.json`** 文件。
 
 生成后的目录结构如下：
 
@@ -396,14 +401,70 @@ KASAL 将旋转对称划分为 **8 种类型**。若选择错误类型，将在�
       ...
       |--- obj_000015.ply
 ```
+
+---
 </details>
+
+
+#### 🔥 渲染 PBR 数据集
+
+<details>
+<summary>点击展开</summary>
+
+在 **BlenderProc** 的基础上，我们改写了一个用于渲染新数据集的脚本 **`s2_p1_gen_pbr_data.py`**。直接通过 Python 调用该脚本可能会导致 **内存泄漏（memory leak）**，随着渲染周期的增长，内存占用会逐渐增加，从而显著降低渲染效率。为了解决这一问题，我们提供了一个 **Shell 脚本** —— **`s2_p1_gen_pbr_data.sh`**，用于循环调用 **`s2_p1_gen_pbr_data.py`**，以此有效缓解内存累积问题，并显著提升渲染效率。此外，我们还针对 BlenderProc 进行了部分代码微调，以更好地适配新数据集的 PBR 数据制备流程。  
+
+---
+
+#### 渲染前准备
+
+在渲染 PBR 数据前，需要使用 **`s2_p0_download_cc0textures.py`** 下载 **CC0Textures** 材质库。下载完成后，文件夹结构应如下所示：
+```
+HCCEPose
+|--- s2_p0_download_cc0textures.py
+|--- cc0textures
+```
+
+---
+
+#### 渲染执行
+
+**`s2_p1_gen_pbr_data.py`** 用于生成 PBR 数据，  
+该脚本基于 [BlenderProc2](https://github.com/DLR-RM/BlenderProc) 进行了改写。
+
+执行命令如下：
+
+```bash
+cd HCCEPose
+chmod +x s2_p1_gen_pbr_data.sh
+nohup ./s2_p1_gen_pbr_data.sh 0 42 xxx/xxx/cc0textures xxx/xxx/demo-bin-picking xxx/xxx/s2_p1_gen_pbr_data.py > s2_p1_gen_pbr_data.log 2>&1 &
+```
+
+**文件结构说明**
+
+按照上述命令运行后，程序会：
+- 调用 **`xxx/xxx/cc0textures`** 中的材质库；
+- 使用 **`xxx/xxx/demo-bin-picking/models`** 文件夹下的物体模型；
+- 在 **`xxx/xxx/demo-bin-picking`** 文件夹下生成 **42 个文件夹**，每个文件夹包含 **1000 帧 PBR 渲染图像**。
+
+最终生成的文件结构如下：
+```
+demo-bin-picking
+|--- models
+|--- train_pbr
+      |--- 000000
+      |--- 000001
+      ...
+      |--- 000041
+```
 
 ---
 
 </details>
+
+
 ## 🧪 BOP挑战测试
 
-您可以使用脚本[`s4_p2_test_bf_pbr_bop_challenge.py`](/s4_p2_test_bf_pbr_bop_challenge.py)来测试 **HccePose** 在七个 BOP 核心数据集上的表现。
+您可以使用脚本[**`s4_p2_test_bf_pbr_bop_challenge.py`**](/s4_p2_test_bf_pbr_bop_challenge.py)来测试 **HccePose** 在七个 BOP 核心数据集上的表现。
 
 #### 训练权重文件
 
@@ -438,7 +499,7 @@ KASAL 将旋转对称划分为 **8 种类型**。若选择错误类型，将在�
 
 #### ⚙️ 说明
 
-- 如果您发现某些权重文件的轮数为 `0`，这并不是错误。**HccePose(BF)** 的权重文件都是基于仅使用前表面训练的标准 HccePose 再训练得到的，在某些情况下，初始权重即能达到最佳性能。
+- 如果您发现某些权重文件的轮数为 **`0`**，这并不是错误。**HccePose(BF)** 的权重文件都是基于仅使用前表面训练的标准 HccePose 再训练得到的，在某些情况下，初始权重即能达到最佳性能。
 
 ---
 
@@ -456,7 +517,7 @@ KASAL 将旋转对称划分为 **8 种类型**。若选择错误类型，将在�
 
 - ⚙️ PBR + Real 训练流程
 
-- 📘 关于~~物体预处理~~、数据渲染及模型训练的教程
+- 📘 关于~~物体预处理~~、~~数据渲染~~及模型训练的教程
 
 预计所有模块将在 2025 年底前完成，并尽可能 每日持续更新。
 

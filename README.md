@@ -37,15 +37,13 @@ cd HCCEPose
 unzip bop_toolkit.zip
 unzip blenderproc.zip
 ```
-Configure Ubuntu System Environment
+Configure Ubuntu System Environment (Python 3.10)
 
 > ⚠️ A GPU driver with EGL support must be pre-installed.
-```bash
+```bash 
 apt-get update && apt-get install -y wget software-properties-common gnupg2 python3-pip
 
 apt-get update && apt-get install -y libegl1-mesa-dev libgles2-mesa-dev libx11-dev libxext-dev libxrender-dev
-
-python3 -m pip install --upgrade setuptools pip
 
 pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118
 
@@ -53,7 +51,14 @@ apt-get update && apt-get install pkg-config libglvnd0 libgl1 libglx0 libegl1 li
 
 pip install ultralytics==8.3.70 fvcore==0.1.5.post20221221 pybind11==2.12.0 trimesh==4.2.2 ninja==1.11.1.1 kornia==0.7.2 open3d==0.19.0 transformations==2024.6.1 numpy==1.26.4 opencv-python==4.9.0.80 opencv-contrib-python==4.9.0.80
 
-pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle glumpy Pillow vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d
+pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle glumpy Pillow vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d rich h5py
+
+pip install bpy==3.6.0 --extra-index-url https://download.blender.org/pypi/
+
+python -c "import imageio; imageio.plugins.freeimage.download()"
+
+pip install -U "huggingface_hub[hf_transfer]"
+
 ```
 
 </details>
@@ -83,15 +88,15 @@ You can:
 | 🎥 Test Videos | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos) |
 
 > ⚠️ Note:  
-Files beginning with `train_` are only required for training.  
+Files beginning with **`train_`** are only required for training.  
 For this **Quick Start** section, only the above test files are needed.
 
 ---
 
 #### ⏳ Model and Loader
 During testing, import the following modules:
-- `HccePose.tester` → Integrated testing module covering **2D detection**, **segmentation**, and **6D pose estimation**.  
-- `HccePose.bop_loader` → BOP-format dataset loader for loading object models and training data.
+- **`HccePose.tester`** → Integrated testing module covering **2D detection**, **segmentation**, and **6D pose estimation**.  
+- **`HccePose.bop_loader`** → BOP-format dataset loader for loading object models and training data.
 
 ---
 
@@ -270,7 +275,7 @@ if __name__ == '__main__':
 
 ---
 
-In addition, by passing a list of multiple object IDs to `HccePose.tester`, multi-object 6D pose estimation can also be achieved.  
+In addition, by passing a list of multiple object IDs to **`HccePose.tester`**, multi-object 6D pose estimation can also be achieved.  
 
 > Please keep the folder hierarchy unchanged.
 
@@ -283,7 +288,7 @@ In addition, by passing a list of multiple object IDs to `HccePose.tester`, mult
 | 🎥 Test Videos | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos) |
 
 > ⚠️ Note:  
-Files beginning with `train_` are only required for training.  
+Files beginning with **`train_`** are only required for training.  
 For this **Quick Start** section, only the above test files are needed.
 
 **Original Video:**
@@ -296,19 +301,19 @@ For this **Quick Start** section, only the above test files are needed.
 
 ---
 
-## 🧱 Custom Object Dataset
+## 🧱 Custom Dataset
 
 #### 🎨 Object Preprocessing
 
 <details>
 <summary>Click to expand</summary>
 
-Using the [`demo-bin-picking`](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking) dataset as an example, we first designed the object in **SolidWorks** and exported it as an STL mesh file.  
+Using the [**`demo-bin-picking`**](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking) dataset as an example, we first designed the object in **SolidWorks** and exported it as an STL mesh file.  
 STL file link: 🔗 https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/raw-demo-models/multi-objs/board.STL
 
 <img src="/show_vis/Design-3DMesh.jpg" width=100%>
 
-Then, the STL file was imported into **MeshLab**, and surface colors were filled using the `Vertex Color Filling` tool.
+Then, the STL file was imported into **MeshLab**, and surface colors were filled using the **`Vertex Color Filling`** tool.
 
 <img src="/show_vis/color-filling.png" width=100%>
 <img src="/show_vis/color-filling-2.png" width=100%>
@@ -323,15 +328,15 @@ The exported model center might not coincide with the coordinate origin, as show
 
 To align the model center with the origin, use the script **`s1_p1_obj_rename_center.py`**.  
 This script loads the PLY file, aligns the model center, and renames it following BOP conventions.  
-The `obj_id` must be set manually as a unique non-negative integer for each object.  
+The **`obj_id`** must be set manually as a unique non-negative integer for each object.  
 Example:
 
-| `input_ply` | `obj_id` | `output_ply` |
+| **`input_ply`** | **`obj_id`** | **`output_ply`** |
 | :---: | :---: | :---: |
-| `board.ply` | `1` | `obj_000001.ply` |
-| `board.ply` | `2` | `obj_000002.ply` |
+| **`board.ply`** | **`1`** | **`obj_000001.ply`** |
+| **`board.ply`** | **`2`** | **`obj_000002.ply`** |
 
-After centering and renaming all objects, place them into a folder named `models` with the following structure:
+After centering and renaming all objects, place them into a folder named **`models`** with the following structure:
 
 ```bash
 Dataset_Name
@@ -368,25 +373,25 @@ mesh_path = 'demo-bin-picking'
 app(mesh_path)
 ```
 
-KASAL automatically scans all PLY or OBJ files under `mesh_path` (excluding generated `_sym.ply` files).
+KASAL automatically scans all PLY or OBJ files under **`mesh_path`** (excluding generated **`_sym.ply`** files).
 
 <img src="/show_vis/kasal-1.png" width=100%>
 
 In the interface:
-* Use `Symmetry Type` to select the symmetry category
-* For n-fold pyramidal or prismatic symmetry, set `N (n-fold)`
-* Enable `ADI-C` for texture-symmetric objects
-* If the result is inaccurate, use `axis xyz` for manual fitting
+* Use **`Symmetry Type`** to select the symmetry category
+* For n-fold pyramidal or prismatic symmetry, set **`N (n-fold)`**
+* Enable **`ADI-C`** for texture-symmetric objects
+* If the result is inaccurate, use **`axis xyz`** for manual fitting
 
 KASAL defines **8 symmetry types**.
 Selecting the wrong one will result in visual anomalies, helping verify your choice.
 
 <img src="/show_vis/kasal-2.png" width=100%>
 
-Click `Cal Current Obj` to compute the object’s symmetry axis.
+Click **`Cal Current Obj`** to compute the object’s symmetry axis.
 Symmetry priors will be saved as:
-* Symmetry prior file: `obj_000001_sym_type.json`
-* Visualization file: `obj_000001_sym.ply`
+* Symmetry prior file: **`obj_000001_sym_type.json`**
+* Visualization file: **`obj_000001_sym.ply`**
 
 ---
 
@@ -397,8 +402,8 @@ Symmetry priors will be saved as:
 <details>
 <summary>Click to expand</summary>
 
-Run `s1_p3_obj_infos.py` to traverse all `ply` files and their symmetry priors in the `models` folder.
-This script generates a standard `models_info.json` file in BOP format.
+Run **`s1_p3_obj_infos.py`** to traverse all **`ply`** files and their symmetry priors in the **`models`** folder.
+This script generates a standard **`models_info.json`** file in BOP format.
 
 Example structure:
 
@@ -413,13 +418,70 @@ Dataset_Name
 
 This file serves as the foundation for PBR rendering, YOLOv11 training, and HccePose(BF) model training.
 
+---
+
 </details>
+
+#### 🔥 Rendering the PBR Dataset
+
+<details>
+<summary>Click to expand</summary>
+
+Based on **BlenderProc**, we modified a rendering script — **`s2_p1_gen_pbr_data.py`** — for generating new datasets. Running this script directly in Python may cause a **memory leak**, which accumulates over time and gradually degrades rendering performance. To address this issue, we provide a **Shell script** — **`s2_p1_gen_pbr_data.sh`** — that repeatedly invokes **`s2_p1_gen_pbr_data.py`**, effectively preventing memory accumulation and improving efficiency. Additionally, several adjustments were made to BlenderProc to better support PBR dataset generation for new object sets.
 
 ---
 
+#### Preparation Before Rendering
+
+Before rendering, use **`s2_p0_download_cc0textures.py`** to download the **CC0Textures** material library.  
+After downloading, the directory structure should look like this:
+```
+HCCEPose
+|--- s2_p0_download_cc0textures.py
+|--- cc0textures
+```
+
+---
+
+#### Running the Renderer
+
+The **`s2_p1_gen_pbr_data.py`** script is responsible for PBR data generation,  
+and it is adapted from [BlenderProc2](https://github.com/DLR-RM/BlenderProc).
+
+Run the following commands:
+
+```bash
+cd HCCEPose
+chmod +x s2_p1_gen_pbr_data.sh
+nohup ./s2_p1_gen_pbr_data.sh 0 42 xxx/xxx/cc0textures xxx/xxx/demo-bin-picking xxx/xxx/s2_p1_gen_pbr_data.py > s2_p1_gen_pbr_data.log 2>&1 &
+```
+
+**Folder Structure**
+
+After executing the above process, the program will:
+- Use materials from **`xxx/xxx/cc0textures`**;
+- Load 3D object models from **`xxx/xxx/demo-bin-picking/models`**;
+- Generate **`42 folders`**, each containing **`1000 PBR-rendered frames`**, under **`xxx/xxx/demo-bin-picking`**.
+
+The resulting structure will be:
+```
+demo-bin-picking
+|--- models
+|--- train_pbr
+      |--- 000000
+      |--- 000001
+      ...
+      |--- 000041
+```
+
+---
+
+</details>
+
+
 ## 🧪 BOP Challenge Testing
 
-You can use the script [`s4_p2_test_bf_pbr_bop_challenge.py`](/s4_p2_test_bf_pbr_bop_challenge.py) to evaluate **HccePose(BF)** across the seven core BOP datasets.
+You can use the script [**`s4_p2_test_bf_pbr_bop_challenge.py`**](/s4_p2_test_bf_pbr_bop_challenge.py) to evaluate **HccePose(BF)** across the seven core BOP datasets.
 
 #### Pretrained Weights
 
@@ -453,7 +515,7 @@ while the **2D segmentation score** improved by **0.002**, thanks to the correct
 
 #### ⚙️ Notes
 
-- If some pretrained weights show an iteration count of `0`, this is **not an error**. All **HccePose(BF)** weights are fine-tuned from the standard HccePose model trained using only the front surface. In some cases, the initial weights already achieve optimal performance.
+- If some pretrained weights show an iteration count of **`0`**, this is **not an error**. All **HccePose(BF)** weights are fine-tuned from the standard HccePose model trained using only the front surface. In some cases, the initial weights already achieve optimal performance.
 
 ---
 
@@ -471,7 +533,7 @@ We are currently organizing and updating the following modules:
 
 - ⚙️ PBR + Real training workflow
 
-- 📘 Tutorials on ~~object preprocessing~~, data rendering, and model training
+- 📘 Tutorials on ~~object preprocessing~~, ~~data rendering~~, and model training
 
 All components are expected to be completed by the end of 2025, with continuous daily updates whenever possible.
 
