@@ -445,8 +445,7 @@ HCCEPose
 
 #### Running the Renderer
 
-The **`s2_p1_gen_pbr_data.py`** script is responsible for PBR data generation,  
-and it is adapted from [BlenderProc2](https://github.com/DLR-RM/BlenderProc).
+The **`s2_p1_gen_pbr_data.py`** script is responsible for PBR data generation, and it is adapted from [BlenderProc2](https://github.com/DLR-RM/BlenderProc).
 
 Run the following commands:
 

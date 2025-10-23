@@ -428,8 +428,7 @@ HCCEPose
 
 #### 渲染执行
 
-**`s2_p1_gen_pbr_data.py`** 用于生成 PBR 数据，  
-该脚本基于 [BlenderProc2](https://github.com/DLR-RM/BlenderProc) 进行了改写。
+**`s2_p1_gen_pbr_data.py`** 用于生成 PBR 数据，该脚本基于 [BlenderProc2](https://github.com/DLR-RM/BlenderProc) 进行了改写。
 
 执行命令如下：
 
