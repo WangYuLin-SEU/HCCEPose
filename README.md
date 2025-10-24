@@ -479,6 +479,9 @@ demo-bin-picking
 
 #### 🚀 Training the 2D Detector
 
+<details>
+<summary>Click to expand</summary>
+
 In 6D pose estimation tasks, a **2D detector** is typically used to locate the object’s bounding box,  from which cropped image regions are used for **6D pose estimation**.  Compared with directly regressing 6D poses from the entire image,  the **two-stage approach (2D detection → 6D pose estimation)** offers better accuracy and stability. Therefore, **HccePose(BF)** is equipped with a 2D detector based on **YOLOv11**.  
 
 The following sections describe how to **convert BOP-format PBR training data** into YOLO-compatible data and how to **train YOLOv11**.
@@ -486,9 +489,6 @@ The following sections describe how to **convert BOP-format PBR training data** 
 ---
 
 #### Converting BOP PBR Data to YOLO Format
-
-<details>
-<summary>Click to expand</summary>
 
 To automate the conversion from BOP-style PBR data to YOLO training data, we provide the **`s3_p1_prepare_yolo_label.py`** script. After specifying the dataset path **`xxx/xxx/demo-bin-picking`** and running the script, the program will create a new folder named **`yolo11`** inside **`demo-bin-picking`**.
 
