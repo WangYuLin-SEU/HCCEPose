@@ -13,9 +13,9 @@ def modify_ply_texture_filename(input_file, output_file, new_texture_name):
     ---
     ---
     Args:
-        input_file: Path to the input PLY file.
-        output_file: Path to the output PLY file.
-        new_texture_name: New file name for the texture image.
+        - input_file: Path to the input PLY file.
+        - output_file: Path to the output PLY file.
+        - new_texture_name: New file name for the texture image.
 
     Returns:
         None
@@ -26,9 +26,9 @@ def modify_ply_texture_filename(input_file, output_file, new_texture_name):
     ---
     ---
     参数:
-        input_file: 输入 PLY 文件的路径。
-        output_file: 输出 PLY 文件的路径。
-        new_texture_name: 新的纹理图文件名。
+        - input_file: 输入 PLY 文件的路径。
+        - output_file: 输出 PLY 文件的路径。
+        - new_texture_name: 新的纹理图文件名。
 
     返回:
         无
