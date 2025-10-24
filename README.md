@@ -477,6 +477,74 @@ demo-bin-picking
 
 </details>
 
+#### 🚀 Training the 2D Detector
+
+In 6D pose estimation tasks, a **2D detector** is typically used to locate the object’s bounding box,  from which cropped image regions are used for **6D pose estimation**.  Compared with directly regressing 6D poses from the entire image,  the **two-stage approach (2D detection → 6D pose estimation)** offers better accuracy and stability. Therefore, **HccePose(BF)** is equipped with a 2D detector based on **YOLOv11**.  
+
+The following sections describe how to **convert BOP-format PBR training data** into YOLO-compatible data and how to **train YOLOv11**.
+
+---
+
+#### Converting BOP PBR Data to YOLO Format
+
+<details>
+<summary>Click to expand</summary>
+
+To automate the conversion from BOP-style PBR data to YOLO training data, we provide the **`s3_p1_prepare_yolo_label.py`** script. After specifying the dataset path **`xxx/xxx/demo-bin-picking`** and running the script, the program will create a new folder named **`yolo11`** inside **`demo-bin-picking`**.
+
+The generated directory structure is as follows:
+
+```
+demo-bin-picking
+|--- models
+|--- train_pbr
+|--- yolo11
+      |--- train_obj_s
+            |--- images
+            |--- labels
+            |--- yolo_configs
+                |--- data_objs.yaml
+            |--- autosplit_train.txt
+            |--- autosplit_val.txt
+```
+
+Explanation:  
+- **`images`** → Folder containing 2D training images  
+- **`labels`** → Folder containing 2D bounding box (BBox) annotations  
+- **`data_objs.yaml`** → YOLO configuration file  
+- **`autosplit_train.txt`** → List of training samples  
+- **`autosplit_val.txt`** → List of validation samples  
+
+---
+
+#### Training the YOLOv11 Detector
+
+To train the YOLOv11 detector, use the **`s3_p2_train_yolo.py`** script. After specifying the dataset path **`xxx/xxx/demo-bin-picking`**, run the script to train YOLOv11 and save the **best model weights** as **`yolo11-detection-obj_s.pt`**.  
+
+The final directory structure after training is shown below:
+
+```
+demo-bin-picking
+|--- models
+|--- train_pbr
+|--- yolo11
+      |--- train_obj_s
+            |--- detection
+                |--- obj_s
+                    |--- yolo11-detection-obj_s.pt
+            |--- images
+            |--- labels
+            |--- yolo_configs
+                |--- data_objs.yaml
+            |--- autosplit_train.txt
+            |--- autosplit_val.txt
+```
+
+---
+
+</details>
+
+---
 
 ## 🧪 BOP Challenge Testing
 

@@ -460,6 +460,71 @@ demo-bin-picking
 
 </details>
 
+#### 🚀 训练 2D 检测器
+
+<details>
+<summary>点击展开</summary>
+
+在 6D 位姿估计任务中，通常需要首先通过 **2D 检测器** 来确定物体的包围盒区域，并基于包围盒图像进一步推断物体的 **6D 位姿**。相比直接从整幅图像中预测 6D 位姿，**“2D 检测 + 6D 位姿估计”** 的两阶段方法在精度与稳定性方面表现更优。因此，本项目为 **HccePose(BF)** 配备了一个基于 **YOLOv11** 的 2D 检测器。  
+
+以下将介绍如何将 **BOP 格式的 PBR 训练数据** 转换为 YOLO 可用的数据格式，并进行 YOLOv11 的训练。
+
+---
+
+####  转换 BOP PBR 训练数据为 YOLO 训练数据
+
+为实现 BOP 格式 PBR 数据与 YOLO 数据的自动转换，我们提供了 **`s3_p1_prepare_yolo_label.py`** 脚本。在指定路径 **`xxx/xxx/demo-bin-picking`** 后运行该脚本，程序将在 **`demo-bin-picking`** 文件夹下生成一个新的 **`yolo11`** 文件夹。
+
+生成后的目录结构如下：
+```
+demo-bin-picking
+|--- models
+|--- train_pbr
+|--- yolo11
+      |--- train_obj_s
+            |--- images
+            |--- labels
+            |--- yolo_configs
+                |--- data_objs.yaml
+            |--- autosplit_train.txt
+            |--- autosplit_val.txt
+```
+
+其中：  
+- **`images`** → 存放 2D 训练图像  
+- **`labels`** → 存放 2D BBox 标签文件  
+- **`data_objs.yaml`** → YOLO 训练配置文件  
+- **`autosplit_train.txt`** → 训练集样本列表  
+- **`autosplit_val.txt`** → 验证集样本列表  
+
+---
+
+#### 训练 YOLOv11 检测器
+
+为训练 YOLOv11 检测器，我们提供了 **`s3_p2_train_yolo.py`** 脚本。 在指定路径 **`xxx/xxx/demo-bin-picking`** 后运行该脚本，  程序将自动训练 YOLOv11，并保存最佳权重文件 **`yolo11-detection-obj_s.pt`**。  
+
+训练完成后，文件结构如下：
+
+```
+demo-bin-picking
+|--- models
+|--- train_pbr
+|--- yolo11
+      |--- train_obj_s
+            |--- detection
+                |--- obj_s
+                    |--- yolo11-detection-obj_s.pt
+            |--- images
+            |--- labels
+            |--- yolo_configs
+                |--- data_objs.yaml
+            |--- autosplit_train.txt
+            |--- autosplit_val.txt
+```
+
+</details>
+
+---
 
 ## 🧪 BOP挑战测试
 
