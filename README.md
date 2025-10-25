@@ -549,13 +549,9 @@ demo-bin-picking
 <details>
 <summary>Click to expand</summary>
 
-In **HccePose(BF)**, the network simultaneously learns the **front-surface** and **back-surface 3D coordinates** of each object.  
-To generate these labels, separate depth maps are rendered for the front and back surfaces.
+In **HccePose(BF)**, the network simultaneously learns the **front-surface** and **back-surface 3D coordinates** of each object. To generate these labels, separate depth maps are rendered for the front and back surfaces.
 
-During front-surface rendering, **`gl.glDepthFunc(gl.GL_LESS)`** is applied to preserve the **smallest depth values**, corresponding to the points closest to the camera.  
-These are defined as the **front surfaces**, following the “front-face” concept used in traditional back-face culling.  
-Similarly, for back-surface rendering, **`gl.glDepthFunc(gl.GL_GREATER)`** is used to retain the **largest depth values**, corresponding to the farthest visible surfaces.  
-Finally, the **3D coordinate label maps** are generated based on these depth maps and the ground-truth 6D poses.
+During front-surface rendering, **`gl.glDepthFunc(gl.GL_LESS)`** is applied to preserve the **smallest depth values**, corresponding to the points closest to the camera. These are defined as the **front surfaces**, following the “front-face” concept used in traditional back-face culling. Similarly, for back-surface rendering, **`gl.glDepthFunc(gl.GL_GREATER)`** is used to retain the **largest depth values**, corresponding to the farthest visible surfaces. Finally, the **3D coordinate label maps** are generated based on these depth maps and the ground-truth 6D poses.
 
 ---
 
@@ -565,18 +561,13 @@ For symmetric objects, both **discrete** and **continuous rotational symmetries*
 Using these matrices and the ground-truth pose, a new set of valid ground-truth poses is computed.  
 To ensure **pose label uniqueness**, the pose with the **minimum L2 distance** from the identity matrix is selected as the final label.
 
-Moreover, due to the imaging principle, when an object undergoes translation without rotation, a **visual rotation** can occur from a fixed viewpoint.  
-For symmetric objects, this apparent rotation can cause erroneous 3D label maps.  
-To correct this effect, we reconstruct 3D coordinates from the rendered depth maps and apply **RANSAC PnP** to refine the rotation.
+Moreover, due to the imaging principle, when an object undergoes translation without rotation, a **visual rotation** can occur from a fixed viewpoint. For symmetric objects, this apparent rotation can cause erroneous 3D label maps. To correct this effect, we reconstruct 3D coordinates from the rendered depth maps and apply **RANSAC PnP** to refine the rotation.
 
 ---
 
 #### Batch Label Generation
 
-Based on the above procedure, we implement **`s4_p1_gen_bf_labels.py`**,  
-a multi-process rendering script for generating front and back 3D coordinate label maps in batches.  
-After specifying the dataset path **`/root/xxxxxx/demo-bin-picking`** and the subfolder **`train_pbr`**,  
-running the script produces two new folders:
+Based on the above procedure, we implement **`s4_p1_gen_bf_labels.py`**, a multi-process rendering script for generating front and back 3D coordinate label maps in batches. After specifying the dataset path **`/root/xxxxxx/demo-bin-picking`** and the subfolder **`train_pbr`**, running the script produces two new folders:
 
 - **`train_pbr_xyz_GT_front`** — Front-surface 3D label maps  
 - **`train_pbr_xyz_GT_back`** — Back-surface 3D label maps  
