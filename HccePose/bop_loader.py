@@ -1,3 +1,6 @@
+# Author: Yulin Wang (yulinwang@seu.edu.cn)
+# School of Mechanical Engineering, Southeast University, China
+
 import os, cv2, sys, json, copy, torch
 import numpy as np
 from PIL import Image
@@ -5,10 +8,16 @@ from tqdm import tqdm
 import torchvision.transforms as transforms
 import imgaug.augmenters as iaa
 from torch.utils.data import Dataset
+
+# Configure the EGL renderer.
+# 设置 EGL 渲染器。
 import platform
 sys0 = platform.system()
 if sys0 == "Linux":
     os.environ["PYOPENGL_PLATFORM"] = "egl"
+
+# Set the path to `bop_toolkit`.
+# 设置 `bop_toolkit` 的路径。
 sys.path.insert(0, os.getcwd())
 current_directory = sys.argv[0]
 pa_ = os.path.join(os.path.dirname(current_directory), 'bop_toolkit')
@@ -171,7 +180,8 @@ class bop_dataset():
                 
             scene_camera_dict = load_json2dict(scene_camera_path)
             
-            rgb_folder_name = 'rgb'
+            if os.path.exists(os.path.join(scene_path_i, 'rgb')):rgb_folder_name = 'rgb'
+            if os.path.exists(os.path.join(scene_path_i, 'gray')):rgb_folder_name = 'gray'
             dep_folder_name = 'depth'
             mask_folder_name = 'mask'
             mask_vis_folder_name = 'mask_visib'
@@ -252,8 +262,94 @@ class bop_dataset():
         }
     
 class rendering_bop_dataset_back_front(Dataset):
+    '''
+    ---
+    ---
+    Preparation of front and back 3D coordinate label maps.  
+    ---
+    ---
+    `rendering_bop_dataset_back_front` is based on PyTorch’s Dataset and implements multiprocessing
+    for generating 3D coordinate label maps of both front and back surfaces.  
+    To enable front–back rendering, we modified the VisPy instance in [`bop_toolkit`](https://github.com/thodan/bop_toolkit)
+    by adding an option to switch between front and back rendering modes.  
+
+    - Front rendering:
+    The depth test is set via `gl.glDepthFunc(gl.GL_LESS)` to retain the smallest depth values,
+    corresponding to the surfaces closest to the camera.  
+    These nearest surfaces are defined as the object’s “front side”, consistent with the “front–back culling” concept in rendering pipelines.  
+
+    - Back rendering:
+    The depth test is set via `gl.glDepthFunc(gl.GL_GREATER)` to retain the largest depth values,
+    corresponding to the surfaces farthest from the camera.  
+
+    - Handling rotationally symmetric objects: 
+    Both discrete and continuous rotational symmetries are converted into a set of rotational symmetry matrices.  
+    Using this matrix set and the ground-truth object pose, a new set of valid pose labels is computed.  
+    To maintain the uniqueness of the 6D pose label, the pose with the smallest L2 distance to the identity matrix
+    is selected as the final ground-truth pose.  
+
+    - Correcting visually induced rotation:
+    According to imaging geometry, when translation changes but rotation remains constant,
+    an object may appear visually rotated under a fixed camera viewpoint.  
+    To correct this translation-induced apparent rotation, the object’s 3D coordinates are computed from the rendered depth map,
+    and rotation refinement is performed using RANSAC PnP.
+    ---
+    ---
+    正背面 3D 坐标标签图制备。  
+    ---
+    ---
+    `rendering_bop_dataset_back_front` 基于 PyTorch 的 Dataset 实现，支持多进程生成物体正背面 3D 坐标的标签图。  
+    为实现正背面渲染，我们修改了 [`bop_toolkit`](https://github.com/thodan/bop_toolkit) 中的 VisPy 实例，增加了正背面渲染模式切换的功能。  
     
+    - 渲染正面：
+    通过 `gl.glDepthFunc(gl.GL_LESS)` 设置深度测试以保留最小的深度值，
+    即距离相机最近的物体表面。  
+    这些最近的表面被定义为物体的 **正面**，该定义参考了渲染流程中“正背面剔除”的“正面”概念。  
+
+    - 渲染背面：  
+    通过 `gl.glDepthFunc(gl.GL_GREATER)` 设置深度测试以保留最大的深度值，
+    即距离相机最远的物体表面。  
+
+    - 旋转对称物体处理： 
+    将离散与连续旋转对称统一转换为旋转对称矩阵集合，
+    并基于该矩阵集合与物体的真值位姿计算出新的真值位姿集合。  
+    为保持 6D 位姿标签的唯一性，从中选取与单位矩阵 L2 距离最小的真值位姿作为最终标签。  
+
+    - 修正视觉旋转误差：  
+    依据相机成像原理，当物体旋转不变而发生位移时，
+    在固定视角下物体会出现“视觉上的旋转”。  
+    为修正这种由位移引起的视觉旋转，我们根据渲染得到的深度图计算物体的 3D 坐标，
+    并使用 RANSAC PnP 对旋转进行校正。
+    '''
+
     def __init__(self, bop_dataset_item : bop_dataset, folder_name):
+        '''
+        ---
+        ---
+        Initialize the preparation of label maps.  
+        ---
+        ---
+        Args:
+            - bop_dataset_item: Instance for loading the BOP dataset.  
+            - folder_name: Name of the folder within the BOP dataset.  
+
+        Returns:
+            - None
+        ---
+        ---
+        初始化标签图制备过程。  
+        ---
+        ---
+        参数:
+            - bop_dataset_item: 用于加载 BOP 数据集的实例。  
+            - folder_name: BOP 数据集中的文件夹名称。  
+
+        返回:
+            - 无
+        '''
+
+        # Load the data from the folder.
+        # 加载文件夹中的数据。
         self.bop_dataset_item = bop_dataset_item
         self.dataset_info = bop_dataset_item.load_folder(folder_name)
         self.folder_name = folder_name
@@ -261,13 +357,14 @@ class rendering_bop_dataset_back_front(Dataset):
         if self.dataset_info is None:
             return
 
+        # Create a folder for storing label maps.
+        # 创建用于存储标签图的文件夹。
         target_dir_front = os.path.join(bop_dataset_item.dataset_path, folder_name + '_xyz_GT_front')
         try:
             os.mkdir(target_dir_front)
         except:
             1
         self.target_dir_front = target_dir_front
-            
         target_dir_back = os.path.join(bop_dataset_item.dataset_path, folder_name + '_xyz_GT_back')
         try:
             os.mkdir(target_dir_back)
@@ -275,6 +372,8 @@ class rendering_bop_dataset_back_front(Dataset):
             1
         self.target_dir_back = target_dir_back
         
+        # Create subfolders within the label directory according to the folder structure of the BOP dataset.
+        # 按照 BOP 数据集的文件夹结构，在标签文件夹中创建对应的子文件夹。
         for scene_path_i in self.dataset_info['scene_path_list']:
             try:
                 os.mkdir(os.path.join(self.target_dir_front, os.path.basename(scene_path_i)))
@@ -289,25 +388,43 @@ class rendering_bop_dataset_back_front(Dataset):
         return self.nSamples
 
     def __getitem__(self, index):
+        
+        # Retrieve the information of the sample.
+        # 获取样本的信息。
         info_ = self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')][index]
         scene_id = info_['scene']
         label_image_name = os.path.basename(info_['mask_path']).split('.')[0]
+        
+        # Set the save paths for the front and back label maps corresponding to the sample.
+        # 设置该样本对应的正面和背面标签图的保存路径。
         front_label_image_path = os.path.join(self.target_dir_front, scene_id, label_image_name + '.png')
         back_label_image_path = os.path.join(self.target_dir_back, scene_id, label_image_name + '.png')
+        
+        # Retrieve the pose of the sample.
+        # 获取样本的位姿。
         R = np.array(info_['cam_R_m2c']).reshape((3, 3))
         t = np.array(info_['cam_t_m2c']).reshape((3, 1))
         RT = [R, t]
         cam_K = np.array(info_['cam_K']).reshape((3, 3))
         fx, fy, cx, cy = cam_K[0,0], cam_K[1,1], cam_K[0,2], cam_K[1,2]
+        
+        # Render the front depth map.
+        # 渲染正面的深度图。
         self.renderer_vispy.render_object(0, R, t, fx, fy, cx, cy, draw_back = False)
         depth = self.renderer_vispy.depth
         pose_4 = np.eye(4)
         pose_4[:3,:3] = R
         pose_4[:3,3] = t[:,0]
         model_info_obj = self.model_info_obj
+        
+        # Correct the rotation deviation caused by translation.
+        # 修正由位移引起的旋转偏差。
         if 'symmetries_discrete' in model_info_obj:
             pose_4_re = self.pnp_solve_re_4p(pose_4, depth, fx, fy, cx, cy)
             RT[0], RT[1] = self.modified_sym_Rt(R, t, model_info_obj, e_rot = pose_4_re[:3,:3])
+            
+        # Compute the front label map based on the depth map, mask, and corrected 6D pose.
+        # 根据深度图、掩膜图以及修正后的 6D 位姿计算正面标签图。
         mask_n = depth.copy()
         mask_n[mask_n>0] = 255
         mask_n = mask_n.astype(np.uint8)
@@ -343,6 +460,8 @@ class rendering_bop_dataset_back_front(Dataset):
         rgb_xyz[:,:, 2][mask_n>0] = p3xyz[:,2]
         cv2.imwrite(front_label_image_path, rgb_xyz)
         
+        # Render the back depth map and generate the back label map.
+        # 渲染背面的深度图并生成背面标签图。
         self.renderer_vispy.render_object(0, R, t, fx, fy, cx, cy, draw_back = True)
         depth = self.renderer_vispy.depth
         grid_row, grid_column = np.nonzero(mask_n.astype(np.int64)>0)
@@ -380,9 +499,67 @@ class rendering_bop_dataset_back_front(Dataset):
         return 1
 
     def pnp_solve_re_4p(self, pose_, depth, fx, fy, cx, cy):
-        
         '''
-            The idea comes from : Yulin Wang, Hongli Li, and Chen Luo. Object Pose Estimation Based on Multi-precision Vectors and Seg-Driven PnP, International Journal of Computer Vision (IJCV), 2025, 133: 2620-2634.
+        ---
+        ---
+        Correct the rotation deviation caused by translation.  
+        ---
+        ---
+        According to imaging geometry, when translation changes but rotation remains constant,
+        an object may appear visually rotated under a fixed camera viewpoint.  
+        To correct this translation-induced apparent rotation, the object’s 3D coordinates are computed from the rendered depth map,
+        and rotation refinement is performed using RANSAC PnP.
+    
+        Args:
+            - pose_: The original 6D pose (4×4) before correction.  
+            - depth: The rendered depth map corresponding to the 6D pose.  
+            - fx: Focal length along the x-axis.  
+            - fy: Focal length along the y-axis.  
+            - cx: Principal point offset along the x-axis.  
+            - cy: Principal point offset along the y-axis.  
+
+        Returns:
+            - pnp_pose: The corrected 6D pose.  
+
+        This idea originates from our observation in keypoint-based pose estimation:  
+        for some objects, the 2D projections of keypoints change significantly with translation  
+        even when the rotation remains constant.  
+        Such changes have little impact on non-symmetric objects  
+        but can strongly affect pose estimation for rotationally symmetric objects.  
+
+        Reference:  
+        Yulin Wang, Hongli Li, and Chen Luo.  
+        _Object Pose Estimation Based on Multi-precision Vectors and Seg-Driven PnP_,  
+        International Journal of Computer Vision (IJCV), 2025, 133: 2620–2634.
+        ---
+        ---
+        修正由位移引起的旋转偏差。  
+        ---
+        ---
+        依据相机成像原理，当物体旋转不变而发生位移时，
+        在固定视角下物体会出现“视觉上的旋转”。  
+        为修正这种由位移引起的视觉旋转，我们根据渲染得到的深度图计算物体的 3D 坐标，
+        并使用 RANSAC PnP 对旋转进行校正。
+    
+        参数:
+            - pose_: 修正前的 6D 位姿（4×4）。  
+            - depth: 与该位姿对应的渲染深度图。  
+            - fx: 相机在 x 轴方向的焦距。  
+            - fy: 相机在 y 轴方向的焦距。  
+            - cx: 相机主点在 x 轴方向的偏移量。  
+            - cy: 相机主点在 y 轴方向的偏移量。  
+
+        返回:
+            - pnp_pose: 修正后的 6D 位姿。  
+
+        这一思路源自我们在研究基于关键点检测的位姿估计算法时的观察：  
+        对于某些物体，当旋转保持不变而发生位移时，关键点的 2D 投影会发生明显变化。  
+        这种变化对非旋转对称物体影响较小，但会显著影响旋转对称物体的位姿估计结果。  
+
+        参考文献：  
+        Yulin Wang, Hongli Li, and Chen Luo.  
+        _Object Pose Estimation Based on Multi-precision Vectors and Seg-Driven PnP_,  
+        International Journal of Computer Vision (IJCV), 2025, 133: 2620–2634.
         '''
         
         def perspective_unknown_kp_2D(kp, RT ):
@@ -468,8 +645,51 @@ class rendering_bop_dataset_back_front(Dataset):
 
     def modified_sym_Rt(self, rot_pose, tra_pose, model_info, e_rot=None):
         '''
-            Part of the idea comes from ZebraPose
+        ---
+        ---
+        Eliminate the ambiguity of 6D poses for rotationally symmetric objects.  
+        ---
+        ---
+        Based on rotational symmetry priors, this function computes all possible ground-truth 6D pose labels  
+        and selects the one whose rotation matrix has the smallest L2 distance from the identity matrix.  
+        During the L2 distance computation, the rotation corrected by RANSAC PnP (`e_rot`) is used  
+        to remove the apparent rotation deviation caused by translation.  
+
+        Args:
+            - rot_pose: Ground-truth rotation matrix.  
+            - tra_pose: Ground-truth translation vector.  
+            - model_info: Object information containing rotational symmetry priors.  
+            - e_rot: Rotation matrix corrected by RANSAC PnP.  
+
+        Returns:
+            - rot_pose: Rotation matrix with rotational symmetry ambiguity removed.  
+            - tra_pose: Translation vector with rotational symmetry ambiguity removed.  
+        This idea is inspired by **ZebraPose**: https://github.com/suyz526/ZebraPose
+        
+        ---
+        ---
+        消除旋转对称物体在 6D 位姿中的歧义性。  
+        ---
+        ---
+        基于旋转对称先验，函数会计算所有潜在的真值 6D 位姿标签，  
+        并从中筛选出与单位旋转矩阵的 L2 距离最小的 6D 位姿。  
+        在计算 L2 距离时，使用经 RANSAC PnP 校正后的旋转 (`e_rot`)，  
+        以消除由位移引起的视觉旋转偏差。  
+
+        参数:
+            - rot_pose: 真值标签的旋转矩阵。  
+            - tra_pose: 真值标签的位移向量。  
+            - model_info: 物体信息，包含旋转对称先验。  
+            - e_rot: 通过 RANSAC PnP 校正得到的旋转矩阵。  
+
+        返回:
+            - rot_pose: 消除了旋转对称歧义性的旋转矩阵。  
+            - tra_pose: 消除了旋转对称歧义性的位移向量。  
+
+        这一思路来源于 **ZebraPose**：https://github.com/suyz526/ZebraPose
         '''
+
+
         trans_disc = [{'R': np.eye(3), 't': np.array([[0, 0, 0]]).T}]  # Identity.
         for sym in model_info['symmetries_discrete']:
             sym_4x4 = np.reshape(sym, (4, 4))
@@ -495,7 +715,14 @@ class rendering_bop_dataset_back_front(Dataset):
         return rot_pose, tra_pose
     
     def update_obj_id(self, obj_id, obj_path):
-        
+        '''
+        Update the currently loaded object.  
+        `obj_id` is the object's ID, and `obj_path` is the path to its 3D model.
+
+        更新当前加载的物体。  
+        `obj_id` 为物体的 ID，`obj_path` 为该物体的 3D 模型路径。
+        '''
+
         self.current_obj_id = obj_id
         self.current_obj_path = obj_path
         self.nSamples = len(self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')])
@@ -514,6 +741,12 @@ class rendering_bop_dataset_back_front(Dataset):
         return
     
     def worker_init_fn(self, worker_id):
+        '''
+        Create a VisPy renderer for each process.
+        
+        为每个进程创建一个 VisPy 渲染器。
+        '''
+        
         print(worker_id)
         self.worker_id = worker_id
         self.img_shape = cv2.imread(self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')][0]['rgb']).shape[:2]
@@ -661,35 +894,49 @@ class train_bop_dataset_back_front(Dataset):
 
 class test_bop_dataset_back_front(Dataset):
     
-    def __init__(self, bop_dataset_item : bop_dataset, folder_name, bbox_2D = None, padding_ratio=1.5, crop_size_img=256, ratio = 1.0 ):
+    def __init__(self, bop_dataset_item : bop_dataset, folder_name, bbox_2D = None, test_targets_bop19=None, bbox_2D_score_threshold = 0.0, padding_ratio=1.5, crop_size_img=256, ratio = 1.0 ):
         
         self.ratio = ratio
         self.bbox_2D = bbox_2D
         self.bop_dataset_item = bop_dataset_item
         self.dataset_info = bop_dataset_item.load_folder(folder_name, vis = 0.2)
         
+        
+        if test_targets_bop19 is not None:
+            test_targets_bop19_dict = load_json2dict(test_targets_bop19)
+            test_targets_bop19_dict_new = []
+            for test_targets_bop19_dict_i in test_targets_bop19_dict:
+                test_targets_bop19_dict_new.append({
+                    'im_id' : test_targets_bop19_dict_i['im_id'],
+                    'obj_id' : test_targets_bop19_dict_i['obj_id'],
+                    'scene_id' : test_targets_bop19_dict_i['scene_id'],
+                    })
         self.obj_info_w_bbox_2D = {}
         if bbox_2D is not None:
             bbox_2D_dict = load_json2dict(bbox_2D)
             for bbox_2D_i in bbox_2D_dict:
+                if test_targets_bop19 is not None:
+                    if {'im_id' : bbox_2D_i['image_id'], 'scene_id' : bbox_2D_i['scene_id'], 'obj_id' : bbox_2D_i['category_id']} not in test_targets_bop19_dict_new:
+                        continue
                 scene_id = str(bbox_2D_i['scene_id']).rjust(6, '0')
                 image_id = str(bbox_2D_i['image_id']).rjust(6, '0')
                 category_id = str(bbox_2D_i['category_id']).rjust(6, '0')
                 img_info_i = self.dataset_info['img_info'][scene_id + '_' + image_id]
                 if 'obj_'+category_id not in self.obj_info_w_bbox_2D:
                     self.obj_info_w_bbox_2D['obj_'+category_id] = []
-                obj_info_i = {
-                    'scene' : scene_id,
-                    'image' : image_id,
-                    'rgb' : img_info_i['rgb'],
-                    'depth' : img_info_i['depth'],
-                    'bbox' : bbox_2D_i['bbox'],
-                    'score' : bbox_2D_i['score'],
-                    'cam_K' : img_info_i['cam_K'],
-                    'depth_scale' : img_info_i['depth_scale'],
-                    
-                }
-                self.obj_info_w_bbox_2D['obj_'+category_id].append(obj_info_i)
+                if bbox_2D_score_threshold < bbox_2D_i['score']:
+                    obj_info_i = {
+                        'scene' : scene_id,
+                        'image' : image_id,
+                        'rgb' : img_info_i['rgb'],
+                        'depth' : img_info_i['depth'],
+                        'bbox' : bbox_2D_i['bbox'],
+                        'score' : bbox_2D_i['score'],
+                        'cam_K' : img_info_i['cam_K'],
+                        'depth_scale' : img_info_i['depth_scale'],
+                        
+                    }
+                    self.obj_info_w_bbox_2D['obj_'+category_id].append(obj_info_i)
         self.dataset_info['obj_info_origin'] = self.dataset_info['obj_info']
         self.dataset_info['obj_info'] = self.obj_info_w_bbox_2D
         
@@ -761,8 +1008,6 @@ class test_bop_dataset_back_front(Dataset):
         if self.bbox_2D is None: return rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce, Bbox, cam_K, cam_R_m2c, cam_t_m2c, 
         else: return rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce, Bbox, cam_K, cam_R_m2c, cam_t_m2c, int(info_['scene']), int(info_['image']), info_['score']
 
-        
-            
     def hcce_encode(self, code_img, iteration=8):
         code_img = [code_img[:, :, 0], code_img[:, :, 1], code_img[:, :, 2]]
         hcce_images = np.zeros((code_img[0].shape[0], code_img[0].shape[1], iteration * 3))
