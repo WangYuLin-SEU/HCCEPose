@@ -33,7 +33,7 @@ if __name__ == '__main__':
     
     # Specify the path to the dataset folder.
     # 指定数据集文件夹的路径。
-    dataset_path = '/root/autodl-tmp/HCCEPose/demo-bin-picking' # '/root/xxxxxx/demo-bin-picking'
+    dataset_path = '/root/xxxxxx/demo-bin-picking'
     
     # Create an instance for loading the BOP dataset.
     # 创建一个用于加载 BOP 数据集的实例。
