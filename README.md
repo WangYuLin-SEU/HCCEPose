@@ -544,6 +544,66 @@ demo-bin-picking
 
 </details>
 
+#### 🧩 Preparation of Front–Back Surface Labels
+
+<details>
+<summary>Click to expand</summary>
+
+In **HccePose(BF)**, the network simultaneously learns the **front-surface** and **back-surface 3D coordinates** of each object.  
+To generate these labels, separate depth maps are rendered for the front and back surfaces.
+
+During front-surface rendering, **`gl.glDepthFunc(gl.GL_LESS)`** is applied to preserve the **smallest depth values**, corresponding to the points closest to the camera.  
+These are defined as the **front surfaces**, following the “front-face” concept used in traditional back-face culling.  
+Similarly, for back-surface rendering, **`gl.glDepthFunc(gl.GL_GREATER)`** is used to retain the **largest depth values**, corresponding to the farthest visible surfaces.  
+Finally, the **3D coordinate label maps** are generated based on these depth maps and the ground-truth 6D poses.
+
+---
+
+#### Symmetry Handling and Pose Correction
+
+For symmetric objects, both **discrete** and **continuous rotational symmetries** are represented as a unified set of symmetry matrices.  
+Using these matrices and the ground-truth pose, a new set of valid ground-truth poses is computed.  
+To ensure **pose label uniqueness**, the pose with the **minimum L2 distance** from the identity matrix is selected as the final label.
+
+Moreover, due to the imaging principle, when an object undergoes translation without rotation, a **visual rotation** can occur from a fixed viewpoint.  
+For symmetric objects, this apparent rotation can cause erroneous 3D label maps.  
+To correct this effect, we reconstruct 3D coordinates from the rendered depth maps and apply **RANSAC PnP** to refine the rotation.
+
+---
+
+#### Batch Label Generation
+
+Based on the above procedure, we implement **`s4_p1_gen_bf_labels.py`**,  
+a multi-process rendering script for generating front and back 3D coordinate label maps in batches.  
+After specifying the dataset path **`/root/xxxxxx/demo-bin-picking`** and the subfolder **`train_pbr`**,  
+running the script produces two new folders:
+
+- **`train_pbr_xyz_GT_front`** — Front-surface 3D label maps  
+- **`train_pbr_xyz_GT_back`** — Back-surface 3D label maps  
+
+Directory structure:
+
+```
+demo-bin-picking
+|--- models
+|--- train_pbr
+|--- train_pbr_xyz_GT_back
+|--- train_pbr_xyz_GT_front
+```
+
+
+The following example shows three corresponding images:  
+the original rendering, the front-surface label map, and the back-surface label map.
+<p align="center">
+  <img src="/show_vis/000000.jpg" width="32%">
+  <img src="/show_vis/000000_000000-f.png" width="32%">
+  <img src="/show_vis/000000_000000-b.png" width="32%">
+</p>
+
+---
+
+</details>
+
 ---
 
 ## 🧪 BOP Challenge Testing
@@ -601,7 +661,7 @@ We are currently organizing and updating the following modules:
 
 - ⚙️ PBR + Real training workflow
 
-- 📘 Tutorials on ~~object preprocessing~~, ~~data rendering~~, ~~YOLOv11 label preparation and training~~, as well as HccePose(BF) label preparation and training
+- 📘 Tutorials on ~~object preprocessing~~, ~~data rendering~~, ~~YOLOv11 label preparation and training~~, as well as HccePose(BF) ~~label preparation~~ and training
 
 All components are expected to be completed by the end of 2025, with continuous daily updates whenever possible.
 
