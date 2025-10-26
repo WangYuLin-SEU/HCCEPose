@@ -1,3 +1,45 @@
+# Author: Yulin Wang (yulinwang@seu.edu.cn)
+# School of Mechanical Engineering, Southeast University, China
+
+'''
+
+Train HccePose (BF).  
+After training is completed, an `HccePose` folder will be created in the dataset directory  
+to store the weight files for each object.  
+
+Example:
+```
+demo-tex-objs
+|--- HccePose
+    |--- obj_01
+    ...
+    |--- obj_10
+|--- models
+|--- train_pbr
+|--- train_pbr_xyz_GT_back
+|--- train_pbr_xyz_GT_front
+```
+
+------------------------------------------------------    
+
+训练 HccePose (BF)。  
+训练完成后，会在数据集文件夹下生成一个 `HccePose` 文件夹，  
+用于保存每个物体的权重文件。  
+
+示例：
+```
+demo-tex-objs
+|--- HccePose
+    |--- obj_01
+    ...
+    |--- obj_10
+|--- models
+|--- train_pbr
+|--- train_pbr_xyz_GT_back
+|--- train_pbr_xyz_GT_front
+```
+'''
+
 import os, torch, argparse
 import itertools
 import numpy as np
@@ -75,32 +117,73 @@ def test(obj_ply, obj_info, net: HccePose_BF_Net, test_loader: torch.utils.data.
 
 if __name__ == '__main__':
     '''
-    
+    When `ide_debug` is set to True, single-GPU mode is used, allowing IDE debugging.  
+    When `ide_debug` is set to False, DDP (Distributed Data Parallel) training is enabled.  
+
+    DDP Training:  
     screen -S train_ddp
-    source activate py310
     nohup python -u -m torch.distributed.launch --nproc_per_node 6 /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
     
-    
+    Single-GPU Training:  
     nohup python -u /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
     
+    ------------------------------------------------------    
+    
+    当 `ide_debug` 为 True 时，仅使用单卡，可在 IDE 中进行调试。  
+    当 `ide_debug` 为 False 时，启用 DDP（分布式数据并行）训练。  
+
+    DDP 训练：  
+    screen -S train_ddp
+    nohup python -u -m torch.distributed.launch --nproc_per_node 6 /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
+    
+    单卡训练：
+    nohup python -u /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
     '''
     
-    ide_debug = False
+    ide_debug = True
+    
+    # Specify the path to the dataset folder.
+    # 指定数据集文件夹的路径。
     dataset_path = '/root/xxxxxx/demo-tex-objs'
+    
+    # Specify the name of the subfolder in the dataset used for loading training data.
+    # 指定数据集中用于加载训练数据的子文件夹名称。
     train_folder_name = 'train_pbr'
     
+    # The range of object IDs for training.  
+    # `start_obj_id` is the starting object ID, and `end_obj_id` is the ending object ID.
+    # 训练的物体 ID 范围。  
+    # `start_obj_id` 为起始物体 ID，`end_obj_id` 为终止物体 ID。
+    start_obj_id = 1
+    end_obj_id =5
     
+    # Total number of training epochs.
+    # 总训练轮数。
     total_iteration = 50001
+    
+    # Learning rate.
+    # 学习率。
     lr = 0.0002
     
+    # Number of samples per training epoch.
+    # 每轮训练的样本数量。
     batch_size = 24
-    save_freq = 100
+    
+    # Number of worker processes used by the DataLoader.
+    # DataLoader 的进程数量。
     num_workers = 12
     
-    
+    # The number of epochs between saving checkpoints.
+    # 保存检查点的间隔轮数。
     log_freq = 500
+    
+    # Scaling ratio for 2D bounding boxes.
+    # 2D 包围盒的缩放比例。
     padding_ratio = 1.5
-    aug_op = 'imgaug'
+    
+
+    # Whether to enable EfficientNet.
+    # 是否启用 EfficientNet。
     efficientnet_key = None
     
     
@@ -115,28 +198,29 @@ if __name__ == '__main__':
         torch.distributed.init_process_group(backend='nccl')
         torch.distributed.barrier() 
         world_size = torch.distributed.get_world_size()
-        
     local_rank = args.local_rank
     if local_rank != 0:
         if ide_debug is True:
             pass
-        
     CUDA_DEVICE = str(local_rank)
-    
     np.random.seed(local_rank)
-    
     bop_dataset_item = bop_dataset(dataset_path, local_rank=local_rank)
-    train_bop_dataset_back_front_item = train_bop_dataset_back_front(bop_dataset_item, train_folder_name, padding_ratio=padding_ratio, aug_op=aug_op)
+    train_bop_dataset_back_front_item = train_bop_dataset_back_front(bop_dataset_item, train_folder_name, padding_ratio=padding_ratio, )
+    
+    # ratio = 0.01 means selecting 1% of samples from the dataset for testing.
+    # ratio = 0.01 表示从数据集中选择 1% 的样本作为测试数据。
     test_bop_dataset_back_front_item = test_bop_dataset_back_front(bop_dataset_item, train_folder_name, padding_ratio=padding_ratio, ratio=0.01)
         
-    # obj_id = 1
-    for obj_id in range(1, 5):
+    for obj_id in range(start_obj_id, end_obj_id + 1):
+        
         
         obj_path = bop_dataset_item.obj_model_list[bop_dataset_item.obj_id_list.index(obj_id)]
         print(obj_path)
         obj_ply = load_ply(obj_path)
         obj_info = bop_dataset_item.obj_info_list[bop_dataset_item.obj_id_list.index(obj_id)]
         
+        # Create the save path.
+        # 创建保存路径。
         save_path = os.path.join(dataset_path, 'HccePose', 'obj_%s'%str(obj_id).rjust(2, '0'))
         best_save_path = os.path.join(save_path, 'best_score')
         try: os.mkdir(os.path.join(dataset_path, 'HccePose')) 
@@ -145,20 +229,14 @@ if __name__ == '__main__':
         except: 1
         try: os.mkdir(best_save_path) 
         except: 1
-        
-        # 加载数据集 (√)
-        # 增强数据集 (√)
-        # 训练模型 (√)
-        # 保存与加载模型
-        # 测试模型
-        # 加载多个数据集
-        # 测试数据集
-        # 分割测试集
-        
-        
+
+        # Get the 3D dimensions of the object.
+        # 获取物体的 3D 尺寸。
         min_xyz = torch.from_numpy(np.array([obj_info['min_x'], obj_info['min_y'], obj_info['min_z']],dtype=np.float32)).to('cuda:'+CUDA_DEVICE)
         size_xyz = torch.from_numpy(np.array([obj_info['size_x'], obj_info['size_y'], obj_info['size_z']],dtype=np.float32)).to('cuda:'+CUDA_DEVICE)
         
+        # Define the loss function and neural network.
+        # 定义损失函数和神经网络。
         loss_net = HccePose_Loss()
         scaler = GradScaler()
         net = HccePose_BF_Net(
@@ -178,6 +256,8 @@ if __name__ == '__main__':
             net_test=net_test.to('cuda:'+CUDA_DEVICE)
         optimizer=optim.Adam(net.parameters(), lr=lr)
 
+        # Attempt to load weights from an interrupted training session.
+        # 尝试加载中断训练时保存的权重。
         best_score = 0
         iteration_step = 0
         try:
@@ -190,7 +270,9 @@ if __name__ == '__main__':
         if not ide_debug:
             net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(net)
             net = torch.nn.parallel.DistributedDataParallel(net, device_ids=[args.local_rank], )
-            
+        
+        # Update the training and testing data loaders respectively.
+        # 分别更新训练和测试数据加载器。
         train_bop_dataset_back_front_item.update_obj_id(obj_id, obj_path)
         train_loader = torch.utils.data.DataLoader(train_bop_dataset_back_front_item, batch_size=batch_size, 
                                                 shuffle=True, num_workers=num_workers, drop_last=True) 
@@ -198,22 +280,23 @@ if __name__ == '__main__':
         test_loader = torch.utils.data.DataLoader(test_bop_dataset_back_front_item, batch_size=batch_size, 
                                                 shuffle=False, num_workers=num_workers, drop_last=False) 
         
+        # Train
+        # 训练
         while True:
             end_training = False
             for batch_idx, (rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce) in enumerate(train_loader):
                 
+                # Test and save checkpoints only in the process where `local_rank = 0`.
+                # 仅在 `local_rank = 0` 的进程中执行测试并保存检查点。
                 if args.local_rank == 0:
                     if (iteration_step)%log_freq == 0 and iteration_step > 0:
-                        
                         if isinstance(net, torch.nn.parallel.DataParallel):
                             state_dict = net.module.state_dict()
                         elif isinstance(net, torch.nn.parallel.DistributedDataParallel):
                             state_dict = net.module.state_dict()
                         else:
                             state_dict = net.state_dict()
-                            
                         net_test.load_state_dict(state_dict)
-                        
                         max_acc_id, max_acc, add_list_l = test(obj_ply, obj_info, net_test, test_loader, )
                         if max_acc >= best_score:
                             best_score = max_acc
@@ -221,7 +304,7 @@ if __name__ == '__main__':
                         loss_net.print_error_ratio()
                         save_checkpoint(save_path, net, iteration_step, best_score, optimizer, 3, keypoints_ = add_list_l)
 
-                    
+                
                 if torch.cuda.is_available():
                     rgb_c=rgb_c.to('cuda:'+CUDA_DEVICE, non_blocking = True)
                     mask_vis_c=mask_vis_c.to('cuda:'+CUDA_DEVICE, non_blocking = True)
@@ -233,6 +316,8 @@ if __name__ == '__main__':
                     pred_back_code = pred_front_back_code[:, 24:, ...]
                     current_loss = loss_net(pred_front_code, pred_back_code, pred_mask, GT_Front_hcce, GT_Back_hcce, mask_vis_c)
                     
+                    # Visualization.
+                    # 可视化。
                     '''
                     mask_vis_c = net.activation_function(mask_vis_c).round().clamp(0,1)
                     GT_Front_hcce = net.hcce_decode(GT_Front_hcce.permute(0,2,3,1)) / 255
@@ -282,4 +367,3 @@ if __name__ == '__main__':
                     print('end the training in iteration_step:', iteration_step)
                 break
              
-    os.system('/usr/bin/shutdown')
