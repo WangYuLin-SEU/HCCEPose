@@ -574,7 +574,58 @@ demo-bin-picking
 
 </details>
 
+#### 🚀 训练 HccePose(BF)
 
+<details>
+<summary>点击展开</summary>
+
+在训练 **HccePose(BF)** 时，需要为每个物体单独训练一个对应的权重模型。  
+通过 **`s4_p2_train_bf_pbr.py`** 脚本，可以实现 **批量物体的多卡训练**。
+
+以 `demo-tex-objs` 数据集为例，训练完成后的文件夹结构如下：
+```
+demo-tex-objs
+|--- HccePose
+    |--- obj_01
+    ...
+    |--- obj_10
+|--- models
+|--- train_pbr
+|--- train_pbr_xyz_GT_back
+|--- train_pbr_xyz_GT_front
+```
+
+在使用 **`s4_p2_train_bf_pbr.py`** 时，可通过参数 **`ide_debug`** 切换单卡与多卡模式：  
+- 当 `ide_debug=True` 时，仅使用 **单卡**，适合在 IDE 中调试；  
+- 当 `ide_debug=False` 时，启用 **DDP（分布式数据并行）训练** 模式。  
+
+在 VSCode 等 IDE 中直接挂起 DDP 训练可能会引发通讯问题，因此推荐使用以下命令在后台运行多卡训练：
+```
+screen -S train_ddp
+nohup python -u -m torch.distributed.launch --nproc_per_node 6 /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
+``` 
+
+如果仅需单卡运行或调试，可直接使用：
+
+```
+nohup python -u /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
+```  
+
+
+---
+
+#### 训练范围设置
+
+若需训练多个物体，可通过 **`start_obj_id`** 与 **`end_obj_id`** 参数设置物体 ID 范围。 例如，`start_obj_id=1` 且 `end_obj_id=5` 时，脚本会依次训练 `obj_000001.ply` 至 `obj_000005.ply`。若仅训练单个物体，则将两者设置为相同的数字即可。
+
+此外，可根据实际需求修改 **`total_iteration`**，其默认值为 `50000`。在 DDP 训练中，实际训练的样本数量可通过以下公式计算：
+```
+total samples = total iteration × batch size × GPU number
+```
+
+---
+
+</details>
 
 ---
 

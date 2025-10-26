@@ -595,6 +595,66 @@ the original rendering, the front-surface label map, and the back-surface label 
 
 </details>
 
+
+
+#### 🚀 Training HccePose(BF)
+
+<details>
+<summary>Click to expand</summary>
+
+When training **HccePose(BF)**, a separate weight model must be trained for each object.  
+The **`s4_p2_train_bf_pbr.py`** script supports **multi-GPU batch training** across multiple objects.
+
+Taking the `demo-tex-objs` dataset as an example, the directory structure after training is as follows:
+
+```
+demo-tex-objs
+|--- HccePose
+    |--- obj_01
+    ...
+    |--- obj_10
+|--- models
+|--- train_pbr
+|--- train_pbr_xyz_GT_back
+|--- train_pbr_xyz_GT_front
+```
+
+
+The **`ide_debug`** flag controls whether the script runs in **single-GPU** or **multi-GPU (DDP)** mode:
+- `ide_debug=True` → Single-GPU mode, ideal for debugging in IDEs.  
+- `ide_debug=False` → Enables **DDP (Distributed Data Parallel)** training.
+
+Note that directly running DDP training within IDEs such as VSCode may cause communication issues.  
+Hence, we recommend launching multi-GPU training in a detached session:
+
+```
+screen -S train_ddp
+nohup python -u -m torch.distributed.launch --nproc_per_node 6 /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
+``` 
+
+
+For single-GPU execution or debugging, use:
+
+```
+nohup python -u /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
+```  
+
+---
+
+</details>
+
+---
+
+#### Setting Training Ranges
+
+To train multiple objects, specify the range of object IDs using **`start_obj_id`** and **`end_obj_id`**. For example, setting `start_obj_id=1` and `end_obj_id=5` trains objects `obj_000001.ply` through `obj_000005.ply`. To train a single object, set both values to the same number.
+
+You may also adjust **`total_iteration`** according to training needs (default: `50000`). For DDP training, the total number of training samples is computed as:
+
+```
+total samples = total iteration × batch size × GPU number
+```
+
 ---
 
 ## 🧪 BOP Challenge Testing
