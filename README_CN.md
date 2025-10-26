@@ -63,235 +63,10 @@ pip install -U "huggingface_hub[hf_transfer]"
 
 </details>
 
-## ✏️ 快速开始
-针对 **Bin-Picking** 问题，本项目提供了一个基于 **HccePose(BF)** 的简易应用示例。  
-为降低复现难度，示例使用的物体（由普通 3D 打印机以白色 PLA 材料打印）和相机（小米手机）均为常见易得设备。  
-
-您可以：
-- 多次打印示例物体
-- 任意摆放打印物体
-- 使用手机自由拍摄
-- 直接利用本项目提供的权重完成 2D 检测、2D 分割与 6D 位姿估计
----
-
-> 请保持文件夹层级结构不变
-
-| 类型             | 资源链接                                                                                             |
-| -------------- | ------------------------------------------------------------------------------------------------ |
-| 🎨 物体 3D 模型    | [demo-bin-picking/models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/models)     |
-| 📁 YOLOv11 权重  | [demo-bin-picking/yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/yolo11)     |
-| 📂 HccePose 权重 | [demo-bin-picking/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/HccePose) |
-| 🖼️ 测试图片       | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs)                |
-| 🎥 测试视频        | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos)            |
-
-> ⚠️ 注意：
-文件名以 train 开头的压缩包仅在训练阶段使用，快速开始部分只需下载上述测试文件。
-
----
-
-#### ⏳ 模型与加载器
-测试时，需要从以下模块导入：
-- **`HccePose.tester`** → 提供集成式测试器（2D 检测、分割、6D 位姿估计全流程）
-- **`HccePose.bop_loader`** → 基于 BOP 格式的数据加载器，用于加载物体模型文件和训练数据
-
----
-
-#### 📸 示例测试
-下图展示了实验场景：  
-<details>
-<summary>点击展开</summary>
-我们将多个白色 3D 打印物体放入碗中，并放置在白色桌面上，随后用手机拍摄。  
-原始图像示例如下 👇  
-<div align="center">
- <img src="/test_imgs/IMG_20251007_165718.jpg" width="40%">
-</div>
-
-该图像来自：[示例图片链接](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/test_imgs/IMG_20251007_165718.jpg)
-
-</details>
-
-随后，可直接使用以下脚本进行 6D 位姿估计与可视化：
-
-<details>
-<summary>点击展开代码</summary>
-
-```python
-import cv2, os, sys
-import numpy as np
-from HccePose.bop_loader import bop_dataset
-from HccePose.tester import Tester
-if __name__ == '__main__':
-
-    sys.path.insert(0, os.getcwd())
-    current_dir = os.path.dirname(sys.argv[0])
-    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
-    test_img_path = os.path.join(current_dir, 'test_imgs')
-    bop_dataset_item = bop_dataset(dataset_path)
-    obj_id = 1
-    CUDA_DEVICE = '0'
-    # show_op = False
-    show_op = True
-    
-    for name in ['IMG_20251007_165718']:
-        file_name = os.path.join(test_img_path, '%s.jpg'%name)
-        image = cv2.cvtColor(cv2.imread(file_name), cv2.COLOR_RGB2BGR)
-        cam_K = np.array([
-            [2.83925618e+03, 0.00000000e+00, 2.02288638e+03],
-            [0.00000000e+00, 2.84037288e+03, 1.53940473e+03],
-            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
-        ])
-        results_dict = Tester_item.perdict(cam_K, image, [obj_id],
-                                                        conf = 0.85, confidence_threshold = 0.85)
-        cv2.imwrite(file_name.replace('.jpg','_show_2d.jpg'), results_dict['show_2D_results'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis0.jpg'), results_dict['show_6D_vis0'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis1.jpg'), results_dict['show_6D_vis1'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict['show_6D_vis2'])
-    pass
-```
-
-</details>
-
----
-
-#### 🎯 可视化结果
-
-2D 检测结果 (_show_2d.jpg)：
-
-<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_2d.jpg" width="40%"> </div>
-
-
-网络输出结果：
-
-- 基于 HCCE 的前后表面坐标编码
-
-- 物体掩膜
-
-- 解码后的 3D 坐标可视化
-
-<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_6d_vis0.jpg" width="100%"> 
-<img src="/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="100%"> </div> 
-
----
-#### 🎥 视频的6D位姿估计
-
-<details>
-<summary>具体内容</summary>
-
-基于单帧图像的位姿估计流程，可以轻松扩展至视频序列，从而实现对连续帧的 6D 位姿估计，代码如下：
-<details>
-<summary>点击展开代码</summary>
-
-```python
-import cv2, os, sys
-import numpy as np
-from HccePose.bop_loader import bop_dataset
-from HccePose.tester import Tester
-
-if __name__ == '__main__':
-    
-    sys.path.insert(0, os.getcwd())
-    current_dir = os.path.dirname(sys.argv[0])
-    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
-    test_video_path = os.path.join(current_dir, 'test_videos')
-    bop_dataset_item = bop_dataset(dataset_path)
-    obj_id = 1
-    CUDA_DEVICE = '0'
-    # show_op = False
-    show_op = True
-    
-    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
-    for name in ['VID_20251009_141247']:
-        file_name = os.path.join(test_video_path, '%s.mp4'%name)
-        cap = cv2.VideoCapture(file_name)
-        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out_1 = None
-        out_2 = None
-        cam_K = np.array([
-            [1.63235512e+03, 0.00000000e+00, 9.74032712e+02],
-            [0.00000000e+00, 1.64159967e+03, 5.14229781e+02],
-            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
-        ])
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            results_dict = Tester_item.perdict(cam_K, frame, [obj_id],
-                                                            conf = 0.85, confidence_threshold = 0.85)
-            fps_hccepose = 1 / results_dict['time']
-            show_6D_vis1 = results_dict['show_6D_vis1']
-            show_6D_vis1[show_6D_vis1 < 0] = 0
-            show_6D_vis1[show_6D_vis1 > 255] = 255
-            if out_1 is None:
-                out_1 = cv2.VideoWriter(
-                    file_name.replace('.mp4', '_show_1.mp4'),
-                    fourcc,
-                    fps,
-                    (show_6D_vis1.shape[1], show_6D_vis1.shape[0])
-                )
-            out_1.write(show_6D_vis1.astype(np.uint8))
-            show_6D_vis2 = results_dict['show_6D_vis2']
-            show_6D_vis2[show_6D_vis2 < 0] = 0
-            show_6D_vis2[show_6D_vis2 > 255] = 255
-            if out_2 is None:
-                out_2 = cv2.VideoWriter(
-                    file_name.replace('.mp4', '_show_2.mp4'),
-                    fourcc,
-                    fps,
-                    (show_6D_vis2.shape[1], show_6D_vis2.shape[0])
-                )
-            cv2.putText(show_6D_vis2, "FPS: {0:.2f}".format(fps_hccepose), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4, cv2.LINE_AA)
-            out_2.write(show_6D_vis2.astype(np.uint8))
-        cap.release()
-        out_1.release()
-        out_2.release()
-    pass
-```
-
-</details>
-
----
-
-#### 🎯 可视化结果
-**原始视频：**
-<img src="/show_vis/VID_20251009_141247.gif" width=100%>
-
-**检测结果：**
-<img src="/show_vis/VID_20251009_141247_vis.gif" width=100%>
-
----
-
-此外，通过向**`HccePose.tester`**传入多个物体的id列表，即可实现对多物体的 6D 位姿估计。
-
-> 请保持文件夹层级结构不变
-
-| 类型             | 资源链接                                                                                             |
-| -------------- | ------------------------------------------------------------------------------------------------ |
-| 🎨 物体 3D 模型    | [demo-tex-objs/models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/models)     |
-| 📁 YOLOv11 权重  | [demo-tex-objs/yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/yolo11)     |
-| 📂 HccePose 权重 | [demo-tex-objs/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/HccePose) |
-| 🖼️ 测试图片       | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs)                |
-| 🎥 测试视频        | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos)            |
-
-> ⚠️ 注意：
-文件名以 train 开头的压缩包仅在训练阶段使用，快速开始部分只需下载上述测试文件。
-
-**原始视频：**
-<img src="/show_vis/VID_20251009_141731.gif" width=100%>
-
-**检测结果：**
-<img src="/show_vis/VID_20251009_141731_vis.gif" width=100%>
-
-</details>
-
 ---
 
 
-## 🧱 自定义数据集
+## 🧱 自定义数据集及训练
 
 #### 🎨 物体预处理
 
@@ -628,6 +403,237 @@ total samples = total iteration × batch size × GPU number
 </details>
 
 ---
+
+
+## ✏️ 快速开始
+针对 **Bin-Picking** 问题，本项目提供了一个基于 **HccePose(BF)** 的简易应用示例。  
+为降低复现难度，示例使用的物体（由普通 3D 打印机以白色 PLA 材料打印）和相机（小米手机）均为常见易得设备。  
+
+您可以：
+- 多次打印示例物体
+- 任意摆放打印物体
+- 使用手机自由拍摄
+- 直接利用本项目提供的权重完成 2D 检测、2D 分割与 6D 位姿估计
+---
+
+> 请保持文件夹层级结构不变
+
+| 类型             | 资源链接                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------ |
+| 🎨 物体 3D 模型    | [demo-bin-picking/models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/models)     |
+| 📁 YOLOv11 权重  | [demo-bin-picking/yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/yolo11)     |
+| 📂 HccePose 权重 | [demo-bin-picking/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/HccePose) |
+| 🖼️ 测试图片       | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs)                |
+| 🎥 测试视频        | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos)            |
+
+> ⚠️ 注意：
+文件名以 train 开头的压缩包仅在训练阶段使用，快速开始部分只需下载上述测试文件。
+
+---
+
+#### ⏳ 模型与加载器
+测试时，需要从以下模块导入：
+- **`HccePose.tester`** → 提供集成式测试器（2D 检测、分割、6D 位姿估计全流程）
+- **`HccePose.bop_loader`** → 基于 BOP 格式的数据加载器，用于加载物体模型文件和训练数据
+
+---
+
+#### 📸 示例测试
+下图展示了实验场景：  
+<details>
+<summary>点击展开</summary>
+我们将多个白色 3D 打印物体放入碗中，并放置在白色桌面上，随后用手机拍摄。  
+原始图像示例如下 👇  
+<div align="center">
+ <img src="/test_imgs/IMG_20251007_165718.jpg" width="40%">
+</div>
+
+该图像来自：[示例图片链接](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/test_imgs/IMG_20251007_165718.jpg)
+
+</details>
+
+随后，可直接使用以下脚本进行 6D 位姿估计与可视化：
+
+<details>
+<summary>点击展开代码</summary>
+
+```python
+import cv2, os, sys
+import numpy as np
+from HccePose.bop_loader import bop_dataset
+from HccePose.tester import Tester
+if __name__ == '__main__':
+
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
+    test_img_path = os.path.join(current_dir, 'test_imgs')
+    bop_dataset_item = bop_dataset(dataset_path)
+    obj_id = 1
+    CUDA_DEVICE = '0'
+    # show_op = False
+    show_op = True
+    
+    for name in ['IMG_20251007_165718']:
+        file_name = os.path.join(test_img_path, '%s.jpg'%name)
+        image = cv2.cvtColor(cv2.imread(file_name), cv2.COLOR_RGB2BGR)
+        cam_K = np.array([
+            [2.83925618e+03, 0.00000000e+00, 2.02288638e+03],
+            [0.00000000e+00, 2.84037288e+03, 1.53940473e+03],
+            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
+        ])
+        results_dict = Tester_item.perdict(cam_K, image, [obj_id],
+                                                        conf = 0.85, confidence_threshold = 0.85)
+        cv2.imwrite(file_name.replace('.jpg','_show_2d.jpg'), results_dict['show_2D_results'])
+        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis0.jpg'), results_dict['show_6D_vis0'])
+        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis1.jpg'), results_dict['show_6D_vis1'])
+        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict['show_6D_vis2'])
+    pass
+```
+
+</details>
+
+---
+
+#### 🎯 可视化结果
+
+2D 检测结果 (_show_2d.jpg)：
+
+<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_2d.jpg" width="40%"> </div>
+
+
+网络输出结果：
+
+- 基于 HCCE 的前后表面坐标编码
+
+- 物体掩膜
+
+- 解码后的 3D 坐标可视化
+
+<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_6d_vis0.jpg" width="100%"> 
+<img src="/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="100%"> </div> 
+
+---
+#### 🎥 视频的6D位姿估计
+
+<details>
+<summary>具体内容</summary>
+
+基于单帧图像的位姿估计流程，可以轻松扩展至视频序列，从而实现对连续帧的 6D 位姿估计，代码如下：
+<details>
+<summary>点击展开代码</summary>
+
+```python
+import cv2, os, sys
+import numpy as np
+from HccePose.bop_loader import bop_dataset
+from HccePose.tester import Tester
+
+if __name__ == '__main__':
+    
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
+    test_video_path = os.path.join(current_dir, 'test_videos')
+    bop_dataset_item = bop_dataset(dataset_path)
+    obj_id = 1
+    CUDA_DEVICE = '0'
+    # show_op = False
+    show_op = True
+    
+    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
+    for name in ['VID_20251009_141247']:
+        file_name = os.path.join(test_video_path, '%s.mp4'%name)
+        cap = cv2.VideoCapture(file_name)
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out_1 = None
+        out_2 = None
+        cam_K = np.array([
+            [1.63235512e+03, 0.00000000e+00, 9.74032712e+02],
+            [0.00000000e+00, 1.64159967e+03, 5.14229781e+02],
+            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
+        ])
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            results_dict = Tester_item.perdict(cam_K, frame, [obj_id],
+                                                            conf = 0.85, confidence_threshold = 0.85)
+            fps_hccepose = 1 / results_dict['time']
+            show_6D_vis1 = results_dict['show_6D_vis1']
+            show_6D_vis1[show_6D_vis1 < 0] = 0
+            show_6D_vis1[show_6D_vis1 > 255] = 255
+            if out_1 is None:
+                out_1 = cv2.VideoWriter(
+                    file_name.replace('.mp4', '_show_1.mp4'),
+                    fourcc,
+                    fps,
+                    (show_6D_vis1.shape[1], show_6D_vis1.shape[0])
+                )
+            out_1.write(show_6D_vis1.astype(np.uint8))
+            show_6D_vis2 = results_dict['show_6D_vis2']
+            show_6D_vis2[show_6D_vis2 < 0] = 0
+            show_6D_vis2[show_6D_vis2 > 255] = 255
+            if out_2 is None:
+                out_2 = cv2.VideoWriter(
+                    file_name.replace('.mp4', '_show_2.mp4'),
+                    fourcc,
+                    fps,
+                    (show_6D_vis2.shape[1], show_6D_vis2.shape[0])
+                )
+            cv2.putText(show_6D_vis2, "FPS: {0:.2f}".format(fps_hccepose), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4, cv2.LINE_AA)
+            out_2.write(show_6D_vis2.astype(np.uint8))
+        cap.release()
+        out_1.release()
+        out_2.release()
+    pass
+```
+
+</details>
+
+---
+
+#### 🎯 可视化结果
+**原始视频：**
+<img src="/show_vis/VID_20251009_141247.gif" width=100%>
+
+**检测结果：**
+<img src="/show_vis/VID_20251009_141247_vis.gif" width=100%>
+
+---
+
+此外，通过向**`HccePose.tester`**传入多个物体的id列表，即可实现对多物体的 6D 位姿估计。
+
+> 请保持文件夹层级结构不变
+
+| 类型             | 资源链接                                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------------ |
+| 🎨 物体 3D 模型    | [demo-tex-objs/models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/models)     |
+| 📁 YOLOv11 权重  | [demo-tex-objs/yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/yolo11)     |
+| 📂 HccePose 权重 | [demo-tex-objs/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/HccePose) |
+| 🖼️ 测试图片       | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs)                |
+| 🎥 测试视频        | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos)            |
+
+> ⚠️ 注意：
+文件名以 train 开头的压缩包仅在训练阶段使用，快速开始部分只需下载上述测试文件。
+
+**原始视频：**
+<img src="/show_vis/VID_20251009_141731.gif" width=100%>
+
+**检测结果：**
+<img src="/show_vis/VID_20251009_141731_vis.gif" width=100%>
+
+</details>
+
+---
+
+
+
 
 ## 🧪 BOP挑战测试
 

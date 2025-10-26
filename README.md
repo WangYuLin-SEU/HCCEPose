@@ -63,245 +63,11 @@ pip install -U "huggingface_hub[hf_transfer]"
 
 </details>
 
-## ✏️ Quick Start
-
-This project provides a simple **HccePose(BF)-based** application example for the **Bin-Picking** task.  
-To reduce reproduction difficulty, both the objects (3D printed with standard white PLA material) and the camera (Xiaomi smartphone) are easily accessible devices.
-
-You can:
-- Print the sample object multiple times  
-- Randomly place the printed objects  
-- Capture photos freely using your phone  
-- Directly perform **2D detection**, **2D segmentation**, and **6D pose estimation** using the pretrained weights provided in this project  
-
 ---
 
 
-> Please keep the folder hierarchy unchanged.
 
-| Type | Resource Link |
-|------|----------------|
-| 🎨 Object 3D Models | [demo-bin-picking/models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/models) |
-| 📁 YOLOv11 Weights | [demo-bin-picking/yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/yolo11) |
-| 📂 HccePose Weights | [demo-bin-picking/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/HccePose) |
-| 🖼️ Test Images | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs) |
-| 🎥 Test Videos | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos) |
-
-> ⚠️ Note:  
-Files beginning with **`train_`** are only required for training.  
-For this **Quick Start** section, only the above test files are needed.
-
----
-
-#### ⏳ Model and Loader
-During testing, import the following modules:
-- **`HccePose.tester`** → Integrated testing module covering **2D detection**, **segmentation**, and **6D pose estimation**.  
-- **`HccePose.bop_loader`** → BOP-format dataset loader for loading object models and training data.
-
----
-
-#### 📸 Example Test
-The following image shows the experimental setup:  
-
-<details>
-<summary>Click to expand</summary>
-
-Several white 3D-printed objects are placed inside a bowl on a white table, then photographed with a mobile phone.  
-
-Example input image 👇  
-<div align="center">
- <img src="/test_imgs/IMG_20251007_165718.jpg" width="40%">
-</div>
-
-Source image: [Example Link](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/test_imgs/IMG_20251007_165718.jpg)
-
-</details>
-
-You can directly use the following script for **6D pose estimation** and visualization:
-
-<details>
-<summary>Click to expand code</summary>
-
-```python
-import cv2, os, sys
-import numpy as np
-from HccePose.bop_loader import bop_dataset
-from HccePose.tester import Tester
-if __name__ == '__main__':
-
-    sys.path.insert(0, os.getcwd())
-    current_dir = os.path.dirname(sys.argv[0])
-    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
-    test_img_path = os.path.join(current_dir, 'test_imgs')
-    bop_dataset_item = bop_dataset(dataset_path)
-    obj_id = 1
-    CUDA_DEVICE = '0'
-    # show_op = False
-    show_op = True
-    
-    for name in ['IMG_20251007_165718']:
-        file_name = os.path.join(test_img_path, '%s.jpg'%name)
-        image = cv2.cvtColor(cv2.imread(file_name), cv2.COLOR_RGB2BGR)
-        cam_K = np.array([
-            [2.83925618e+03, 0.00000000e+00, 2.02288638e+03],
-            [0.00000000e+00, 2.84037288e+03, 1.53940473e+03],
-            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
-        ])
-        results_dict = Tester_item.perdict(cam_K, image, [obj_id],
-                                                        conf = 0.85, confidence_threshold = 0.85)
-        cv2.imwrite(file_name.replace('.jpg','_show_2d.jpg'), results_dict['show_2D_results'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis0.jpg'), results_dict['show_6D_vis0'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis1.jpg'), results_dict['show_6D_vis1'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict['show_6D_vis2'])
-    pass
-```
-
-</details>
-
----
-
-#### 🎯 Visualization Results
-
-2D Detection Result (_show_2d.jpg):
-
-<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_2d.jpg" width="40%"> </div>
-
-
-Network Outputs:
-
-- HCCE-based front and back surface coordinate encodings
-
-- Object mask
-
-- Decoded 3D coordinate visualizations
-
-<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_6d_vis0.jpg" width="100%"> 
-<img src="/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="100%"> </div>
-
---- 
-
-#### 🎥 6D Pose Estimation in Videos
-
-<details>
-<summary>Detailed Content</summary>
-
-The single-frame pose estimation pipeline can be easily extended to video sequences, enabling continuous-frame 6D pose estimation, as shown in the following example:
-
-<details>
-<summary>Click to expand code</summary>
-
-```python
-import cv2, os, sys
-import numpy as np
-from HccePose.bop_loader import bop_dataset
-from HccePose.tester import Tester
-
-if __name__ == '__main__':
-    
-    sys.path.insert(0, os.getcwd())
-    current_dir = os.path.dirname(sys.argv[0])
-    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
-    test_video_path = os.path.join(current_dir, 'test_videos')
-    bop_dataset_item = bop_dataset(dataset_path)
-    obj_id = 1
-    CUDA_DEVICE = '0'
-    # show_op = False
-    show_op = True
-    
-    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
-    for name in ['VID_20251009_141247']:
-        file_name = os.path.join(test_video_path, '%s.mp4'%name)
-        cap = cv2.VideoCapture(file_name)
-        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out_1 = None
-        out_2 = None
-        cam_K = np.array([
-            [1.63235512e+03, 0.00000000e+00, 9.74032712e+02],
-            [0.00000000e+00, 1.64159967e+03, 5.14229781e+02],
-            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
-        ])
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            results_dict = Tester_item.perdict(cam_K, frame, [obj_id],
-                                                            conf = 0.85, confidence_threshold = 0.85)
-            fps_hccepose = 1 / results_dict['time']
-            show_6D_vis1 = results_dict['show_6D_vis1']
-            show_6D_vis1[show_6D_vis1 < 0] = 0
-            show_6D_vis1[show_6D_vis1 > 255] = 255
-            if out_1 is None:
-                out_1 = cv2.VideoWriter(
-                    file_name.replace('.mp4', '_show_1.mp4'),
-                    fourcc,
-                    fps,
-                    (show_6D_vis1.shape[1], show_6D_vis1.shape[0])
-                )
-            out_1.write(show_6D_vis1.astype(np.uint8))
-            show_6D_vis2 = results_dict['show_6D_vis2']
-            show_6D_vis2[show_6D_vis2 < 0] = 0
-            show_6D_vis2[show_6D_vis2 > 255] = 255
-            if out_2 is None:
-                out_2 = cv2.VideoWriter(
-                    file_name.replace('.mp4', '_show_2.mp4'),
-                    fourcc,
-                    fps,
-                    (show_6D_vis2.shape[1], show_6D_vis2.shape[0])
-                )
-            cv2.putText(show_6D_vis2, "FPS: {0:.2f}".format(fps_hccepose), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4, cv2.LINE_AA)
-            out_2.write(show_6D_vis2.astype(np.uint8))
-        cap.release()
-        out_1.release()
-        out_2.release()
-    pass
-```
-
-</details>
-
---- 
-
-#### 🎯 Visualization Results
-
-**Original Video:**
-<img src="/show_vis/VID_20251009_141247.gif" width=100%>
-
-**Detection Results:**
-<img src="/show_vis/VID_20251009_141247_vis.gif" width=100%>
-
----
-
-In addition, by passing a list of multiple object IDs to **`HccePose.tester`**, multi-object 6D pose estimation can also be achieved.  
-
-> Please keep the folder hierarchy unchanged.
-
-| Type | Resource Link |
-|------|----------------|
-| 🎨 Object 3D Models | [demo-tex-objs/models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/models) |
-| 📁 YOLOv11 Weights | [demo-tex-objs/yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/yolo11) |
-| 📂 HccePose Weights | [demo-tex-objs/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/HccePose) |
-| 🖼️ Test Images | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs) |
-| 🎥 Test Videos | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos) |
-
-> ⚠️ Note:  
-Files beginning with **`train_`** are only required for training.  
-For this **Quick Start** section, only the above test files are needed.
-
-**Original Video:**
-<img src="/show_vis/VID_20251009_141731.gif" width=100%>
-
-**Detection Results:**
-<img src="/show_vis/VID_20251009_141731_vis.gif" width=100%>
-
-</details>
-
----
-
-## 🧱 Custom Dataset
+## 🧱 Custom Dataset and Training
 
 #### 🎨 Object Preprocessing
 
@@ -641,10 +407,6 @@ nohup python -u /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
 
 ---
 
-</details>
-
----
-
 #### Setting Training Ranges
 
 To train multiple objects, specify the range of object IDs using **`start_obj_id`** and **`end_obj_id`**. For example, setting `start_obj_id=1` and `end_obj_id=5` trains objects `obj_000001.ply` through `obj_000005.ply`. To train a single object, set both values to the same number.
@@ -655,7 +417,255 @@ You may also adjust **`total_iteration`** according to training needs (default: 
 total samples = total iteration × batch size × GPU number
 ```
 
+
 ---
+
+</details>
+
+
+---
+
+
+
+## ✏️ Quick Start
+
+This project provides a simple **HccePose(BF)-based** application example for the **Bin-Picking** task.  
+To reduce reproduction difficulty, both the objects (3D printed with standard white PLA material) and the camera (Xiaomi smartphone) are easily accessible devices.
+
+You can:
+- Print the sample object multiple times  
+- Randomly place the printed objects  
+- Capture photos freely using your phone  
+- Directly perform **2D detection**, **2D segmentation**, and **6D pose estimation** using the pretrained weights provided in this project  
+
+---
+
+
+> Please keep the folder hierarchy unchanged.
+
+| Type | Resource Link |
+|------|----------------|
+| 🎨 Object 3D Models | [demo-bin-picking/models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/models) |
+| 📁 YOLOv11 Weights | [demo-bin-picking/yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/yolo11) |
+| 📂 HccePose Weights | [demo-bin-picking/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/HccePose) |
+| 🖼️ Test Images | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs) |
+| 🎥 Test Videos | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos) |
+
+> ⚠️ Note:  
+Files beginning with **`train_`** are only required for training.  
+For this **Quick Start** section, only the above test files are needed.
+
+---
+
+#### ⏳ Model and Loader
+During testing, import the following modules:
+- **`HccePose.tester`** → Integrated testing module covering **2D detection**, **segmentation**, and **6D pose estimation**.  
+- **`HccePose.bop_loader`** → BOP-format dataset loader for loading object models and training data.
+
+---
+
+#### 📸 Example Test
+The following image shows the experimental setup:  
+
+<details>
+<summary>Click to expand</summary>
+
+Several white 3D-printed objects are placed inside a bowl on a white table, then photographed with a mobile phone.  
+
+Example input image 👇  
+<div align="center">
+ <img src="/test_imgs/IMG_20251007_165718.jpg" width="40%">
+</div>
+
+Source image: [Example Link](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/test_imgs/IMG_20251007_165718.jpg)
+
+</details>
+
+You can directly use the following script for **6D pose estimation** and visualization:
+
+<details>
+<summary>Click to expand code</summary>
+
+```python
+import cv2, os, sys
+import numpy as np
+from HccePose.bop_loader import bop_dataset
+from HccePose.tester import Tester
+if __name__ == '__main__':
+
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
+    test_img_path = os.path.join(current_dir, 'test_imgs')
+    bop_dataset_item = bop_dataset(dataset_path)
+    obj_id = 1
+    CUDA_DEVICE = '0'
+    # show_op = False
+    show_op = True
+    
+    for name in ['IMG_20251007_165718']:
+        file_name = os.path.join(test_img_path, '%s.jpg'%name)
+        image = cv2.cvtColor(cv2.imread(file_name), cv2.COLOR_RGB2BGR)
+        cam_K = np.array([
+            [2.83925618e+03, 0.00000000e+00, 2.02288638e+03],
+            [0.00000000e+00, 2.84037288e+03, 1.53940473e+03],
+            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
+        ])
+        results_dict = Tester_item.perdict(cam_K, image, [obj_id],
+                                                        conf = 0.85, confidence_threshold = 0.85)
+        cv2.imwrite(file_name.replace('.jpg','_show_2d.jpg'), results_dict['show_2D_results'])
+        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis0.jpg'), results_dict['show_6D_vis0'])
+        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis1.jpg'), results_dict['show_6D_vis1'])
+        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict['show_6D_vis2'])
+    pass
+```
+
+</details>
+
+---
+
+#### 🎯 Visualization Results
+
+2D Detection Result (_show_2d.jpg):
+
+<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_2d.jpg" width="40%"> </div>
+
+
+Network Outputs:
+
+- HCCE-based front and back surface coordinate encodings
+
+- Object mask
+
+- Decoded 3D coordinate visualizations
+
+<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_6d_vis0.jpg" width="100%"> 
+<img src="/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="100%"> </div>
+
+--- 
+
+#### 🎥 6D Pose Estimation in Videos
+
+<details>
+<summary>Detailed Content</summary>
+
+The single-frame pose estimation pipeline can be easily extended to video sequences, enabling continuous-frame 6D pose estimation, as shown in the following example:
+
+<details>
+<summary>Click to expand code</summary>
+
+```python
+import cv2, os, sys
+import numpy as np
+from HccePose.bop_loader import bop_dataset
+from HccePose.tester import Tester
+
+if __name__ == '__main__':
+    
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
+    test_video_path = os.path.join(current_dir, 'test_videos')
+    bop_dataset_item = bop_dataset(dataset_path)
+    obj_id = 1
+    CUDA_DEVICE = '0'
+    # show_op = False
+    show_op = True
+    
+    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
+    for name in ['VID_20251009_141247']:
+        file_name = os.path.join(test_video_path, '%s.mp4'%name)
+        cap = cv2.VideoCapture(file_name)
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out_1 = None
+        out_2 = None
+        cam_K = np.array([
+            [1.63235512e+03, 0.00000000e+00, 9.74032712e+02],
+            [0.00000000e+00, 1.64159967e+03, 5.14229781e+02],
+            [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
+        ])
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            results_dict = Tester_item.perdict(cam_K, frame, [obj_id],
+                                                            conf = 0.85, confidence_threshold = 0.85)
+            fps_hccepose = 1 / results_dict['time']
+            show_6D_vis1 = results_dict['show_6D_vis1']
+            show_6D_vis1[show_6D_vis1 < 0] = 0
+            show_6D_vis1[show_6D_vis1 > 255] = 255
+            if out_1 is None:
+                out_1 = cv2.VideoWriter(
+                    file_name.replace('.mp4', '_show_1.mp4'),
+                    fourcc,
+                    fps,
+                    (show_6D_vis1.shape[1], show_6D_vis1.shape[0])
+                )
+            out_1.write(show_6D_vis1.astype(np.uint8))
+            show_6D_vis2 = results_dict['show_6D_vis2']
+            show_6D_vis2[show_6D_vis2 < 0] = 0
+            show_6D_vis2[show_6D_vis2 > 255] = 255
+            if out_2 is None:
+                out_2 = cv2.VideoWriter(
+                    file_name.replace('.mp4', '_show_2.mp4'),
+                    fourcc,
+                    fps,
+                    (show_6D_vis2.shape[1], show_6D_vis2.shape[0])
+                )
+            cv2.putText(show_6D_vis2, "FPS: {0:.2f}".format(fps_hccepose), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4, cv2.LINE_AA)
+            out_2.write(show_6D_vis2.astype(np.uint8))
+        cap.release()
+        out_1.release()
+        out_2.release()
+    pass
+```
+
+</details>
+
+--- 
+
+#### 🎯 Visualization Results
+
+**Original Video:**
+<img src="/show_vis/VID_20251009_141247.gif" width=100%>
+
+**Detection Results:**
+<img src="/show_vis/VID_20251009_141247_vis.gif" width=100%>
+
+---
+
+In addition, by passing a list of multiple object IDs to **`HccePose.tester`**, multi-object 6D pose estimation can also be achieved.  
+
+> Please keep the folder hierarchy unchanged.
+
+| Type | Resource Link |
+|------|----------------|
+| 🎨 Object 3D Models | [demo-tex-objs/models](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/models) |
+| 📁 YOLOv11 Weights | [demo-tex-objs/yolo11](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/yolo11) |
+| 📂 HccePose Weights | [demo-tex-objs/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/HccePose) |
+| 🖼️ Test Images | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs) |
+| 🎥 Test Videos | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos) |
+
+> ⚠️ Note:  
+Files beginning with **`train_`** are only required for training.  
+For this **Quick Start** section, only the above test files are needed.
+
+**Original Video:**
+<img src="/show_vis/VID_20251009_141731.gif" width=100%>
+
+**Detection Results:**
+<img src="/show_vis/VID_20251009_141731_vis.gif" width=100%>
+
+</details>
+
+---
+
+
 
 ## 🧪 BOP Challenge Testing
 
