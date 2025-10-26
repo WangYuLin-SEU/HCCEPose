@@ -23,14 +23,45 @@ current_directory = sys.argv[0]
 pa_ = os.path.join(os.path.dirname(current_directory), 'bop_toolkit')
 sys.path.append(pa_)
 from bop_toolkit.bop_toolkit_lib import inout, renderer, misc, pose_error, pycoco_utils
-
-def load_json2dict(path):
-    with open(path, 'r') as f:
-        dict_ = json.load(f)
-    f.close()
-    return dict_
+from kasal.utils import load_json2dict
 
 def aug_square_fp32(GT_Bbox, padding_ratio):
+    '''
+    ---
+    ---
+    Randomly augment a 2D bounding box.  
+    ---
+    ---
+    The function randomly shifts the bounding box center along the x and y axes  
+    within the range [-0.25, +0.25) times the width and height,  
+    simulating deviations between the detector-predicted and ground-truth boxes.  
+    The augmented bounding box is then adjusted to a square shape  
+    based on the maximum side length of the original box.  
+
+    Args:
+        - GT_Bbox: The 2D bounding box, formatted as [x, y, w, h],  
+        where x and y are the coordinates of the top-left corner.  
+        - padding_ratio: The scaling factor for the 2D bounding box, typically set to 1.5.  
+
+    Returns:
+        - augmented_Box: The augmented bounding box.
+    ---
+    ---
+    随机增强 2D 包围盒。  
+    ---
+    ---
+    函数会在 x、y 方向上随机移动包围盒的中心，移动范围为 [-0.25, +0.25) 倍的宽与高，  
+    以模拟检测器预测的包围盒与真实包围盒之间的偏差。  
+    随后，函数会根据原始包围盒的最大边长，调整增强后的包围盒为正方形形状。  
+
+    参数:
+        - GT_Bbox: 2D 包围盒，格式为 [x, y, w, h]，其中 x、y 分别为左上角点的坐标。  
+        - padding_ratio: 2D 包围盒的缩放比例，通常设置为 1.5。  
+
+    返回:
+        - augmented_Box: 增强后的包围盒。
+    '''
+
     GT_Bbox = GT_Bbox.copy()
     center_x = GT_Bbox[0] + 0.5 * GT_Bbox[2]
     center_y = GT_Bbox[1] + 0.5 * GT_Bbox[3]
@@ -46,6 +77,39 @@ def aug_square_fp32(GT_Bbox, padding_ratio):
     return augmented_Box
 
 def pad_square_fp32(GT_Bbox, padding_ratio):
+    '''
+    ---
+    ---
+    Pad a 2D bounding box.  
+    ---
+    ---
+    The function pads the original bounding box into a square shape  
+    based on its maximum side length and the specified `padding_ratio`.  
+
+    Args:
+        - GT_Bbox: 2D bounding box in the format [x, y, w, h],  
+        where x and y represent the coordinates of the top-left corner.  
+        - padding_ratio: Scaling factor for padding the bounding box, typically set to 1.5.  
+
+    Returns:
+        - padded_Box: The padded bounding box.
+    ---
+    ---
+    填充 2D 包围盒。  
+    ---
+    ---
+    函数会根据原始包围盒的最大边长，并按 `padding_ratio` 的比例，  
+    将包围盒填充为正方形形状。  
+
+    参数:
+        - GT_Bbox: 2D 包围盒，格式为 [x, y, w, h]，其中 x、y 为左上角点的坐标。  
+        - padding_ratio: 2D 包围盒的缩放比例，通常设置为 1.5。  
+
+    返回:
+        - padded_Box: 填充后的包围盒。
+    '''
+
+    
     GT_Bbox = GT_Bbox.copy()
     center_x = GT_Bbox[0] + 0.5 * GT_Bbox[2]
     center_y = GT_Bbox[1] + 0.5 * GT_Bbox[3]
@@ -59,6 +123,41 @@ def pad_square_fp32(GT_Bbox, padding_ratio):
     return padded_Box
 
 def crop_square_resize(img, Bbox, crop_size=None, interpolation=None):
+    '''
+    ---
+    ---
+    Crop the image within a 2D bounding box.  
+    ---
+    ---
+    The function crops the input image into a square region  
+    based on the given 2D bounding box.  
+
+    Args:
+        - img: The input 2D image.  
+        - Bbox: The 2D bounding box in the format [x, y, w, h],  
+        where x and y are the coordinates of the top-left corner.  
+        - crop_size: The side length of the cropped square image.  
+        - interpolation: The interpolation algorithm used for image cropping.  
+
+    Returns:
+        - roi_img: The cropped square image within the 2D bounding box.
+    ---
+    ---
+    裁切 2D 包围盒内的图像。  
+    ---
+    ---
+    函数会根据给定的 2D 包围盒，将输入图像裁切为正方形区域。  
+
+    参数:
+        - img: 输入的 2D 图像。  
+        - Bbox: 2D 包围盒，格式为 [x, y, w, h]，其中 x、y 为左上角点的坐标。  
+        - crop_size: 裁切后正方形图像的边长。  
+        - interpolation: 图像裁切时使用的插值算法。  
+
+    返回:
+        - roi_img: 2D 包围盒内的正方形图像。
+    '''
+
     Bbox = Bbox.copy()
     center_x = Bbox[0] + 0.5 * Bbox[2]
     center_y = Bbox[1] + 0.5 * Bbox[3]
@@ -70,8 +169,61 @@ def crop_square_resize(img, Bbox, crop_size=None, interpolation=None):
     return roi_img
 
 class bop_dataset():
-    
+    '''
+    ---
+    ---
+    Instance of the BOP dataset.  
+    ---
+    ---
+    `bop_dataset` is used to load datasets in BOP format,  
+    including the paths of all 3D object models in the `models` folder and their basic information.  
+    By specifying a folder path, `bop_dataset` can load all images, poses, masks, and related data within that directory.
+    ---
+    ---
+    BOP 数据集的实例。  
+    ---
+    ---
+    `bop_dataset` 用于加载 BOP 格式的数据集，  
+    包括 `models` 文件夹中所有物体 3D 模型的路径及其基础信息。  
+    通过指定文件夹路径，`bop_dataset` 可以加载文件夹下的所有图像、位姿、掩膜等数据。
+    '''
+
     def __init__(self, dataset_path, model_name = 'models', local_rank=0):
+        '''
+        ---
+        ---
+        Initialization function.  
+        ---
+        ---
+        Specifies the dataset path and the folder name containing 3D object models,  
+        then loads information for all objects.  
+
+        Args:
+            - dataset_path: Path to the dataset.  
+            - model_name: Name of the folder where 3D models are stored.  
+            Most BOP datasets use `models` as the folder name,  
+            but it can be changed if a different name is used.  
+            - local_rank: In DDP training mode, information is printed only in process 0.  
+
+        Returns:
+            - None
+        ---
+        ---
+        初始化函数。  
+        ---
+        ---
+        指定数据集路径及物体 3D 模型文件夹的名称，并加载所有物体的信息。  
+
+        参数:
+            - dataset_path: 数据集路径。  
+            - model_name: 模型文件夹名称。大多数 BOP 数据集的模型文件夹名称为 `models`，  
+            若不同，可通过修改该参数重新设置。  
+            - local_rank: 在 DDP 训练模式下，默认仅在进程 0 中打印信息。 
+             
+        返回:
+            - 无
+        '''
+        
         self.local_rank = local_rank
         self.dataset_path = dataset_path
         if not os.path.exists(self.dataset_path):
@@ -118,6 +270,37 @@ class bop_dataset():
         pass
     
     def load_folder(self, folder_name, scene_num = 200, vis = 0.0):
+        '''
+        ---
+        ---
+        Load all images, masks, poses, depth maps, and related data from the folder.  
+        ---
+        ---
+        Args:
+            - folder_name: The name of the folder in the dataset to load.  
+            - scene_num: The maximum number of subfolders to scan within the folder.  
+            - vis: Visibility threshold; only samples with a visible ratio greater than `vis` will be loaded.  
+
+        Returns:
+            - img_info: Information for each image, including object masks, poses, etc.  
+            - obj_info: Information for each object, including all corresponding images, masks, and poses.  
+            - scene_path_list: A list of subfolder paths.
+        ---
+        ---
+        加载文件夹中的所有图像、掩膜、位姿、深度图等数据。  
+        ---
+        ---
+        参数:
+            - folder_name: 需要加载的数据集中的文件夹名称。  
+            - scene_num: 文件夹中最大子文件夹的扫描数量。  
+            - vis: 物体的可见比例，只有可见比例大于 `vis` 的样本才会被加载。  
+
+        返回:
+            - img_info: 每张图像对应的物体掩膜、位姿等信息。  
+            - obj_info: 每个物体对应的所有图像、掩膜、位姿等信息。  
+            - scene_path_list: 子文件夹路径列表。
+        '''
+
         if self.local_rank == 0:
             print()
             print('-*-' * 30)
@@ -758,8 +941,43 @@ class rendering_bop_dataset_back_front(Dataset):
         self.min_xyz = np.min(vertices,axis=0)
 
 class train_bop_dataset_back_front(Dataset):
-    
+    '''
+    BOP data loader for training.
+
+    用于训练的 BOP 数据加载器。
+    '''
+
     def __init__(self, bop_dataset_item : bop_dataset, folder_name, padding_ratio=1.5, crop_size_img=256, aug_op = 'imgaug', ):
+        '''
+        ---
+        ---
+        Initialization function.  
+        ---
+        ---
+        Args:
+            - bop_dataset_item: An instance of the `bop_dataset` type.  
+            - folder_name: The name of the folder in the dataset from which data will be loaded.  
+            - padding_ratio: The scaling factor for the bounding box, default is 1.5.  
+            - crop_size_img: The side length of the square image cropped based on the bounding box, default is 256.  
+            - aug_op: The type of data augmenter, default is `imgaug`.  
+
+        Returns:
+            - None
+        ---
+        ---
+        初始化函数。  
+        ---
+        ---
+        参数:
+            - bop_dataset_item: `bop_dataset` 类型的数据集实例。  
+            - folder_name: 数据集中需要加载数据的文件夹名称。  
+            - padding_ratio: 包围盒的缩放比例，默认值为 1.5。  
+            - crop_size_img: 基于包围盒裁切出的正方形图像边长，默认值为 256。  
+            - aug_op: 增强器类型，默认使用 `imgaug`。  
+
+        返回:
+            - 无
+        '''
 
         self.bop_dataset_item = bop_dataset_item
         self.dataset_info = bop_dataset_item.load_folder(folder_name, vis = 0.2)
@@ -793,6 +1011,35 @@ class train_bop_dataset_back_front(Dataset):
         return self.nSamples
 
     def __getitem__(self, index):
+        '''
+        ---
+        ---
+        Get data.  
+        ---
+        ---
+        Args:
+            - index: The index of the sample.  
+
+        Returns:
+            - rgb_c: The RGB image data.  
+            - mask_vis_c: The visible mask of the object.  
+            - GT_Front_hcce: Hierarchical code obtained by encoding the object's front 3D coordinates using HCCE.  
+            - GT_Back_hcce: Hierarchical code obtained by encoding the object's back 3D coordinates using HCCE.  
+        ---
+        ---
+        获取数据。  
+        ---
+        ---
+        参数:
+            - index: 样本的序号。  
+
+        返回:
+            - rgb_c: RGB 图像数据。  
+            - mask_vis_c: 物体的可见掩膜。  
+            - GT_Front_hcce: 物体正面 3D 坐标经 HCCE 编码后的层次化代码。  
+            - GT_Back_hcce: 物体背面 3D 坐标经 HCCE 编码后的层次化代码。
+        '''
+
         info_ = self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')][index]
         rgb = cv2.imread(info_['rgb'])
         mask_vis = cv2.imread(info_['mask_visib_path'], 0)
@@ -815,6 +1062,29 @@ class train_bop_dataset_back_front(Dataset):
         return rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce
 
     def hcce_encode(self, code_img, iteration=8):
+        '''
+        ---
+        ---
+        HCCE Encoding.  
+        ---
+        ---
+        Args:
+            - code_img: The 3D coordinate map.  
+
+        Returns:
+            - check_hcce_images: The hierarchical codes obtained after HCCE encoding.  
+        ---
+        ---
+        HCCE 编码。  
+        ---
+        ---
+        参数:
+            - code_img: 3D 坐标图。  
+
+        返回:
+            - check_hcce_images: 经 HCCE 编码得到的层次化代码。
+        '''
+
         code_img = code_img.copy()
         
         code_img = [code_img[:, :, 0], code_img[:, :, 1], code_img[:, :, 2]]
@@ -845,6 +1115,13 @@ class train_bop_dataset_back_front(Dataset):
         return check_hcce_images
 
     def update_obj_id(self, obj_id, obj_path):
+        '''
+        Update the currently loaded object.  
+        `obj_id` is the object's ID, and `obj_path` is the path to its 3D model.
+
+        更新当前加载的物体。  
+        `obj_id` 为物体的 ID，`obj_path` 为该物体的 3D 模型路径。
+        '''
         
         self.current_obj_id = obj_id
         self.current_obj_path = obj_path
@@ -864,6 +1141,14 @@ class train_bop_dataset_back_front(Dataset):
         return
 
     def apply_augmentation(self, x):
+        '''
+        Random image augmentation strategy proposed by GDR-Net.  
+        Project link: https://github.com/THU-DA-6D-Pose-Group/GDR-Net  
+
+        GDR-Net 提出的随机图像增强策略。  
+        项目链接：https://github.com/THU-DA-6D-Pose-Group/GDR-Net
+        '''
+
         def build_augmentations_depth():
             augmentations = []
             augmentations.append(iaa.Sometimes(0.3, iaa.SaltAndPepper(0.05)))
@@ -885,6 +1170,7 @@ class train_bop_dataset_back_front(Dataset):
         return x
     
     def preprocess(self, rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce):
+
         rgb_c_pil = Image.fromarray(np.uint8(rgb_c)).convert('RGB')
         mask_vis_c = mask_vis_c / 255.
         mask_vis_c = torch.from_numpy(mask_vis_c).type(torch.float)
@@ -893,6 +1179,12 @@ class train_bop_dataset_back_front(Dataset):
         return self.composed_transforms_img(rgb_c_pil), mask_vis_c, GT_Front_hcce, GT_Back_hcce
 
 class test_bop_dataset_back_front(Dataset):
+    
+    '''
+    BOP data loader for testing.
+
+    用于测试的 BOP 数据加载器。
+    '''
     
     def __init__(self, bop_dataset_item : bop_dataset, folder_name, bbox_2D = None, test_targets_bop19=None, bbox_2D_score_threshold = 0.0, padding_ratio=1.5, crop_size_img=256, ratio = 1.0 ):
         
@@ -937,8 +1229,8 @@ class test_bop_dataset_back_front(Dataset):
                         
                     }
                     self.obj_info_w_bbox_2D['obj_'+category_id].append(obj_info_i)
-        self.dataset_info['obj_info_origin'] = self.dataset_info['obj_info']
-        self.dataset_info['obj_info'] = self.obj_info_w_bbox_2D
+            self.dataset_info['obj_info_origin'] = self.dataset_info['obj_info']
+            self.dataset_info['obj_info'] = self.obj_info_w_bbox_2D
         
         
         self.folder_name = folder_name
