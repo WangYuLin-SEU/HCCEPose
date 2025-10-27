@@ -502,6 +502,7 @@ if __name__ == '__main__':
     CUDA_DEVICE = '0'
     # show_op = False
     show_op = True
+    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
     
     for name in ['IMG_20251007_165718']:
         file_name = os.path.join(test_img_path, '%s.jpg'%name)
