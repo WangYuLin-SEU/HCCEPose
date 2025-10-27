@@ -9,8 +9,14 @@ Project link: https://github.com/DLR-RM/BlenderProc
 Usage:
     cd HCCEPose
     chmod +x s2_p1_gen_pbr_data.sh
+    
+    cc0textures:
     nohup ./s2_p1_gen_pbr_data.sh 0 42 xxx/xxx/cc0textures xxx/xxx/demo-bin-picking xxx/xxx/s2_p1_gen_pbr_data.py > s2_p1_gen_pbr_data.log 2>&1 &
 
+    cc0textures-512:
+    nohup ./s2_p1_gen_pbr_data.sh 0 42 xxx/xxx/cc0textures-512 xxx/xxx/demo-bin-picking xxx/xxx/s2_p1_gen_pbr_data.py > s2_p1_gen_pbr_data.log 2>&1 &
+
+    
 Arguments (example: s2_p1_gen_pbr_data.sh 0 42 ... ):
     Arg 1 (`GPU_ID`): GPU index. Set to 0 for the first GPU.
     Arg 2 (`SCENE_NUM`): Number of scenes; total images generated = 1000 * 42.
@@ -26,7 +32,12 @@ s2_p1_gen_pbr_data.py 用于生成 PBR 数据，原始脚本改编自 BlenderPro
 运行方法:
     cd HCCEPose
     chmod +x s2_p1_gen_pbr_data.sh
+    
+    cc0textures:
     nohup ./s2_p1_gen_pbr_data.sh 0 42 xxx/xxx/cc0textures xxx/xxx/demo-bin-picking xxx/xxx/s2_p1_gen_pbr_data.py > s2_p1_gen_pbr_data.log 2>&1 &
+
+    cc0textures-512:
+    nohup ./s2_p1_gen_pbr_data.sh 0 42 xxx/xxx/cc0textures-512 xxx/xxx/demo-bin-picking xxx/xxx/s2_p1_gen_pbr_data.py > s2_p1_gen_pbr_data.log 2>&1 &
 
 参数说明 (以 s2_p1_gen_pbr_data.sh 0 42 ... 为例):
     参数 1 (`GPU_ID`): GPU 的编号。设置为 0 表示使用第一块显卡。
@@ -113,8 +124,12 @@ if __name__ == '__main__':
 
     # Load all texture images from the cc_textures directory.
     # 加载 cc_textures 目录中的所有纹理图。
-    cc_textures = bproc.loader.load_ccmaterials(cc_textures_path, use_all_materials=True)
+    if os.path.basename(cc_textures_path) == 'cc0textures-512':
+        cc_textures = bproc.loader.load_512_ccmaterials(cc_textures_path, use_all_materials=True)
+    else:
+        cc_textures = bproc.loader.load_ccmaterials(cc_textures_path, use_all_materials=True)
 
+    
     def sample_pose_func(obj: bproc.types.MeshObject):
         min = np.random.uniform([-0.15, -0.15, 0.0], [-0.1, -0.1, 0.0])
         max = np.random.uniform([0.1, 0.1, 0.4], [0.15, 0.15, 0.6])
@@ -201,7 +216,7 @@ if __name__ == '__main__':
                                     radius_max = 1.2,
                                     elevation_min = 5,
                                     elevation_max = 89)
-            poi = bproc.object.compute_poi(np.random.choice(sampled_target_bop_objs, size=int(0.6 * len(obj_ids)), replace=False))
+            poi = bproc.object.compute_poi(np.random.choice(sampled_target_bop_objs, size=int(round(0.6 * len(obj_ids))), replace=False))
             rotation_matrix = bproc.camera.rotation_from_forward_vec(poi - location, inplane_rot=np.random.uniform(-3.14159, 3.14159))
             cam2world_matrix = bproc.math.build_transformation_mat(location, rotation_matrix)
             if bproc.camera.perform_obstacle_in_view_check(cam2world_matrix, {"min": 0.3}, bop_bvh_tree):
