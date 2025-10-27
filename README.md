@@ -512,7 +512,7 @@ if __name__ == '__main__':
             [0.00000000e+00, 2.84037288e+03, 1.53940473e+03],
             [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
         ])
-        results_dict = Tester_item.perdict(cam_K, image, [obj_id],
+        results_dict = Tester_item.predict(cam_K, image, [obj_id],
                                                         conf = 0.85, confidence_threshold = 0.85)
         cv2.imwrite(file_name.replace('.jpg','_show_2d.jpg'), results_dict['show_2D_results'])
         cv2.imwrite(file_name.replace('.jpg','_show_6d_vis0.jpg'), results_dict['show_6D_vis0'])
@@ -594,7 +594,7 @@ if __name__ == '__main__':
             if not ret:
                 break
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            results_dict = Tester_item.perdict(cam_K, frame, [obj_id],
+            results_dict = Tester_item.predict(cam_K, frame, [obj_id],
                                                             conf = 0.85, confidence_threshold = 0.85)
             fps_hccepose = 1 / results_dict['time']
             show_6D_vis1 = results_dict['show_6D_vis1']
