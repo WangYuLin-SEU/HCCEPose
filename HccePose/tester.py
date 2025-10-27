@@ -132,7 +132,7 @@ class Tester():
 
 
     @torch.inference_mode()
-    def perdict(self, cam_K, img, obj_ids, confidence_threshold=0.75, conf=0.75, iou=0.50, max_det=200, pnp_op='ransac+comb'):
+    def predict(self, cam_K, img, obj_ids, confidence_threshold=0.75, conf=0.75, iou=0.50, max_det=200, pnp_op='ransac+comb'):
         pnp_op_l = [['epnp', 'ransac', 'ransac+vvs', 'ransac+comb', 'ransac+vvs+comb'],[0,2,1]]
         height, width = img.shape[:2]
         ratio_ = 1
