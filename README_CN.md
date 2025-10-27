@@ -21,7 +21,10 @@ HccePose(BF) 提出了一种 **层次化连续坐标编码（Hierarchical Contin
 
 ### <img src="/show_vis/fig2.jpg" width=100%>
 
-
+## ✨ 更新
+--- 
+- 2025.10.27: 我们发布了 cc0textures-512，这是原版 CC0Textures（44GB） 的轻量替代版本，体积仅 600MB。 👉 [点此下载](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/cc0textures-512.zip)
+---
 ## 🔧 环境配置
 
 <details>
@@ -198,6 +201,16 @@ HCCEPose
 |--- s2_p0_download_cc0textures.py
 |--- cc0textures
 ```
+
+---
+
+**cc0textures** 约占用 **44GB** 硬盘空间，体积较大。
+为降低存储需求，我们制作了一个轻量级替代版本 **cc0textures-512**，其大小仅约 **600MB**。
+下载链接如下：
+👉 https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/cc0textures-512.zip
+
+在运行渲染脚本时，只需将 **`cc0textures`** 的路径替换为 **`cc0textures-512`**，即可直接使用该轻量材质库。
+（可以仅下载 **`cc0textures-512`**，无需下载原始的 **`cc0textures`**。）
 
 ---
 

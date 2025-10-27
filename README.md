@@ -21,7 +21,10 @@
 
 ### <img src="/show_vis/fig2.jpg" width=100%>
 
-
+## ✨ Update
+--- 
+- 2025.10.27: We’ve released cc0textures-512, a lightweight alternative to the original 44GB CC0Textures library — now only 600MB! 👉 [Download here](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/cc0textures-512.zip)
+---
 ## 🔧 Environment Setup
 
 <details>
@@ -206,6 +209,15 @@ HCCEPose
 |--- s2_p0_download_cc0textures.py
 |--- cc0textures
 ```
+---
+
+The **cc0textures** library occupies about **44GB** of disk space, which is quite large.
+To reduce storage requirements, we provide a lightweight alternative called **cc0textures-512**, with a size of approximately **600MB**.
+Download link:
+👉 https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/cc0textures-512.zip
+
+When running the rendering script, simply replace the **`cc0textures`** path with **`cc0textures-512`** to use the lightweight material library.
+(It is sufficient to download only **`cc0textures-512`**; the original **`cc0textures`** is not required.)
 
 ---
 
