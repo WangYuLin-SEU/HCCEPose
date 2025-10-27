@@ -44,7 +44,7 @@ if __name__ == '__main__':
             if not ret:
                 break
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            results_dict = Tester_item.perdict(cam_K, frame, obj_ids,
+            results_dict = Tester_item.predict(cam_K, frame, obj_ids,
                                                             conf = 0.85, confidence_threshold = 0.85)
             fps_hccepose = 1 / results_dict['time']
             show_6D_vis1 = results_dict['show_6D_vis1']
