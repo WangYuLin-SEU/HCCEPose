@@ -23,7 +23,9 @@
 
 ## ✨ Update
 --- 
+- ⚠️ Note: All paths must be absolute paths to avoid runtime errors.
 - 2025.10.27: We’ve released cc0textures-512, a lightweight alternative to the original 44GB CC0Textures library — now only 600MB! 👉 [Download here](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/cc0textures-512.zip)
+- 2025.10.28: s4_p1_gen_bf_labels.py has been updated. If the dataset does not contain a camera.json, the script will automatically create a default one.
 ---
 ## 🔧 Environment Setup
 

@@ -23,7 +23,9 @@ HccePose(BF) 提出了一种 **层次化连续坐标编码（Hierarchical Contin
 
 ## ✨ 更新
 --- 
+- ⚠️ 注意：所有路径都必须使用绝对路径，以避免运行时错误。
 - 2025.10.27: 我们发布了 cc0textures-512，这是原版 CC0Textures（44GB） 的轻量替代版本，体积仅 600MB。 👉 [点此下载](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/cc0textures-512.zip)
+- 2025.10.28: s4_p1_gen_bf_labels.py 已更新。若数据集中不存在 camera.json，脚本将自动创建一个默认文件。
 ---
 ## 🔧 环境配置
 
