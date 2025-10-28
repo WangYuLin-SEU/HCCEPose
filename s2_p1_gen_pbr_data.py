@@ -53,7 +53,7 @@ import argparse
 import blenderproc as bproc
 import numpy as np
 from tqdm import tqdm
-from kasal.utils.io_json import load_json2dict
+from kasal.utils.io_json import load_json2dict, write_dict2json
 
 
 if __name__ == '__main__':
@@ -82,6 +82,19 @@ if __name__ == '__main__':
     # 加载数据集的 3D 模型信息。
     models_info = load_json2dict(os.path.join(current_dir, 'models', 'models_info.json'))
 
+    if not os.path.exists(os.path.join(current_dir, 'camera.json')):
+        write_dict2json(os.path.join(current_dir, 'camera.json'), 
+                            {
+                            "cx": 325.2611083984375,
+                            "cy": 242.04899588216654,
+                            "depth_scale": 0.1,
+                            "fx": 572.411363389757,
+                            "fy": 573.5704328585578,
+                            "height": 480,
+                            "width": 640
+                            }
+                        )
+    
     # Retrieve the list of 3D model IDs from the dataset.
     # 获取数据集中 3D 模型的 ID 列表。
     models_ids = []
