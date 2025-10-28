@@ -58,6 +58,8 @@ pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle g
 
 pip install bpy==3.6.0 --extra-index-url https://download.blender.org/pypi/
 
+apt-get install libsm6 libxrender1 libxext-dev
+
 python -c "import imageio; imageio.plugins.freeimage.download()"
 
 pip install -U "huggingface_hub[hf_transfer]"
