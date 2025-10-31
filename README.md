@@ -559,6 +559,13 @@ Network Outputs:
 <div align="center"> <img src="/show_vis/IMG_20251007_165718_show_6d_vis0.jpg" width="100%"> 
 <img src="/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="100%"> </div>
 
+---
+
+#### 💫 If you find this tutorial helpful
+
+Please consider giving it a ⭐️ on GitHub!
+Your support motivates us to keep improving and updating the project 🙌
+
 --- 
 
 #### 🎥 6D Pose Estimation in Videos
