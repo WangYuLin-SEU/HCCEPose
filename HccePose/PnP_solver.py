@@ -2,7 +2,7 @@ import cv2
 import numpy as np 
 import itertools
 
-def solve_PnP(pred_m_f_c_np, pnp_op = 2, reprojectionError = 1.5, bfu = None):
+def solve_PnP(pred_m_f_c_np, pnp_op = 2, reprojectionError = 1.5, bfu = None, iterationsCount=150):
     
     return_info = {
         'success' : False,
@@ -56,10 +56,16 @@ def solve_PnP(pred_m_f_c_np, pnp_op = 2, reprojectionError = 1.5, bfu = None):
         return_info['tvecs'] = tvecs
         return_info['inliers'] = inliers
     elif pnp_op == 1:
-        # implementation of HccePose(BF) paper, but slow
-        success, rvecs_1, tvecs_1, inliers = cv2.solvePnPRansac(Points_3D.astype(np.float32),
-                                                    coord_image_np.astype(np.float32), cam_K, distCoeffs=None,
-                                                    reprojectionError=reprojectionError, iterationsCount=150, flags=cv2.SOLVEPNP_EPNP)
+        try:
+            success, rvecs_1, tvecs_1, inliers = cv2.solvePnPRansac(Points_3D.astype(np.float32),
+                                                        coord_image_np.astype(np.float32), cam_K, distCoeffs=None,
+                                                        reprojectionError=reprojectionError, confidence=0.995,
+                                                        iterationsCount=iterationsCount, flags=cv2.SOLVEPNP_SQPNP)
+        except:
+            success, rvecs_1, tvecs_1, inliers = cv2.solvePnPRansac(Points_3D.astype(np.float32),
+                                                        coord_image_np.astype(np.float32), cam_K, distCoeffs=None,
+                                                        reprojectionError=reprojectionError, confidence=0.995,
+                                                        iterationsCount=iterationsCount, flags=cv2.SOLVEPNP_EPNP)
         reprojection_1, _ = cv2.projectPoints(Points_3D, rvecs_1, tvecs_1, cam_K, None)
         reprojection_1 = reprojection_1.reshape((-1,2))
         error_1 = np.linalg.norm(reprojection_1 - coord_image_np, axis = 1)
@@ -90,7 +96,8 @@ def solve_PnP(pred_m_f_c_np, pnp_op = 2, reprojectionError = 1.5, bfu = None):
     elif pnp_op == 2:
         success, rvecs, tvecs, inliers = cv2.solvePnPRansac(Points_3D.astype(np.float32),
                                                     coord_image_np.astype(np.float32), cam_K, distCoeffs=None,
-                                                    reprojectionError=reprojectionError, iterationsCount=150, flags=cv2.SOLVEPNP_EPNP)
+                                                    reprojectionError=reprojectionError, 
+                                                    iterationsCount=iterationsCount, flags=cv2.SOLVEPNP_EPNP)
         rot, _ = cv2.Rodrigues(rvecs, jacobian=None)
         return_info['success'] = success
         return_info['rot'] = rot
@@ -102,10 +109,14 @@ def solve_PnP(pred_m_f_c_np, pnp_op = 2, reprojectionError = 1.5, bfu = None):
         inliers = np.where(error < reprojectionError )[0].reshape((-1,1))
         return_info['inliers'] = inliers
         
+    if np.isnan(rot).any() or np.isinf(rot).any():
+        return_info['rot'] = np.eye(3)
+    if np.isnan(tvecs).any() or np.isinf(tvecs).any():
+        return_info['tvecs'] = np.zeros((3, 1))
     return return_info
 
 
-def solve_PnP_comb(pred_m_bf_c_np, keypoints_=None, pnp_op = 2, reprojectionError = 1.5, train =False):
+def solve_PnP_comb(pred_m_bf_c_np, keypoints_=None, pnp_op = 2, reprojectionError = 1.5, train =False, iterationsCount=150):
     
     np.random.seed(0)
     
@@ -115,10 +126,10 @@ def solve_PnP_comb(pred_m_bf_c_np, keypoints_=None, pnp_op = 2, reprojectionErro
     input_bfu = (pred_mask_np, pred_back_code_0_np, coord_image_np, cam_K, pred_front_code_0_np)
     
     
-    results_f = solve_PnP(input_f, pnp_op = pnp_op, reprojectionError = reprojectionError)
-    results_b = solve_PnP(input_bfu, pnp_op = pnp_op, reprojectionError = reprojectionError, bfu='b')
-    results_bfu = solve_PnP(input_bfu, pnp_op = pnp_op, reprojectionError = reprojectionError, bfu='bfu')
-    results_bf = solve_PnP(input_bfu, pnp_op = pnp_op, reprojectionError = reprojectionError, bfu='bf')
+    results_f = solve_PnP(input_f, pnp_op = pnp_op, reprojectionError = reprojectionError, iterationsCount=iterationsCount)
+    results_b = solve_PnP(input_bfu, pnp_op = pnp_op, reprojectionError = reprojectionError, iterationsCount=iterationsCount, bfu='b')
+    results_bfu = solve_PnP(input_bfu, pnp_op = pnp_op, reprojectionError = reprojectionError, iterationsCount=iterationsCount, bfu='bfu')
+    results_bf = solve_PnP(input_bfu, pnp_op = pnp_op, reprojectionError = reprojectionError, iterationsCount=iterationsCount, bfu='bf')
     
     info_list = []
     if results_f['success']:
