@@ -324,6 +324,15 @@ demo-bin-picking
 
 ---
 
+#### ⚠️ Important Note
+
+**`s3_p2_train_yolo.py`** continuously scans the detection folder for the file **`yolo11-detection-obj_s.pt`**.
+This mechanism allows the training process to automatically resume after unexpected interruptions, which is particularly useful for cloud servers or environments where training progress cannot be easily monitored — helping to prevent idle GPU time and reduce unnecessary costs.
+However, if you intend to restart training from scratch, you must delete the file **`yolo11-detection-obj_s.pt`** first;
+otherwise, the program will resume from the previous checkpoint instead of reinitializing.
+
+---
+
 </details>
 
 #### 🧩 Preparation of Front–Back Surface Labels

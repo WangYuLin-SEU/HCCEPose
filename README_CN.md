@@ -313,6 +313,14 @@ demo-bin-picking
             |--- autosplit_train.txt
             |--- autosplit_val.txt
 ```
+
+---
+
+#### ⚠️ 注意事项
+**`s3_p2_train_yolo.py`** 会循环扫描 **`detection`** 文件夹下的 **`yolo11-detection-obj_s.pt`** 文件。
+此机制能够在训练程序因意外中断后自动恢复训练，特别适用于云服务器等不便实时监控训练进度的环境，可避免设备长时间空置造成的资源浪费。
+但若需要重新开始训练，请务必先删除 **`yolo11-detection-obj_s.pt`** 文件，否则该文件的存在会使程序继续从中断点恢复训练，而无法重新初始化。
+
 ---
 </details>
 
