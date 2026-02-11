@@ -915,6 +915,14 @@ class rendering_bop_dataset_back_front(Dataset):
             if len(self.model_info_obj['symmetries_continuous']):
                 if "axis" in self.model_info_obj['symmetries_continuous'][0]:
                     self.model_info_obj['symmetries_discrete'] = misc.get_symmetry_transformations(self.model_info_obj, np.pi / 180)
+                    
+                    symmetries_discrete_new = []
+                    for symmetries_discrete_i in self.model_info_obj['symmetries_discrete']:
+                        sym_mat = np.eye(4)
+                        sym_mat[:3, :3] = symmetries_discrete_i['R']
+                        sym_mat[:3, 3:] = symmetries_discrete_i['t']
+                        symmetries_discrete_new.append(sym_mat.reshape(-1))
+                    self.model_info_obj['symmetries_discrete'] = symmetries_discrete_new
                    
             self.model_info_obj.pop("symmetries_continuous")
         
@@ -1122,7 +1130,7 @@ class train_bop_dataset_back_front(Dataset):
         更新当前加载的物体。  
         `obj_id` 为物体的 ID，`obj_path` 为该物体的 3D 模型路径。
         '''
-        
+
         self.current_obj_id = obj_id
         self.current_obj_path = obj_path
         self.nSamples = len(self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')])
@@ -1132,6 +1140,14 @@ class train_bop_dataset_back_front(Dataset):
             if len(self.model_info_obj['symmetries_continuous']):
                 if "axis" in self.model_info_obj['symmetries_continuous'][0]:
                     self.model_info_obj['symmetries_discrete'] = misc.get_symmetry_transformations(self.model_info_obj, np.pi / 180)
+                    
+                    symmetries_discrete_new = []
+                    for symmetries_discrete_i in self.model_info_obj['symmetries_discrete']:
+                        sym_mat = np.eye(4)
+                        sym_mat[:3, :3] = symmetries_discrete_i['R']
+                        sym_mat[:3, 3:] = symmetries_discrete_i['t']
+                        symmetries_discrete_new.append(sym_mat.reshape(-1))
+                    self.model_info_obj['symmetries_discrete'] = symmetries_discrete_new
                    
             self.model_info_obj.pop("symmetries_continuous")
         
@@ -1139,6 +1155,7 @@ class train_bop_dataset_back_front(Dataset):
             if len(self.model_info_obj['symmetries_discrete']) == 0:
                 self.model_info_obj.pop("symmetries_discrete")
         return
+    
 
     def apply_augmentation(self, x):
         '''
@@ -1327,24 +1344,31 @@ class test_bop_dataset_back_front(Dataset):
         return check_hcce_images
 
     def update_obj_id(self, obj_id, obj_path):
-        
-        
+        '''
+        Update the currently loaded object.  
+        `obj_id` is the object's ID, and `obj_path` is the path to its 3D model.
+
+        更新当前加载的物体。  
+        `obj_id` 为物体的 ID，`obj_path` 为该物体的 3D 模型路径。
+        '''
+
         self.current_obj_id = obj_id
         self.current_obj_path = obj_path
-        
         self.nSamples = len(self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')])
-        
-        if self.ratio != 1.0:
-            len_ = int(self.ratio * len(self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')])) + 0
-            
-            self.nSamples = len_
-        
         self.model_info_obj = copy.deepcopy(self.bop_dataset_item.model_info[str(self.current_obj_id)])
         
         if 'symmetries_continuous' in self.model_info_obj:
             if len(self.model_info_obj['symmetries_continuous']):
                 if "axis" in self.model_info_obj['symmetries_continuous'][0]:
                     self.model_info_obj['symmetries_discrete'] = misc.get_symmetry_transformations(self.model_info_obj, np.pi / 180)
+                    
+                    symmetries_discrete_new = []
+                    for symmetries_discrete_i in self.model_info_obj['symmetries_discrete']:
+                        sym_mat = np.eye(4)
+                        sym_mat[:3, :3] = symmetries_discrete_i['R']
+                        sym_mat[:3, 3:] = symmetries_discrete_i['t']
+                        symmetries_discrete_new.append(sym_mat.reshape(-1))
+                    self.model_info_obj['symmetries_discrete'] = symmetries_discrete_new
                    
             self.model_info_obj.pop("symmetries_continuous")
         
@@ -1352,6 +1376,7 @@ class test_bop_dataset_back_front(Dataset):
             if len(self.model_info_obj['symmetries_discrete']) == 0:
                 self.model_info_obj.pop("symmetries_discrete")
         return
+    
 
     def preprocess(self, rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce):
         rgb_c_pil = Image.fromarray(np.uint8(rgb_c)).convert('RGB')
