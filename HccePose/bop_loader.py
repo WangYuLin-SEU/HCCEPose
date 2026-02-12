@@ -1355,6 +1355,12 @@ class test_bop_dataset_back_front(Dataset):
         self.current_obj_id = obj_id
         self.current_obj_path = obj_path
         self.nSamples = len(self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')])
+        
+        if self.ratio != 1.0:
+            len_ = int(self.ratio * len(self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')])) + 0
+            
+            self.nSamples = len_
+            
         self.model_info_obj = copy.deepcopy(self.bop_dataset_item.model_info[str(self.current_obj_id)])
         
         if 'symmetries_continuous' in self.model_info_obj:
