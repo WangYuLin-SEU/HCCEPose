@@ -696,7 +696,7 @@ def load_checkpoint(check_point_path, net : HccePose_BF_Net, optimizer=None, loc
     iteration_step = 0
     keypoints_ = []
     try:
-        checkpoint = torch.load( get_checkpoint(check_point_path), map_location='cuda:'+CUDA_DEVICE)
+        checkpoint = torch.load( get_checkpoint(check_point_path), map_location='cuda:'+CUDA_DEVICE, weights_only=False)
         net.load_state_dict(checkpoint['model_state_dict'])
         if optimizer is not None:
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
