@@ -1,11 +1,66 @@
+"""Visualization helpers for HccePose.
+
+This module collects the image-level rendering and overlay utilities used by
+HccePose test scripts and the tester pipeline. It de-normalizes BGR-order crops
+(``IMAGENET_MEAN_BGR``) into uint8 **BGR** panels for OpenCV, builds mask/code
+tiles, and draws pose overlays with BGR line colors.
+
+HccePose 的可视化辅助函数。
+
+该模块汇总了 HccePose 测试脚本与 Tester 推理流程中的图像级可视化：
+将按 BGR + ``IMAGENET_MEAN_BGR`` 归一化的网络输出还原为 uint8 **BGR** 拼图（OpenCV），
+并叠加 Mask、编码图与位姿投影（线条颜色按 BGR 解释）。
+"""
+
 import torch, cv2, kornia
 import numpy as np
 
+from HccePose.bop_loader import IMAGENET_MEAN_BGR, IMAGENET_STD_BGR
+
 
 def vis_rgb_mask_Coord(rgb_c, pred_mask, pred_front_code, pred_back_code, img_path = None):
+    '''
+    ---
+    ---
+    Visualize cropped image (BGR tensor convention), mask, and front/back code maps.
+    ---
+    ---
+    The function de-normalizes BGR crops to uint8 BGR (OpenCV layout), arranges the
+    predicted mask together with front/back coordinate codes into one canvas,
+    and optionally saves the panel to disk. It is mainly used for debugging the
+    direct HccePose network outputs before PnP.
+
+    Args:
+        - rgb_c: Normalized cropped BGR tensor (OpenCV channel order, ImageNet stats permuted).
+        - pred_mask: Predicted binary mask tensor.
+        - pred_front_code: Predicted front-side code tensor.
+        - pred_back_code: Predicted back-side code tensor.
+        - img_path: Optional path for saving the visualization.
+
+    Returns:
+        - save_numpy: The composed visualization image in numpy format.
+    ---
+    ---
+    可视化裁剪图（BGR 张量约定）、掩膜以及正背面编码图。
+    ---
+    ---
+    该函数会将归一化后的 BGR 裁剪图恢复到 uint8 BGR（OpenCV 布局），并把预测得到的掩膜、
+    正面编码和背面编码拼接成一张总览图；必要时还可以直接保存到磁盘。
+    它主要用于在进入 PnP 之前调试 HccePose 网络的直接输出。
+
+    参数:
+        - rgb_c: 归一化后的裁剪 BGR tensor（OpenCV 通道顺序，ImageNet 统计量已按 BGR 重排）。
+        - pred_mask: 预测得到的二值掩膜 tensor。
+        - pred_front_code: 预测得到的正面编码 tensor。
+        - pred_back_code: 预测得到的背面编码 tensor。
+        - img_path: 可选的可视化保存路径。
+
+    返回:
+        - save_numpy: 拼接后的 numpy 可视化图像。
+    '''
     text_list = ['RGB', 'Mask']
-    mean = torch.tensor([0.485, 0.456, 0.406]).to(rgb_c.device)
-    std = torch.tensor([0.229, 0.224, 0.225]).to(rgb_c.device)
+    mean = torch.tensor(IMAGENET_MEAN_BGR, device=rgb_c.device, dtype=torch.float32)
+    std = torch.tensor(IMAGENET_STD_BGR, device=rgb_c.device, dtype=torch.float32)
     def reverse_normalize(tensor):
         if tensor.dim() == 4:
             mean_ = mean.view(1, 3, 1, 1) 
@@ -50,6 +105,37 @@ def vis_rgb_mask_Coord(rgb_c, pred_mask, pred_front_code, pred_back_code, img_pa
     return save_numpy
 
 def zero_other_masks_by_conf(pred_mask, conf_s):
+    '''
+    ---
+    ---
+    Keep only the highest-confidence mask at each pixel location.
+    ---
+    ---
+    When multiple instance masks overlap, this helper suppresses all masks
+    except the one whose detection confidence is maximal at the current pixel.
+    This makes the merged origin-space visualization cleaner and easier to read.
+
+    Args:
+        - pred_mask: Batched mask tensor.
+        - conf_s: Detection confidence tensor for each instance.
+
+    Returns:
+        - processed_masks: Masks after confidence-based per-pixel suppression.
+    ---
+    ---
+    在每个像素位置仅保留置信度最高的掩膜。
+    ---
+    ---
+    当多个实例掩膜发生重叠时，该函数会抑制除当前像素处置信度最高实例以外的
+    其他掩膜，从而让回到原图空间后的可视化更加整洁、易于阅读。
+
+    参数:
+        - pred_mask: 批量实例掩膜 tensor。
+        - conf_s: 每个实例对应的检测置信度 tensor。
+
+    返回:
+        - processed_masks: 经过逐像素置信度抑制后的掩膜。
+    '''
     pred_mask = pred_mask.permute(1,0,2,3)
     B, N, H, W = pred_mask.shape 
     conf_s = conf_s[None,:,None,None].repeat(1, 1, H, W) * pred_mask
@@ -61,9 +147,62 @@ def zero_other_masks_by_conf(pred_mask, conf_s):
     return processed_masks.permute(1,0,2,3)
 
 def vis_rgb_mask_Coord_origin(cam_K, obj_ids_l, obj_ids_all, BBox_3d_l, Rts_l, conf_s, rgb_c, pred_mask, pred_front_code, pred_back_code, img_path = None):
+    '''
+    ---
+    ---
+    Visualize masks, codes, and projected 6D poses in the original image space.
+    ---
+    ---
+    This function fuses multiple object instances back to the full-resolution
+    image, overlays mask/code responses, and draws projected 3D bounding boxes
+    according to the recovered poses. It is mainly used as the final HccePose
+    2D/6D qualitative visualization.
+
+    Args:
+        - cam_K: Camera intrinsic matrix.
+        - obj_ids_l: Object ids for the predicted instances.
+        - obj_ids_all: All dataset object ids.
+        - BBox_3d_l: Precomputed 3D bounding-box edge list for every object.
+        - Rts_l: Predicted 6D poses.
+        - conf_s: Detection confidences.
+        - rgb_c: Full image tensor in normalized BGR space (ImageNet stats permuted).
+        - pred_mask: Warped masks in image space.
+        - pred_front_code: Warped front code maps.
+        - pred_back_code: Warped back code maps.
+        - img_path: Reserved optional save path.
+
+    Returns:
+        - save_numpy: Combined code/pose visualization canvas.
+        - save_numpy_2: Compact side-by-side BGR uint8 view with pose overlay (OpenCV layout).
+    ---
+    ---
+    在原图空间中可视化掩膜、编码图与 6D 位姿投影。
+    ---
+    ---
+    该函数会将多个实例重新映射回完整分辨率图像，并叠加显示掩膜与编码响应，
+    同时依据恢复出的位姿绘制物体的 3D 包围盒投影。它主要用于生成 HccePose
+    最终的 2D/6D 定性展示结果。
+
+    参数:
+        - cam_K: 相机内参矩阵。
+        - obj_ids_l: 当前预测实例对应的物体 id 列表。
+        - obj_ids_all: 数据集中的全部物体 id 列表。
+        - BBox_3d_l: 每个物体预先计算好的 3D 包围盒边集合。
+        - Rts_l: 预测得到的 6D 位姿。
+        - conf_s: 检测置信度。
+        - rgb_c: 归一化后的整图 BGR tensor（ImageNet 统计量已按 BGR 重排）。
+        - pred_mask: 映射回原图空间的掩膜。
+        - pred_front_code: 映射回原图空间的正面编码图。
+        - pred_back_code: 映射回原图空间的背面编码图。
+        - img_path: 预留的可选保存路径。
+
+    返回:
+        - save_numpy: 组合后的编码与位姿可视化大图。
+        - save_numpy_2: 紧凑版 BGR uint8 与位姿叠加（OpenCV 布局）。
+    '''
     
-    mean = torch.tensor([0.485, 0.456, 0.406]).to(rgb_c.device)
-    std = torch.tensor([0.229, 0.224, 0.225]).to(rgb_c.device)
+    mean = torch.tensor(IMAGENET_MEAN_BGR, device=rgb_c.device, dtype=torch.float32)
+    std = torch.tensor(IMAGENET_STD_BGR, device=rgb_c.device, dtype=torch.float32)
     def reverse_normalize(tensor):
         if tensor.dim() == 4:
             mean_ = mean.view(1, 3, 1, 1) 
@@ -131,10 +270,9 @@ def vis_rgb_mask_Coord_origin(cam_K, obj_ids_l, obj_ids_all, BBox_3d_l, Rts_l, c
         
         rand_RGB_np = rand_RGB[i].clone().cpu().numpy() * 255
         rand_RGB_np = rand_RGB_np.astype(np.uint8)
+        line_bgr = (int(rand_RGB_np[2]), int(rand_RGB_np[1]), int(rand_RGB_np[0]))
         for BBox_2d_i in BBox_2d:
-            
-            cv2.line(save_numpy_line_1, BBox_2d_i[0].astype(np.int32), BBox_2d_i[1].astype(np.int32), 
-                     (int(rand_RGB_np[0]), int(rand_RGB_np[1]), int(rand_RGB_np[2])), 2)
+            cv2.line(save_numpy_line_1, BBox_2d_i[0].astype(np.int32), BBox_2d_i[1].astype(np.int32), line_bgr, 2)
     
     save_numpy_2 = np.concatenate([reversed_rgb_c.clone().cpu().numpy()[0], save_numpy_line_1[:, :int(save_numpy_line_1.shape[1] / 3), :]], axis = 1)
     

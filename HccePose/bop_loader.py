@@ -3,7 +3,6 @@
 
 import os, cv2, sys, json, copy, torch
 import numpy as np
-from PIL import Image
 from tqdm import tqdm
 import torchvision.transforms as transforms
 import imgaug.augmenters as iaa
@@ -24,6 +23,11 @@ pa_ = os.path.join(os.path.dirname(current_directory), 'bop_toolkit')
 sys.path.append(pa_)
 from bop_toolkit.bop_toolkit_lib import inout, renderer, misc, pose_error, pycoco_utils
 from kasal.utils import load_json2dict
+
+# ImageNet mean/std permuted for OpenCV BGR order (C0=B, C1=G, C2=R).
+IMAGENET_MEAN_BGR = (0.406, 0.456, 0.485)
+IMAGENET_STD_BGR = (0.225, 0.224, 0.229)
+
 
 def aug_square_fp32(GT_Bbox, padding_ratio):
     '''
@@ -915,14 +919,6 @@ class rendering_bop_dataset_back_front(Dataset):
             if len(self.model_info_obj['symmetries_continuous']):
                 if "axis" in self.model_info_obj['symmetries_continuous'][0]:
                     self.model_info_obj['symmetries_discrete'] = misc.get_symmetry_transformations(self.model_info_obj, np.pi / 180)
-                    
-                    symmetries_discrete_new = []
-                    for symmetries_discrete_i in self.model_info_obj['symmetries_discrete']:
-                        sym_mat = np.eye(4)
-                        sym_mat[:3, :3] = symmetries_discrete_i['R']
-                        sym_mat[:3, 3:] = symmetries_discrete_i['t']
-                        symmetries_discrete_new.append(sym_mat.reshape(-1))
-                    self.model_info_obj['symmetries_discrete'] = symmetries_discrete_new
                    
             self.model_info_obj.pop("symmetries_continuous")
         
@@ -1010,8 +1006,7 @@ class train_bop_dataset_back_front(Dataset):
             try:os.mkdir(os.path.join(self.target_dir_back, os.path.basename(scene_path_i)))
             except:1
         self.composed_transforms_img = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            transforms.Normalize(IMAGENET_MEAN_BGR, IMAGENET_STD_BGR),
             ])
         pass
     
@@ -1029,7 +1024,7 @@ class train_bop_dataset_back_front(Dataset):
             - index: The index of the sample.  
 
         Returns:
-            - rgb_c: The RGB image data.  
+            - rgb_c: BGR-order crop normalized with ImageNet stats permuted for BGR.  
             - mask_vis_c: The visible mask of the object.  
             - GT_Front_hcce: Hierarchical code obtained by encoding the object's front 3D coordinates using HCCE.  
             - GT_Back_hcce: Hierarchical code obtained by encoding the object's back 3D coordinates using HCCE.  
@@ -1042,7 +1037,7 @@ class train_bop_dataset_back_front(Dataset):
             - index: 样本的序号。  
 
         返回:
-            - rgb_c: RGB 图像数据。  
+            - rgb_c: BGR 通道顺序的裁剪图，已按 BGR 重排的 ImageNet 均值方差归一化。  
             - mask_vis_c: 物体的可见掩膜。  
             - GT_Front_hcce: 物体正面 3D 坐标经 HCCE 编码后的层次化代码。  
             - GT_Back_hcce: 物体背面 3D 坐标经 HCCE 编码后的层次化代码。
@@ -1130,7 +1125,7 @@ class train_bop_dataset_back_front(Dataset):
         更新当前加载的物体。  
         `obj_id` 为物体的 ID，`obj_path` 为该物体的 3D 模型路径。
         '''
-
+        
         self.current_obj_id = obj_id
         self.current_obj_path = obj_path
         self.nSamples = len(self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')])
@@ -1140,14 +1135,6 @@ class train_bop_dataset_back_front(Dataset):
             if len(self.model_info_obj['symmetries_continuous']):
                 if "axis" in self.model_info_obj['symmetries_continuous'][0]:
                     self.model_info_obj['symmetries_discrete'] = misc.get_symmetry_transformations(self.model_info_obj, np.pi / 180)
-                    
-                    symmetries_discrete_new = []
-                    for symmetries_discrete_i in self.model_info_obj['symmetries_discrete']:
-                        sym_mat = np.eye(4)
-                        sym_mat[:3, :3] = symmetries_discrete_i['R']
-                        sym_mat[:3, 3:] = symmetries_discrete_i['t']
-                        symmetries_discrete_new.append(sym_mat.reshape(-1))
-                    self.model_info_obj['symmetries_discrete'] = symmetries_discrete_new
                    
             self.model_info_obj.pop("symmetries_continuous")
         
@@ -1155,7 +1142,6 @@ class train_bop_dataset_back_front(Dataset):
             if len(self.model_info_obj['symmetries_discrete']) == 0:
                 self.model_info_obj.pop("symmetries_discrete")
         return
-    
 
     def apply_augmentation(self, x):
         '''
@@ -1187,13 +1173,13 @@ class train_bop_dataset_back_front(Dataset):
         return x
     
     def preprocess(self, rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce):
-
-        rgb_c_pil = Image.fromarray(np.uint8(rgb_c)).convert('RGB')
+        rgb_t = torch.from_numpy(np.ascontiguousarray(rgb_c, dtype=np.uint8)).permute(2, 0, 1).float() / 255.0
+        rgb_c = self.composed_transforms_img(rgb_t)
         mask_vis_c = mask_vis_c / 255.
         mask_vis_c = torch.from_numpy(mask_vis_c).type(torch.float)
         GT_Front_hcce = torch.from_numpy(GT_Front_hcce).permute(2, 0, 1)
         GT_Back_hcce = torch.from_numpy(GT_Back_hcce).permute(2, 0, 1)
-        return self.composed_transforms_img(rgb_c_pil), mask_vis_c, GT_Front_hcce, GT_Back_hcce
+        return rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce
 
 class test_bop_dataset_back_front(Dataset):
     
@@ -1270,8 +1256,7 @@ class test_bop_dataset_back_front(Dataset):
             try:os.mkdir(os.path.join(self.target_dir_back, os.path.basename(scene_path_i)))
             except:1
         self.composed_transforms_img = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            transforms.Normalize(IMAGENET_MEAN_BGR, IMAGENET_STD_BGR),
             ])
         pass
     
@@ -1344,37 +1329,24 @@ class test_bop_dataset_back_front(Dataset):
         return check_hcce_images
 
     def update_obj_id(self, obj_id, obj_path):
-        '''
-        Update the currently loaded object.  
-        `obj_id` is the object's ID, and `obj_path` is the path to its 3D model.
-
-        更新当前加载的物体。  
-        `obj_id` 为物体的 ID，`obj_path` 为该物体的 3D 模型路径。
-        '''
-
+        
+        
         self.current_obj_id = obj_id
         self.current_obj_path = obj_path
+        
         self.nSamples = len(self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')])
         
         if self.ratio != 1.0:
             len_ = int(self.ratio * len(self.dataset_info['obj_info']['obj_%s'%str(self.current_obj_id).rjust(6, '0')])) + 0
             
             self.nSamples = len_
-            
+        
         self.model_info_obj = copy.deepcopy(self.bop_dataset_item.model_info[str(self.current_obj_id)])
         
         if 'symmetries_continuous' in self.model_info_obj:
             if len(self.model_info_obj['symmetries_continuous']):
                 if "axis" in self.model_info_obj['symmetries_continuous'][0]:
                     self.model_info_obj['symmetries_discrete'] = misc.get_symmetry_transformations(self.model_info_obj, np.pi / 180)
-                    
-                    symmetries_discrete_new = []
-                    for symmetries_discrete_i in self.model_info_obj['symmetries_discrete']:
-                        sym_mat = np.eye(4)
-                        sym_mat[:3, :3] = symmetries_discrete_i['R']
-                        sym_mat[:3, 3:] = symmetries_discrete_i['t']
-                        symmetries_discrete_new.append(sym_mat.reshape(-1))
-                    self.model_info_obj['symmetries_discrete'] = symmetries_discrete_new
                    
             self.model_info_obj.pop("symmetries_continuous")
         
@@ -1382,14 +1354,14 @@ class test_bop_dataset_back_front(Dataset):
             if len(self.model_info_obj['symmetries_discrete']) == 0:
                 self.model_info_obj.pop("symmetries_discrete")
         return
-    
 
     def preprocess(self, rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce):
-        rgb_c_pil = Image.fromarray(np.uint8(rgb_c)).convert('RGB')
+        rgb_t = torch.from_numpy(np.ascontiguousarray(rgb_c, dtype=np.uint8)).permute(2, 0, 1).float() / 255.0
+        rgb_c = self.composed_transforms_img(rgb_t)
         mask_vis_c = mask_vis_c / 255.
         mask_vis_c = torch.from_numpy(mask_vis_c).type(torch.float)
         GT_Front_hcce = torch.from_numpy(GT_Front_hcce).permute(2, 0, 1)
         GT_Back_hcce = torch.from_numpy(GT_Back_hcce).permute(2, 0, 1)
-        return self.composed_transforms_img(rgb_c_pil), mask_vis_c, GT_Front_hcce, GT_Back_hcce
+        return rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce
 
 

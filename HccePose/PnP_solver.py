@@ -1,8 +1,61 @@
+"""PnP solving utilities for HccePose.
+
+This module converts HccePose front/back coordinate predictions into 6D poses
+with OpenCV PnP solvers. It contains both the basic single-branch solver and
+the combined front/back strategy used by the current inference pipeline.
+
+HccePose 的 PnP 求解工具。
+
+该模块负责将 HccePose 预测得到的正背面坐标结果转换为 6D 位姿，
+底层依赖 OpenCV 的 PnP 求解器。模块同时包含基础单分支求解逻辑，
+以及当前推理流程中使用的正背面组合求解策略。
+"""
+
 import cv2
 import numpy as np 
 import itertools
 
 def solve_PnP(pred_m_f_c_np, pnp_op = 2, reprojectionError = 1.5, bfu = None, iterationsCount=150):
+    '''
+    ---
+    ---
+    Solve one PnP problem from predicted mask/coordinate correspondences.
+    ---
+    ---
+    The function first extracts valid 2D-3D correspondences from the predicted
+    mask, then optionally builds different front/back point combinations, and
+    finally applies one of several OpenCV PnP variants to estimate the object
+    pose.
+
+    Args:
+        - pred_m_f_c_np: Tuple that stores mask, predicted coordinates, image
+          coordinates, and camera intrinsics.
+        - pnp_op: PnP backend option.
+        - reprojectionError: Inlier threshold in pixels.
+        - bfu: Optional front/back point fusion mode.
+        - iterationsCount: Maximum RANSAC iteration count.
+
+    Returns:
+        - return_info: Dictionary containing success flag, rotation, translation,
+          and inlier indices.
+    ---
+    ---
+    根据预测的掩膜与坐标对应关系求解单次 PnP。
+    ---
+    ---
+    该函数会先从预测掩膜中提取有效的 2D-3D 对应点，再根据需要构造不同的
+    正背面点组合，最后调用 OpenCV 的若干 PnP 变体来估计物体位姿。
+
+    参数:
+        - pred_m_f_c_np: 保存掩膜、预测坐标、图像坐标与相机内参的元组。
+        - pnp_op: PnP 求解方式选项。
+        - reprojectionError: 像素重投影内点阈值。
+        - bfu: 可选的正背面点融合模式。
+        - iterationsCount: RANSAC 最大迭代次数。
+
+    返回:
+        - return_info: 包含成功标记、旋转、平移和内点索引的字典。
+    '''
     
     return_info = {
         'success' : False,
@@ -117,6 +170,47 @@ def solve_PnP(pred_m_f_c_np, pnp_op = 2, reprojectionError = 1.5, bfu = None, it
 
 
 def solve_PnP_comb(pred_m_bf_c_np, keypoints_=None, pnp_op = 2, reprojectionError = 1.5, train =False, iterationsCount=150):
+    '''
+    ---
+    ---
+    Solve a combined front/back PnP problem and select the best candidate.
+    ---
+    ---
+    The current HccePose inference path evaluates several front/back coordinate
+    combinations, compares their inlier counts, and optionally uses the stored
+    keypoint prior to pick the final pose candidate.
+
+    Args:
+        - pred_m_bf_c_np: Tuple with mask, front code, back code, image
+          coordinates, and camera intrinsics.
+        - keypoints_: Optional keypoint prior for candidate selection.
+        - pnp_op: PnP backend option.
+        - reprojectionError: Inlier threshold in pixels.
+        - train: Whether to return all candidates for training-time use.
+        - iterationsCount: Maximum RANSAC iteration count.
+
+    Returns:
+        - results_best / info_list: The selected best candidate during inference,
+          or the full candidate list during training mode.
+    ---
+    ---
+    求解正背面组合 PnP，并从多个候选中选择最佳位姿。
+    ---
+    ---
+    当前 HccePose 推理流程会同时评估若干种正背面坐标组合，并比较它们的内点数，
+    在需要时还会结合保存的关键点先验选择最终位姿候选。
+
+    参数:
+        - pred_m_bf_c_np: 包含掩膜、正面编码、背面编码、图像坐标与相机内参的元组。
+        - keypoints_: 可选的关键点先验，用于候选筛选。
+        - pnp_op: PnP 求解方式选项。
+        - reprojectionError: 像素重投影内点阈值。
+        - train: 是否在训练阶段返回全部候选。
+        - iterationsCount: RANSAC 最大迭代次数。
+
+    返回:
+        - results_best / info_list: 推理阶段返回筛选出的最佳候选，训练阶段返回全部候选列表。
+    '''
     
     np.random.seed(0)
     
