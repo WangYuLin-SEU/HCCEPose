@@ -4,6 +4,7 @@
 import cv2, os, sys
 import numpy as np
 from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
 from HccePose.tester import Tester
 
 if __name__ == '__main__':
@@ -15,16 +16,18 @@ if __name__ == '__main__':
     bop_dataset_item = bop_dataset(dataset_path)
     obj_ids = bop_dataset_item.obj_id_list
     CUDA_DEVICE = '0'
-    # show_op = False
-    show_op = True
+    hccepose_vis = True
+    hccepose_acceleration = 'pytorch'
+    save_visualizations = hccepose_vis
+    print_stage_timing = False
     
-    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
+    Tester_item = Tester(bop_dataset_item, hccepose_vis = hccepose_vis, CUDA_DEVICE=CUDA_DEVICE, hccepose_acceleration=hccepose_acceleration)
     for name in ['IMG_20251009_142305',
                  'IMG_20251009_142310',
                  'IMG_20251009_142316',
                  'IMG_20251009_142319']:
         file_name = os.path.join(test_img_path, '%s.jpg'%name)
-        image = cv2.cvtColor(cv2.imread(file_name), cv2.COLOR_RGB2BGR)
+        image = cv2.imread(file_name)
         cam_K = np.array([
             [2.83925618e+03, 0.00000000e+00, 2.02288638e+03],
             [0.00000000e+00, 2.84037288e+03, 1.53940473e+03],
@@ -32,8 +35,10 @@ if __name__ == '__main__':
         ])
         results_dict = Tester_item.predict(cam_K, image, obj_ids,
                                                         conf = 0.85, confidence_threshold = 0.85)
-        cv2.imwrite(file_name.replace('.jpg','_show_2d.jpg'), results_dict['show_2D_results'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis0.jpg'), results_dict['show_6D_vis0'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis1.jpg'), results_dict['show_6D_vis1'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict['show_6D_vis2'])
-    pass
+        print_stage_time_breakdown(results_dict, enabled=print_stage_timing, prefix=name)
+        save_visual_artifacts([
+            (file_name.replace('.jpg','_show_2d.jpg'), results_dict.get('show_2D_results')),
+            (file_name.replace('.jpg','_show_6d_vis0.jpg'), results_dict.get('show_6D_vis0')),
+            (file_name.replace('.jpg','_show_6d_vis1.jpg'), results_dict.get('show_6D_vis1')),
+            (file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict.get('show_6D_vis2')),
+        ], enabled=save_visualizations)

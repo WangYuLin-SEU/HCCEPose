@@ -10,22 +10,26 @@
 </p>
 
 <p align="center">
-  <a href="./README.md">English</b> | <a href="./README_CN.md">中文</a>
+  <a href="./README.md">English</a> | <a href="./README_CN.md">中文</a>
 </p>
 <!-- 
-<img src="/show_vis/VID_20251011_215403.gif" width=100%>
-<img src="/show_vis/VID_20251011_215255.gif" width=100%> -->
+<img src="show_vis/VID_20251011_215403.gif" width=100%>
+<img src="show_vis/VID_20251011_215255.gif" width=100%> -->
 
 ## 🧩 简介
 HccePose(BF) 提出了一种 **层次化连续坐标编码（Hierarchical Continuous Coordinate Encoding, HCCE）** 机制，将物体表面点的三个坐标分量分别编码为层次化的连续代码。通过这种层次化的编码方式，神经网络能够有效学习 2D 图像特征与物体 3D 表面坐标之间的对应关系，也显著增强了网络对物体掩膜的学习能力。与传统方法仅学习物体可见正表面不同，**HccePose(BF)** 还学习了物体背表面的 3D 坐标，从而建立了更稠密的 2D–3D 对应关系，显著提升了位姿估计精度。
 
-### <img src="/show_vis/fig2.jpg" width=100%>
+<div align="center">
+<img src="show_vis/fig2.jpg" width="100%" alt="HccePose(BF) 示意图">
+</div>
 
 ## ✨ 更新
 --- 
 - ⚠️ 注意：所有路径都必须使用绝对路径，以避免运行时错误。
 - 2025.10.27: 我们发布了 cc0textures-512，这是原版 CC0Textures（44GB） 的轻量替代版本，体积仅 600MB。 👉 [点此下载](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/cc0textures-512.zip)
 - 2025.10.28: s4_p1_gen_bf_labels.py 已更新。若数据集中不存在 camera.json，脚本将自动创建一个默认文件。
+- 2026.04.04：新增 **RGB-D 微调**（**FoundationPose** / **MegaPose**，`Refinement/` 与 `s4_p3_test_mi10_bin_picking_RGBD_*.py`）；**HccePose** 与 **FoundationPose** 的 **ONNX / TensorRT** 加速选项（`hccepose_acceleration`、`foundationpose_acceleration`）；`results_dict['time_dict']` 分阶段耗时与 `print_stage_time_breakdown`。示例 RGB-D 帧 **`000000`–`000003`** 已上传至 [Hugging Face — test_imgs_RGBD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs_RGBD)（每帧 `{stem}_rgb.png`、`{stem}_depth.png`、`{stem}_camK.json`）。**Git** 可仍只内置 **`000003_*`**；多帧请从该目录同步到 **`test_imgs_RGBD/`**（可用 [`scripts/download_hf_assets.py`](scripts/download_hf_assets.py)；网页 Dataset card 用 [`hf-dataset-card/README.md`](hf-dataset-card/README.md) 上传为根目录 `README.md`，中文见 [`hf-dataset-card/README_CN.md`](hf-dataset-card/README_CN.md)）。
+- 2026.04.04（文档）：快速开始与 RGB-D 小节明确 **OpenCV BGR** 约定（`cv2.imread` / `VideoCapture` 结果**原样**传入 `Tester.predict`），删除在 `imread` 后误加的 `COLOR_RGB2BGR`。代码注释与 BGR 训练归一化、FoundationPose 入口 BGR→RGB、MegaPose 可视化 BGR 拼图等实现对齐。
 ---
 ## 🔧 环境配置
 
@@ -68,7 +72,29 @@ pip install -U "huggingface_hub[hf_transfer]"
 
 ```
 
+<details>
+<summary>可选：RGB-D 微调与加速</summary>
+
+- **bop_toolkit**：请将 `bop_toolkit.zip` 解压到项目根目录的 **`bop_toolkit/`**，与训练、测试脚本的导入路径一致。
+- **FoundationPose**（RGB-D 微调）：需按上游安装 [nvdiffrast](https://github.com/NVlabs/nvdiffrast)。**权重不包含在本仓库中。** 请从 [NVlabs/FoundationPose](https://github.com/NVlabs/FoundationPose) 文档 *Data prepare* 与 [Google Drive 权重包](https://drive.google.com/drive/folders/1DFezOAD0oD1BblsXVxqDsl8fj0qzB82i?usp=sharing) 获取，将 refiner / scorer 置于项目根目录 **`2023-10-28-18-33-37/`**、**`2024-01-11-20-02-45/`**（各含 `config.yml`、`model_best.pth`）。可选非官方镜像：[gpue/foundationpose-weights](https://huggingface.co/gpue/foundationpose-weights)（非 NVIDIA 托管，仅供不便访问 Drive 时选用）。**许可说明：** FoundationPose 权重使用须遵守其[官方许可](https://github.com/NVlabs/FoundationPose)，请勿默认可任意商用。
+- **ONNX Runtime GPU / TensorRT**：HccePose 与 FoundationPose 可分别通过 `HccePose.hccepose_acceleration`、`Refinement.foundationpose_acceleration` 启用 ONNX 或 TensorRT；示例见 `s4_p3_test_mi10_bin_picking_onnx.py`、`s4_p3_test_mi10_bin_picking_tensorrt.py` 及 RGB-D 脚本中的相关参数。
+- **MegaPose**：首次 `register_megapose()` 或首次跑通 MegaPose 路径时，可**自动**克隆 [megapose6d](https://github.com/megapose6d/megapose6d.git) 至 **`third_party_megapose6d/`**、创建 **Python 3.9** 子环境 **`.envs/megapose/`**、安装依赖并下载模型（如 `local_data/megapose-models` 等，具体以上游为准）。需联网且项目目录可写。**许可说明：** MegaPose 代码与模型以 [megapose6d 官方许可](https://github.com/megapose6d/megapose6d)为准。
+
 </details>
+
+</details>
+
+---
+
+### 📥 从 Hugging Face 批量下载（可选）
+
+[`scripts/download_hf_assets.py`](scripts/download_hf_assets.py) **仅在本 GitHub 仓库**，不在 Hugging Face 数据集文件列表中。在 **HCCEPose 仓库根目录**运行后，数据写入路径与 Quick Start / RGB-D 示例一致：`test_imgs/`、`test_videos/`、`test_imgs_RGBD/`、`demo-bin-picking/`、`demo-tex-objs/` 等位于克隆根目录，与手工从网页下载或维护者本机已配好环境**相同布局**。
+
+```bash
+python scripts/download_hf_assets.py --preset test --endpoint auto
+```
+
+默认 `--dest` 为仓库根。`--endpoint auto` 先官方后 `https://hf-mirror.com`。详见 `python scripts/download_hf_assets.py --help`（含 **`--foundationpose`**，须核对许可）。Hugging Face Dataset 卡片用 [`hf-dataset-card/README.md`](hf-dataset-card/README.md)；中文 [`hf-dataset-card/README_CN.md`](hf-dataset-card/README_CN.md)。
 
 ---
 
@@ -83,20 +109,20 @@ pip install -U "huggingface_hub[hf_transfer]"
 以 [**`demo-bin-picking`**](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking) 数据集为例，我们首先使用 **SolidWorks** 设计物体模型，并导出为 STL 格式的三维网格文件。  
 STL 文件下载链接：🔗 https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/raw-demo-models/multi-objs/board.STL
 
-<img src="/show_vis/Design-3DMesh.jpg" width=100%>
+<img src="show_vis/Design-3DMesh.jpg" width=100%>
 
 随后，在 **MeshLab** 中导入该 STL 文件，并使用 **`Vertex Color Filling`** 工具为模型表面着色。
 
-<img src="/show_vis/color-filling.png" width=100%>
-<img src="/show_vis/color-filling-2.png" width=100%>
+<img src="show_vis/color-filling.png" width=100%>
+<img src="show_vis/color-filling-2.png" width=100%>
 
 接着，将物体模型以 **非二进制 PLY 格式** 导出，并确保包含顶点颜色与法向量信息。
 
-<img src="/show_vis/export-3d-mesh-ply.png" width=100%>
+<img src="show_vis/export-3d-mesh-ply.png" width=100%>
 
 导出的模型中心通常与坐标系原点不重合（如下图所示）：
 
-<img src="/show_vis/align-center.png" width=100%>
+<img src="show_vis/align-center.png" width=100%>
 
 为解决模型中心偏移问题，可使用脚本 **`s1_p1_obj_rename_center.py`**：该脚本会加载 PLY 文件，将模型中心对齐至坐标系原点，并根据 BOP 规范重命名文件。用户需手动设置非负整数参数 **`obj_id`**，每个物体对应唯一编号。  
 
@@ -147,7 +173,7 @@ app(mesh_path)
 
 KASAL 会自动遍历 **`mesh_path`** 文件夹下所有 PLY 或 OBJ 文件（不加载 **`_sym.ply`** 等效果文件）。
 
-<img src="/show_vis/kasal-1.png" width=100%>
+<img src="show_vis/kasal-1.png" width=100%>
 
 在使用界面中：
 * 下拉 **`Symmetry Type`** 选择旋转对称类型
@@ -157,7 +183,7 @@ KASAL 会自动遍历 **`mesh_path`** 文件夹下所有 PLY 或 OBJ 文件（�
 
 KASAL 将旋转对称划分为 **8 种类型**。若选择错误类型，将在可视化中显示异常，从而可辅助判断设置是否正确。
 
-<img src="/show_vis/kasal-2.png" width=100%>
+<img src="show_vis/kasal-2.png" width=100%>
 
 点击 **`Cal Current Obj`** 可计算当前物体的旋转对称轴，旋转对称先验将保存为 **`_sym_type.json`** 文件，例如：
 * 旋转对称先验文件：**`obj_000001_sym_type.json`**
@@ -365,9 +391,9 @@ demo-bin-picking
 以下示例展示了三张对应的图像：  
 原始渲染图、正面 3D 坐标标签图、背面 3D 坐标标签图。
 <p align="center">
-  <img src="/show_vis/000000.jpg" width="32%">
-  <img src="/show_vis/000000_000000-f.png" width="32%">
-  <img src="/show_vis/000000_000000-b.png" width="32%">
+  <img src="show_vis/000000.jpg" width="32%">
+  <img src="show_vis/000000_000000-f.png" width="32%">
+  <img src="show_vis/000000_000000-b.png" width="32%">
 </p>
 
 ---
@@ -450,6 +476,8 @@ total samples = total iteration × batch size × GPU number
 | 📂 HccePose 权重 | [demo-bin-picking/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/HccePose) |
 | 🖼️ 测试图片       | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs)                |
 | 🎥 测试视频        | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos)            |
+| 📷 RGB-D（Hugging Face） | [test_imgs_RGBD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs_RGBD) — **`000000`–`000003`**（`{stem}_rgb.png`、`{stem}_depth.png`、`{stem}_camK.json`）。示例：`hf download … --include "test_imgs_RGBD/*"` 或 [`scripts/download_hf_assets.py`](scripts/download_hf_assets.py) `--preset test` |
+| 📷 RGB-D（Git 极简） | **`test_imgs_RGBD/`** 在 git 中可仅含 **`000003_*`**；多帧请同步到本地 `test_imgs_RGBD/` |
 
 > ⚠️ 注意：
 文件名以 train 开头的压缩包仅在训练阶段使用，快速开始部分只需下载上述测试文件。
@@ -470,7 +498,7 @@ total samples = total iteration × batch size × GPU number
 我们将多个白色 3D 打印物体放入碗中，并放置在白色桌面上，随后用手机拍摄。  
 原始图像示例如下 👇  
 <div align="center">
- <img src="/test_imgs/IMG_20251007_165718.jpg" width="40%">
+ <img src="test_imgs/IMG_20251007_165718.jpg" width="40%">
 </div>
 
 该图像来自：[示例图片链接](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/test_imgs/IMG_20251007_165718.jpg)
@@ -479,6 +507,8 @@ total samples = total iteration × batch size × GPU number
 
 随后，可直接使用以下脚本进行 6D 位姿估计与可视化：
 
+> **颜色约定：** `cv2.imread` / `VideoCapture.read` 均为 **BGR** `uint8`，请**原样**传入 `Tester.predict`（与 `s4_p3_test_mi10_bin_picking.py` 一致）。HccePose 使用 `IMAGENET_MEAN_BGR` 等做归一化。FoundationPose 在 `Refinement_FP.inference_batch` 内做 BGR→RGB。MegaPose 上游用 RGB，**调试拼图**为 BGR 以便 `cv2.imwrite`。
+
 <details>
 <summary>点击展开代码</summary>
 
@@ -486,9 +516,10 @@ total samples = total iteration × batch size × GPU number
 import cv2, os, sys
 import numpy as np
 from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
 from HccePose.tester import Tester
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     sys.path.insert(0, os.getcwd())
     current_dir = os.path.dirname(sys.argv[0])
     dataset_path = os.path.join(current_dir, 'demo-bin-picking')
@@ -496,26 +527,38 @@ if __name__ == '__main__':
     bop_dataset_item = bop_dataset(dataset_path)
     obj_id = 1
     CUDA_DEVICE = '0'
-    # show_op = False
-    show_op = True
-    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
-    
+    hccepose_vis = True
+    save_visualizations = hccepose_vis
+    print_stage_timing = False
+    hccepose_acceleration = 'pytorch'
+
+    Tester_item = Tester(
+        bop_dataset_item,
+        hccepose_vis=hccepose_vis,
+        CUDA_DEVICE=CUDA_DEVICE,
+        hccepose_acceleration=hccepose_acceleration,
+    )
     for name in ['IMG_20251007_165718']:
-        file_name = os.path.join(test_img_path, '%s.jpg'%name)
-        image = cv2.cvtColor(cv2.imread(file_name), cv2.COLOR_RGB2BGR)
+        file_name = os.path.join(test_img_path, '%s.jpg' % name)
+        image = cv2.imread(file_name)
         cam_K = np.array([
             [2.83925618e+03, 0.00000000e+00, 2.02288638e+03],
             [0.00000000e+00, 2.84037288e+03, 1.53940473e+03],
             [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
         ])
-        results_dict = Tester_item.predict(cam_K, image, [obj_id],
-                                                        conf = 0.85, confidence_threshold = 0.85)
-        cv2.imwrite(file_name.replace('.jpg','_show_2d.jpg'), results_dict['show_2D_results'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis0.jpg'), results_dict['show_6D_vis0'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis1.jpg'), results_dict['show_6D_vis1'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict['show_6D_vis2'])
-    pass
+        results_dict = Tester_item.predict(
+            cam_K, image, [obj_id], conf=0.85, confidence_threshold=0.85,
+        )
+        print_stage_time_breakdown(results_dict, enabled=print_stage_timing, prefix=name)
+        save_visual_artifacts([
+            (file_name.replace('.jpg', '_show_2d.jpg'), results_dict.get('show_2D_results')),
+            (file_name.replace('.jpg', '_show_6d_vis0.jpg'), results_dict.get('show_6D_vis0')),
+            (file_name.replace('.jpg', '_show_6d_vis1.jpg'), results_dict.get('show_6D_vis1')),
+            (file_name.replace('.jpg', '_show_6d_vis2.jpg'), results_dict.get('show_6D_vis2')),
+        ], enabled=save_visualizations)
 ```
+
+完整参数与加速选项见仓库脚本 **`s4_p3_test_mi10_bin_picking.py`**。
 
 </details>
 
@@ -525,7 +568,7 @@ if __name__ == '__main__':
 
 2D 检测结果 (_show_2d.jpg)：
 
-<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_2d.jpg" width="40%"> </div>
+<div align="center"> <img src="show_vis/IMG_20251007_165718_show_2d.jpg" width="40%"> </div>
 
 
 网络输出结果：
@@ -536,8 +579,8 @@ if __name__ == '__main__':
 
 - 解码后的 3D 坐标可视化
 
-<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_6d_vis0.jpg" width="100%"> 
-<img src="/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="100%"> </div> 
+<div align="center"> <img src="show_vis/IMG_20251007_165718_show_6d_vis0.jpg" width="100%"> 
+<img src="show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="100%"> </div> 
 
 ---
 
@@ -559,10 +602,10 @@ if __name__ == '__main__':
 import cv2, os, sys
 import numpy as np
 from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import print_stage_time_breakdown
 from HccePose.tester import Tester
 
 if __name__ == '__main__':
-    
     sys.path.insert(0, os.getcwd())
     current_dir = os.path.dirname(sys.argv[0])
     dataset_path = os.path.join(current_dir, 'demo-bin-picking')
@@ -570,17 +613,21 @@ if __name__ == '__main__':
     bop_dataset_item = bop_dataset(dataset_path)
     obj_id = 1
     CUDA_DEVICE = '0'
-    # show_op = False
-    show_op = True
-    
-    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
+    hccepose_vis = True
+    hccepose_acceleration = 'pytorch'
+    save_visualizations = hccepose_vis
+    print_stage_timing = False
+
+    Tester_item = Tester(
+        bop_dataset_item,
+        hccepose_vis=hccepose_vis,
+        CUDA_DEVICE=CUDA_DEVICE,
+        hccepose_acceleration=hccepose_acceleration,
+    )
     for name in ['VID_20251009_141247']:
-        file_name = os.path.join(test_video_path, '%s.mp4'%name)
+        file_name = os.path.join(test_video_path, '%s.mp4' % name)
         cap = cv2.VideoCapture(file_name)
-        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = cap.get(cv2.CAP_PROP_FPS)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out_1 = None
         out_2 = None
@@ -593,10 +640,14 @@ if __name__ == '__main__':
             ret, frame = cap.read()
             if not ret:
                 break
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            results_dict = Tester_item.predict(cam_K, frame, [obj_id],
-                                                            conf = 0.85, confidence_threshold = 0.85)
+            # 视频帧已是 BGR，与 imread 一致。
+            results_dict = Tester_item.predict(
+                cam_K, frame, [obj_id], conf=0.85, confidence_threshold=0.85,
+            )
+            print_stage_time_breakdown(results_dict, enabled=print_stage_timing, prefix='%s frame' % name)
             fps_hccepose = 1 / results_dict['time']
+            if not save_visualizations:
+                continue
             show_6D_vis1 = results_dict['show_6D_vis1']
             show_6D_vis1[show_6D_vis1 < 0] = 0
             show_6D_vis1[show_6D_vis1 > 255] = 255
@@ -605,7 +656,7 @@ if __name__ == '__main__':
                     file_name.replace('.mp4', '_show_1.mp4'),
                     fourcc,
                     fps,
-                    (show_6D_vis1.shape[1], show_6D_vis1.shape[0])
+                    (show_6D_vis1.shape[1], show_6D_vis1.shape[0]),
                 )
             out_1.write(show_6D_vis1.astype(np.uint8))
             show_6D_vis2 = results_dict['show_6D_vis2']
@@ -616,15 +667,27 @@ if __name__ == '__main__':
                     file_name.replace('.mp4', '_show_2.mp4'),
                     fourcc,
                     fps,
-                    (show_6D_vis2.shape[1], show_6D_vis2.shape[0])
+                    (show_6D_vis2.shape[1], show_6D_vis2.shape[0]),
                 )
-            cv2.putText(show_6D_vis2, "FPS: {0:.2f}".format(fps_hccepose), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4, cv2.LINE_AA)
+            cv2.putText(
+                show_6D_vis2,
+                'FPS: {0:.2f}'.format(fps_hccepose),
+                (20, 60),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                2,
+                (0, 255, 0),
+                4,
+                cv2.LINE_AA,
+            )
             out_2.write(show_6D_vis2.astype(np.uint8))
         cap.release()
-        out_1.release()
-        out_2.release()
-    pass
+        if out_1 is not None:
+            out_1.release()
+        if out_2 is not None:
+            out_2.release()
 ```
+
+多视频循环与相同开关见 **`s4_p3_test_mi10_bin_picking_video.py`**。
 
 </details>
 
@@ -632,10 +695,10 @@ if __name__ == '__main__':
 
 #### 🎯 可视化结果
 **原始视频：**
-<img src="/show_vis/VID_20251009_141247.gif" width=100%>
+<img src="show_vis/VID_20251009_141247.gif" width=100%>
 
 **检测结果：**
-<img src="/show_vis/VID_20251009_141247_vis.gif" width=100%>
+<img src="show_vis/VID_20251009_141247_vis.gif" width=100%>
 
 ---
 
@@ -650,17 +713,402 @@ if __name__ == '__main__':
 | 📂 HccePose 权重 | [demo-tex-objs/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/HccePose) |
 | 🖼️ 测试图片       | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs)                |
 | 🎥 测试视频        | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos)            |
+| 📷 RGB-D（Hugging Face） | [test_imgs_RGBD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs_RGBD) — **`000000`–`000003`**（[`scripts/download_hf_assets.py`](scripts/download_hf_assets.py) `--preset test`） |
+| 📷 RGB-D（Git 极简） | **`test_imgs_RGBD/`** 可仅 **`000003_*`**；多帧请从 Hugging Face 下载 |
 
 > ⚠️ 注意：
 文件名以 train 开头的压缩包仅在训练阶段使用，快速开始部分只需下载上述测试文件。
 
 **原始视频：**
-<img src="/show_vis/VID_20251009_141731.gif" width=100%>
+<img src="show_vis/VID_20251009_141731.gif" width=100%>
 
 **检测结果：**
-<img src="/show_vis/VID_20251009_141731_vis.gif" width=100%>
+<img src="show_vis/VID_20251009_141731_vis.gif" width=100%>
 
 </details>
+
+---
+
+#### 📷 RGB-D 微调（FoundationPose / MegaPose）
+
+本节写法与上文 **单图示例**、**视频示例**一致：**RGB-D 输入**（RGB 与伪彩色深度拼接图）**默认展开显示**；**FoundationPose**、**MegaPose（RGB-D）** 与 **三者对比** 的示例代码仍放在折叠块中。配图一律使用仓库 **`show_vis/`**（勿在文档中引用 `test_imgs_RGBD/` 下的运行产物）。
+
+每帧放在 **`test_imgs_RGBD/`**，文件名为 **`{stem}_rgb.png`**、**`{stem}_depth.png`**、**`{stem}_camK.json`**；`camK.json` 含 **`fx, fy, cx, cy`**。深度缩放与 **`Refinement/refinement_test_utils.py`** 中 **`convert_depth_to_meter`** 一致。请从 [Hugging Face — test_imgs_RGBD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs_RGBD) 获取示例 **`000000`–`000003`** 并与上述约定对齐。**Git** 默认可仅含 **`000003`** 三文件；补齐 **`000000`–`000002`** 后 **`s4_p3_test_mi10_bin_picking_RGBD_FP_vs_MP.py`** 可做多帧统计（如 `python scripts/download_hf_assets.py --preset test --endpoint auto`）。
+
+**FoundationPose** 需在项目根放置 **`2023-10-28-18-33-37/`** 与 **`2024-01-11-20-02-45/`**（见上文「可选：RGB-D 微调与加速」）。**MegaPose** 首次调用可能自动拉取依赖与模型。
+
+**颜色：** `load_capture_frame` 用 **`cv2.imread`** 读取 `*_rgb.png`，内存中为 **BGR** `uint8`，与单图快速开始一致；`save_visual_artifacts` / `cv2.imwrite` 保存彩色图时也按 **BGR**。FoundationPose / MegaPose 微调在内部完成与上游一致的 RGB↔BGR 处理（见上文「颜色约定」）。
+
+---
+
+#### ⏳ 相关模块（RGB-D 流程）
+
+- **`HccePose.tester.Tester`**：向 **`predict`** 传入米制深度 **`depth=depth_m`**，并设置 **`use_foundationpose=True`** 或 **`use_megapose=True`**，配合相应的 **`foundationpose_*` / `megapose_*`** 参数。  
+- **`Refinement.refinement_test_utils`**：**`list_capture_frame_names`**、**`load_capture_frame`**；对比脚本另用 **`build_depth_comparison_visual`**。  
+- **`HccePose.test_script_utils`**：**`save_visual_artifacts`**、**`print_stage_time_breakdown`**（由各脚本中的 **`print_stage_timing`** 开关控制）。  
+- **`results_dict['time_dict']`**：可选的分阶段耗时（YOLO、HccePose、FoundationPose、MegaPose、可视化等）。
+
+**ONNX / TensorRT：** HccePose 见 **`s4_p3_test_mi10_bin_picking_onnx.py`** / **`s4_p3_test_mi10_bin_picking_tensorrt.py`**；FoundationPose 在 RGB-D 脚本中设置 **`foundationpose_acceleration`**。对比示例仓库文件默认 **`foundationpose_acceleration='onnx'`**。
+
+---
+
+#### 📸 示例：RGB-D 输入（帧 `000003`）
+
+RGB-D 预览：**左**为 RGB（`000003_rgb.png`），**右**为深度伪彩色（`000003_depth.png`）：在**深度图内部最右侧**嵌入一条**小型 TURBO 色带**，**米制数值（最小 / 中间 / 最大）写在色带左侧**。深度先经 **`convert_depth_to_meter`**（与 **`load_capture_frame`** 一致），再对有效像素线性上色；无效/零深度为黑色。RGB 与深度图同尺寸横向拼接。
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_rgb_depth_concat.png" width="85%">
+</div>
+
+示例原始输入（**`000000`–`000003`** 亦在 [Hugging Face — test_imgs_RGBD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs_RGBD)）：**`test_imgs_RGBD/000003_rgb.png`**、**`000003_depth.png`**、**`000003_camK.json`**。
+
+---
+
+#### 📸 示例：FoundationPose RGB-D 微调
+
+运行 **`s4_p3_test_mi10_bin_picking_RGBD_foundationpose.py`**（需先放置 FoundationPose 权重）。需要 HccePose 或 FoundationPose 调试图时，打开 **`hccepose_vis`** / **`foundationpose_vis`**（默认写入 `capture_dir` 下，与脚本一致）。
+
+<details>
+<summary>点击展开代码</summary>
+
+```python
+import cv2, os, sys
+from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
+from HccePose.tester import Tester
+from Refinement.refinement_test_utils import load_capture_frame, list_capture_frame_names
+
+
+if __name__ == '__main__':
+
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
+    capture_dir = os.path.join(current_dir, 'test_imgs_RGBD')
+    foundationpose_refine_dir = os.path.join(current_dir, '2023-10-28-18-33-37')
+    foundationpose_score_dir = os.path.join(current_dir, '2024-01-11-20-02-45')
+    bop_dataset_item = bop_dataset(dataset_path)
+    obj_id = 1
+    CUDA_DEVICE = '0'
+    hccepose_vis = False
+    foundationpose_vis = False
+    foundationpose_vis_stages = [1, 2, 3, 4, 5, 'score']
+    hccepose_acceleration = 'pytorch'
+    foundationpose_acceleration = 'pytorch'
+    save_visualizations = hccepose_vis or foundationpose_vis
+    print_stage_timing = False
+
+    tester_item = Tester(
+        bop_dataset_item,
+        hccepose_vis=hccepose_vis,
+        CUDA_DEVICE=CUDA_DEVICE,
+        foundationpose_refine_dir=foundationpose_refine_dir,
+        foundationpose_score_dir=foundationpose_score_dir,
+        hccepose_acceleration=hccepose_acceleration,
+        foundationpose_acceleration=foundationpose_acceleration,
+    )
+    frame_names = list_capture_frame_names(capture_dir)
+    for name in frame_names:
+        image, depth, depth_m, cam_K = load_capture_frame(capture_dir, name)
+
+        results_dict = tester_item.predict(
+            cam_K,
+            image,
+            [obj_id],
+            conf=0.85,
+            confidence_threshold=0.85,
+            depth=depth_m,
+            use_foundationpose=True,
+            foundationpose_vis=foundationpose_vis,
+            foundationpose_vis_stages=foundationpose_vis_stages,
+        )
+        print_stage_time_breakdown(results_dict, enabled=print_stage_timing, prefix=name)
+        save_visual_artifacts([
+            (os.path.join(capture_dir, '%s_show_2d.jpg' % name), results_dict.get('show_2D_results')),
+            (os.path.join(capture_dir, '%s_show_6d_vis0.jpg' % name), results_dict.get('show_6D_vis0')),
+            (os.path.join(capture_dir, '%s_show_6d_vis1.jpg' % name), results_dict.get('show_6D_vis1')),
+            (os.path.join(capture_dir, '%s_show_6d_vis2.jpg' % name), results_dict.get('show_6D_vis2')),
+            (os.path.join(capture_dir, '%s_show_foundationpose.jpg' % name), results_dict.get('show_foundationpose')),
+        ], enabled=save_visualizations)
+```
+
+与仓库 **`s4_p3_test_mi10_bin_picking_RGBD_foundationpose.py`** 一致。
+
+</details>
+
+---
+
+#### 🎯 可视化结果（FoundationPose）
+
+帧 **`000003`** 上 FoundationPose 融合视图及解码后的 HccePose 风格图（文档用图位于 **`show_vis/`**）：
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_foundationpose.jpg" width="100%">
+</div>
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_foundationpose_vis0.jpg" width="100%">
+ <img src="show_vis/rgbd_000003_foundationpose_vis1.jpg" width="100%">
+</div>
+
+---
+
+#### 📸 示例：MegaPose 微调（RGB-D 分支）
+
+**`s4_p3_test_mi10_bin_picking_RGBD_megapose.py`** 中 **`megapose_use_depth=True`** 对应 **`megapose_variant_name='rgbd'`**；改为 **`False`** 即 RGB-only（文件名后缀为 **`rgb`**）。
+
+<details>
+<summary>点击展开代码</summary>
+
+```python
+import os, sys
+import cv2
+from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
+from HccePose.tester import Tester
+from Refinement.refinement_test_utils import load_capture_frame, list_capture_frame_names
+
+
+if __name__ == '__main__':
+
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
+    capture_dir = os.path.join(current_dir, 'test_imgs_RGBD')
+    bop_dataset_item = bop_dataset(dataset_path)
+    obj_id = 1
+    CUDA_DEVICE = '0'
+    hccepose_vis = True
+    hccepose_acceleration = 'pytorch'
+    megapose_use_depth = True
+    megapose_vis = True
+    megapose_vis_stages = [1, 2, 3, 4, 5]
+    megapose_variant_name = 'rgbd' if megapose_use_depth else 'rgb'
+    save_visualizations = hccepose_vis or megapose_vis
+    print_stage_timing = False
+
+    tester_item = Tester(
+        bop_dataset_item,
+        hccepose_vis=hccepose_vis,
+        CUDA_DEVICE=CUDA_DEVICE,
+        hccepose_acceleration=hccepose_acceleration,
+    )
+
+    frame_names = list_capture_frame_names(capture_dir)
+    for name in frame_names:
+        image, depth, depth_m, cam_K = load_capture_frame(capture_dir, name)
+        megapose_depth = depth_m if megapose_use_depth else None
+
+        results_mp = tester_item.predict(
+            cam_K,
+            image,
+            [obj_id],
+            conf=0.85,
+            confidence_threshold=0.85,
+            depth=megapose_depth,
+            use_megapose=True,
+            megapose_vis=megapose_vis,
+            megapose_vis_stages=megapose_vis_stages,
+        )
+        print_stage_time_breakdown(results_mp, enabled=print_stage_timing, prefix='%s | MegaPose %s' % (name, megapose_variant_name.upper()))
+
+        save_visual_artifacts([
+            (os.path.join(capture_dir, '%s_show_megapose.jpg' % name), results_mp.get('show_megapose')),
+            (os.path.join(capture_dir, '%s_megapose_%s_show_2d.jpg' % (name, megapose_variant_name)), results_mp.get('show_2D_results')),
+            (os.path.join(capture_dir, '%s_megapose_%s_show_6d_vis0.jpg' % (name, megapose_variant_name)), results_mp.get('show_6D_vis0')),
+            (os.path.join(capture_dir, '%s_megapose_%s_show_6d_vis1.jpg' % (name, megapose_variant_name)), results_mp.get('show_6D_vis1')),
+            (os.path.join(capture_dir, '%s_megapose_%s_show_6d_vis2.jpg' % (name, megapose_variant_name)), results_mp.get('show_6D_vis2')),
+        ], enabled=save_visualizations)
+```
+
+与仓库 **`s4_p3_test_mi10_bin_picking_RGBD_megapose.py`** 一致。
+
+</details>
+
+---
+
+#### 🎯 可视化结果（MegaPose RGB-D）
+
+**`rgbd`** 变体在 **`000003`** 上的 MegaPose 调试图与解码图：
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_megapose_rgbd.jpg" width="100%">
+</div>
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_megapose_rgbd_vis0.jpg" width="100%">
+ <img src="show_vis/rgbd_000003_megapose_rgbd_vis1.jpg" width="100%">
+</div>
+
+同一帧 **仅 RGB** 的 MegaPose（`megapose_use_depth=False`）：
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_megapose_rgb.jpg" width="100%">
+</div>
+
+---
+
+#### 📸 示例：HccePose / FoundationPose / MegaPose 对比与深度融合
+
+**`s4_p3_test_mi10_bin_picking_RGBD_FP_vs_MP.py`** 对每一帧依次跑 HccePose（带深度）、FoundationPose、MegaPose 的 **rgb** 与 **rgbd**，保存叠加图，并用 **`build_depth_comparison_visual`** 生成深度对比拼图。文件中还定义了 **`print_foundationpose_benchmark`**，用于在**首帧**上对比 FoundationPose 不同后端（PyTorch/ONNX/TensorRT）；下述代码块为**逐帧主流程**，完整可运行版本请以仓库文件为准。
+
+<details>
+<summary>点击展开代码（逐帧主流程）</summary>
+
+```python
+import cv2, os, sys
+import numpy as np
+from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
+from HccePose.tester import Tester
+from Refinement.refinement_test_utils import build_depth_comparison_visual, load_capture_frame, list_capture_frame_names
+
+# 同文件中还定义 print_foundationpose_benchmark 等辅助函数，位于 __main__ 之前；
+# 请直接运行 s4_p3_test_mi10_bin_picking_RGBD_FP_vs_MP.py 获取完整脚本。
+
+if __name__ == '__main__':
+
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
+    capture_dir = os.path.join(current_dir, 'test_imgs_RGBD')
+    foundationpose_refine_dir = os.path.join(current_dir, '2023-10-28-18-33-37')
+    foundationpose_score_dir = os.path.join(current_dir, '2024-01-11-20-02-45')
+    bop_dataset_item = bop_dataset(dataset_path)
+    obj_id = 1
+    obj_index = list(bop_dataset_item.obj_id_list).index(obj_id)
+    obj_model_path = bop_dataset_item.obj_model_list[obj_index]
+    CUDA_DEVICE = '0'
+    hccepose_vis = True
+    hccepose_acceleration = 'pytorch'
+    foundationpose_vis = False
+    foundationpose_vis_stages = [1, 2, 3, 4, 5, 'score']
+    foundationpose_acceleration = 'onnx'
+    megapose_vis = True
+    megapose_vis_stages = [1, 2, 3, 4, 5]
+    megapose_variants = [('rgbd', True), ('rgb', False)]
+    save_visualizations = hccepose_vis or foundationpose_vis or megapose_vis
+    print_stage_timing = False
+
+    foundationpose_runner = Tester(
+        bop_dataset_item,
+        hccepose_vis=hccepose_vis,
+        CUDA_DEVICE=CUDA_DEVICE,
+        foundationpose_refine_dir=foundationpose_refine_dir,
+        foundationpose_score_dir=foundationpose_score_dir,
+        hccepose_acceleration=hccepose_acceleration,
+        foundationpose_acceleration=foundationpose_acceleration,
+    )
+    megapose_runner = Tester(
+        bop_dataset_item,
+        hccepose_vis=hccepose_vis,
+        CUDA_DEVICE=CUDA_DEVICE,
+        hccepose_acceleration=hccepose_acceleration,
+    )
+
+    frame_names = list_capture_frame_names(capture_dir)
+    # 可选：对 frame_names[0] 调用 print_foundationpose_benchmark(...)，见仓库原文件。
+
+    for name in frame_names:
+        image, depth, depth_m, cam_K = load_capture_frame(capture_dir, name)
+
+        results_hccepose = foundationpose_runner.predict(
+            cam_K,
+            image,
+            [obj_id],
+            conf=0.85,
+            confidence_threshold=0.85,
+            depth=depth_m,
+        )
+        results_fp = foundationpose_runner.predict(
+            cam_K,
+            image,
+            [obj_id],
+            conf=0.85,
+            confidence_threshold=0.85,
+            depth=depth_m,
+            use_foundationpose=True,
+            foundationpose_vis=foundationpose_vis,
+            foundationpose_vis_stages=foundationpose_vis_stages,
+        )
+
+        print_stage_time_breakdown(results_hccepose, enabled=print_stage_timing, prefix='%s | HccePose' % name)
+        print_stage_time_breakdown(results_fp, enabled=print_stage_timing, prefix='%s | FoundationPose' % name)
+
+        save_visual_artifacts([
+            (os.path.join(capture_dir, '%s_hccepose_show_2d.jpg' % name), results_hccepose.get('show_2D_results')),
+            (os.path.join(capture_dir, '%s_hccepose_show_6d_vis0.jpg' % name), results_hccepose.get('show_6D_vis0')),
+            (os.path.join(capture_dir, '%s_hccepose_show_6d_vis1.jpg' % name), results_hccepose.get('show_6D_vis1')),
+            (os.path.join(capture_dir, '%s_hccepose_show_6d_vis2.jpg' % name), results_hccepose.get('show_6D_vis2')),
+            (os.path.join(capture_dir, '%s_foundationpose_show_2d.jpg' % name), results_fp.get('show_2D_results')),
+            (os.path.join(capture_dir, '%s_foundationpose_show_6d_vis0.jpg' % name), results_fp.get('show_6D_vis0')),
+            (os.path.join(capture_dir, '%s_foundationpose_show_6d_vis1.jpg' % name), results_fp.get('show_6D_vis1')),
+            (os.path.join(capture_dir, '%s_foundationpose_show_6d_vis2.jpg' % name), results_fp.get('show_6D_vis2')),
+            (os.path.join(capture_dir, '%s_show_foundationpose.jpg' % name), results_fp.get('show_foundationpose')),
+        ], enabled=save_visualizations)
+
+        for megapose_variant_name, megapose_use_depth in megapose_variants:
+            megapose_depth = depth_m if megapose_use_depth else None
+            results_mp = megapose_runner.predict(
+                cam_K,
+                image,
+                [obj_id],
+                conf=0.85,
+                confidence_threshold=0.85,
+                depth=megapose_depth,
+                use_megapose=True,
+                megapose_vis=megapose_vis,
+                megapose_vis_stages=megapose_vis_stages,
+            )
+
+            print_stage_time_breakdown(results_mp, enabled=print_stage_timing, prefix='%s | MegaPose %s' % (name, megapose_variant_name.upper()))
+
+            save_visual_artifacts([
+                (os.path.join(capture_dir, '%s_show_megapose_%s.jpg' % (name, megapose_variant_name)), results_mp.get('show_megapose')),
+                (os.path.join(capture_dir, '%s_megapose_%s_show_2d.jpg' % (name, megapose_variant_name)), results_mp.get('show_2D_results')),
+                (os.path.join(capture_dir, '%s_megapose_%s_show_6d_vis0.jpg' % (name, megapose_variant_name)), results_mp.get('show_6D_vis0')),
+                (os.path.join(capture_dir, '%s_megapose_%s_show_6d_vis1.jpg' % (name, megapose_variant_name)), results_mp.get('show_6D_vis1')),
+                (os.path.join(capture_dir, '%s_megapose_%s_show_6d_vis2.jpg' % (name, megapose_variant_name)), results_mp.get('show_6D_vis2')),
+            ], enabled=save_visualizations)
+
+            pose_sets_mm = {}
+            if obj_id in results_hccepose and 'Rts' in results_hccepose[obj_id]:
+                pose_sets_mm['HccePose'] = results_hccepose[obj_id]['Rts']
+            if obj_id in results_fp and 'Rts' in results_fp[obj_id]:
+                pose_sets_mm['FoundationPose'] = results_fp[obj_id]['Rts']
+            if obj_id in results_mp and 'Rts' in results_mp[obj_id]:
+                pose_sets_mm['MegaPose'] = results_mp[obj_id]['Rts']
+            if save_visualizations:
+                depth_compare_vis, depth_compare_summary = build_depth_comparison_visual(
+                    depth,
+                    cam_K,
+                    obj_model_path,
+                    pose_sets_mm,
+                    device=str(foundationpose_runner.device),
+                    max_items=4,
+                )
+                save_visual_artifacts([
+                    (os.path.join(capture_dir, '%s_compare_depth_hccepose_foundationpose_megapose_%s.jpg' % (name, megapose_variant_name)), depth_compare_vis),
+                ], enabled=True)
+```
+
+权威完整版本见 **`s4_p3_test_mi10_bin_picking_RGBD_FP_vs_MP.py`**。
+
+</details>
+
+---
+
+#### 🎯 可视化结果（深度对比）
+
+**MegaPose RGB** 与 **MegaPose RGB-D** 两种分支下的深度对齐对比（`000003`）：
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_compare_depth_rgb.jpg" width="100%">
+</div>
+
+<div align="center">
+ <img src="show_vis/rgbd_depth_compare_000003.jpg" width="100%">
+</div>
 
 ---
 
@@ -697,7 +1145,9 @@ if __name__ == '__main__':
 **2D 分割分数** 提高了 **0.002**，这得益于我们修复了一些细微的程序 bug。
 <details>
 <summary>点击展开</summary>
-### <img src="/show_vis/BOP-website-lmo.png" width=100%>
+<div align="center">
+<img src="show_vis/BOP-website-lmo.png" width="100%" alt="BOP LM-O 测试结果">
+</div>
 </details>
 
 ---
@@ -729,9 +1179,12 @@ if __name__ == '__main__':
 ---
 
 ## 🏆 BOP榜单
-<img src="/show_vis/bop-6D-loc.png" width=100%>
-<img src="/show_vis/bop-2D-seg.png" width=100%>
+<img src="show_vis/bop-6D-loc.png" width=100%>
+<img src="show_vis/bop-2D-seg.png" width=100%>
 
+## 致谢
+
+本项目直接依赖或引用的公开数据集、评测流程与位姿/微调相关工作中，包括但不限于：[**BOP**](https://bop.felk.cvut.cz/) 与 [**bop_toolkit**](https://github.com/thodan/bop_toolkit)、[**BlenderProc**](https://github.com/DLR-RM/BlenderProc)、[**Ultralytics YOLO**](https://github.com/ultralytics/ultralytics)、[**FoundationPose**](https://github.com/NVlabs/FoundationPose)、[**MegaPose**](https://github.com/megapose6d/megapose6d)、[**KASAL**](https://pypi.org/project/kasal-6d/)。
 
 ***
 如果您觉得我们的工作有帮助，请按以下方式引用：

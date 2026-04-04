@@ -10,22 +10,26 @@
 </p>
 
 <p align="center">
-  <a href="./README.md">English</b> | <a href="./README_CN.md">中文</a>
+  <a href="./README.md">English</a> | <a href="./README_CN.md">中文</a>
 </p>
 <!-- 
-<img src="/show_vis/VID_20251011_215403.gif" width=100%>
-<img src="/show_vis/VID_20251011_215255.gif" width=100%> -->
+<img src="show_vis/VID_20251011_215403.gif" width=100%>
+<img src="show_vis/VID_20251011_215255.gif" width=100%> -->
 
 ## 🧩 Introduction
 **HccePose(BF)** introduces a **Hierarchical Continuous Coordinate Encoding (HCCE)** mechanism that encodes the three coordinate components of object surface points into hierarchical continuous codes. Through this hierarchical encoding scheme, the neural network can effectively learn the correspondence between 2D image features and 3D surface coordinates of the object, while significantly enhancing its capability to learn accurate object masks. Unlike traditional methods that only learn the visible front surface of objects, **HccePose(BF)** additionally learns the 3D coordinates of the back surface, thereby establishing denser 2D–3D correspondences and substantially improving pose estimation accuracy.
 
-### <img src="/show_vis/fig2.jpg" width=100%>
+<div align="center">
+<img src="show_vis/fig2.jpg" width="100%" alt="HccePose(BF) overview figure">
+</div>
 
 ## ✨ Update
 --- 
 - ⚠️ Note: All paths must be absolute paths to avoid runtime errors.
 - 2025.10.27: We’ve released cc0textures-512, a lightweight alternative to the original 44GB CC0Textures library — now only 600MB! 👉 [Download here](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/cc0textures-512.zip)
 - 2025.10.28: s4_p1_gen_bf_labels.py has been updated. If the dataset does not contain a camera.json, the script will automatically create a default one.
+- 2026.04.04: RGB-D refinement with **FoundationPose** / **MegaPose** (`Refinement/`, example `s4_p3_test_mi10_bin_picking_RGBD_*.py`); optional **ONNX / TensorRT** acceleration for HccePose and FoundationPose (`hccepose_acceleration`, `foundationpose_acceleration`); per-stage timings via `results_dict['time_dict']` and `print_stage_time_breakdown`. Sample RGB-D frames **`000000`–`000003`** are on [Hugging Face — test_imgs_RGBD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs_RGBD) (each stem: `{stem}_rgb.png`, `{stem}_depth.png`, `{stem}_camK.json`). A **git** checkout may still ship only **`000003_*`** under `test_imgs_RGBD/` to keep the repo small; download that folder for all four stems (see [`scripts/download_hf_assets.py`](scripts/download_hf_assets.py), [`hf-dataset-card/README.md`](hf-dataset-card/README.md)).
+- 2026.04.04 (docs): Quick Start and RGB-D sections now state the **OpenCV BGR** convention (`cv2.imread` / `VideoCapture` → pass unchanged to `Tester.predict`); removed erroneous `COLOR_RGB2BGR` after `imread`. Code comments aligned with BGR training norms, FoundationPose BGR→RGB at the refiner entry, and MegaPose BGR debug panels.
 ---
 ## 🔧 Environment Setup
 
@@ -68,11 +72,31 @@ pip install -U "huggingface_hub[hf_transfer]"
 
 ```
 
+<details>
+<summary>Optional: RGB-D refinement & acceleration</summary>
+
+- **BOP toolkit path**: keep `bop_toolkit/` at the project root (unzip `bop_toolkit.zip` here) so imports match the training and test scripts.
+- **FoundationPose** (RGB-D refinement): install [nvdiffrast](https://github.com/NVlabs/nvdiffrast) per the upstream project. **Weights are not included in this repo.** Download the official bundle from [NVlabs/FoundationPose](https://github.com/NVlabs/FoundationPose) (*Data prepare*) — [Google Drive folder](https://drive.google.com/drive/folders/1DFezOAD0oD1BblsXVxqDsl8fj0qzB82i?usp=sharing) — and place the refiner and scorer under the project root as **`2023-10-28-18-33-37/`** and **`2024-01-11-20-02-45/`** (each with `config.yml`, `model_best.pth`), matching this repository’s scripts. Optional mirror (not NVIDIA-hosted): [gpue/foundationpose-weights](https://huggingface.co/gpue/foundationpose-weights). **License:** use of FoundationPose weights is subject to the [official FoundationPose license](https://github.com/NVlabs/FoundationPose); do not assume unrestricted commercial use.
+- **ONNX Runtime GPU / TensorRT**: HccePose and FoundationPose can use `HccePose.hccepose_acceleration` and `Refinement.foundationpose_acceleration` for ONNX or TensorRT backends when enabled from the test scripts (see `s4_p3_test_mi10_bin_picking_onnx.py`, `s4_p3_test_mi10_bin_picking_tensorrt.py`, and RGB-D examples).
+- **MegaPose**: on first `register_megapose()` / first MegaPose refinement path, the code can **automatically** clone [megapose6d](https://github.com/megapose6d/megapose6d.git) into **`third_party_megapose6d/`**, create a **Python 3.9** environment under **`.envs/megapose/`**, install dependencies, and download models (e.g. under `local_data/megapose-models` inside that tree). Requires network and a writable project directory. **License:** MegaPose code and models follow the [megapose6d](https://github.com/megapose6d/megapose6d) upstream license.
+
+</details>
+
 </details>
 
 ---
 
+### 📥 Bulk download from Hugging Face (optional)
 
+The helper [`scripts/download_hf_assets.py`](scripts/download_hf_assets.py) lives **only in this GitHub repo**, not in the Hugging Face dataset file list. Run it from the **repository root**: it downloads into the **same relative paths** as Quick Start / RGB-D examples (`test_imgs/`, `test_videos/`, `test_imgs_RGBD/`, `demo-bin-picking/`, `demo-tex-objs/` beside `HccePose/`, etc.) — same layout as copying those folders from the dataset browser or using a fully prepared dev tree.
+
+```bash
+python scripts/download_hf_assets.py --preset test --endpoint auto
+```
+
+Default `--dest` is the repo root. `--endpoint auto` tries the official hub, then `https://hf-mirror.com`. See `python scripts/download_hf_assets.py --help` for presets and optional `--foundationpose` (community mirror — check license). Dataset card text: [`hf-dataset-card/README.md`](hf-dataset-card/README.md) → publish as **`README.md`** on the HF dataset repo (it links back to this script and explains paths).
+
+---
 
 ## 🧱 Custom Dataset and Training
 
@@ -84,20 +108,20 @@ pip install -U "huggingface_hub[hf_transfer]"
 Using the [**`demo-bin-picking`**](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking) dataset as an example, we first designed the object in **SolidWorks** and exported it as an STL mesh file.  
 STL file link: 🔗 https://huggingface.co/datasets/SEU-WYL/HccePose/blob/main/raw-demo-models/multi-objs/board.STL
 
-<img src="/show_vis/Design-3DMesh.jpg" width=100%>
+<img src="show_vis/Design-3DMesh.jpg" width=100%>
 
 Then, the STL file was imported into **MeshLab**, and surface colors were filled using the **`Vertex Color Filling`** tool.
 
-<img src="/show_vis/color-filling.png" width=100%>
-<img src="/show_vis/color-filling-2.png" width=100%>
+<img src="show_vis/color-filling.png" width=100%>
+<img src="show_vis/color-filling-2.png" width=100%>
 
 After coloring, the object was exported as a **non-binary PLY file** containing vertex colors and normals.
 
-<img src="/show_vis/export-3d-mesh-ply.png" width=100%>
+<img src="show_vis/export-3d-mesh-ply.png" width=100%>
 
 The exported model center might not coincide with the coordinate origin, as shown below:
 
-<img src="/show_vis/align-center.png" width=100%>
+<img src="show_vis/align-center.png" width=100%>
 
 To align the model center with the origin, use the script **`s1_p1_obj_rename_center.py`**.  
 This script loads the PLY file, aligns the model center, and renames it following BOP conventions.  
@@ -148,7 +172,7 @@ app(mesh_path)
 
 KASAL automatically scans all PLY or OBJ files under **`mesh_path`** (excluding generated **`_sym.ply`** files).
 
-<img src="/show_vis/kasal-1.png" width=100%>
+<img src="show_vis/kasal-1.png" width=100%>
 
 In the interface:
 * Use **`Symmetry Type`** to select the symmetry category
@@ -159,7 +183,7 @@ In the interface:
 KASAL defines **8 symmetry types**.
 Selecting the wrong one will result in visual anomalies, helping verify your choice.
 
-<img src="/show_vis/kasal-2.png" width=100%>
+<img src="show_vis/kasal-2.png" width=100%>
 
 Click **`Cal Current Obj`** to compute the object’s symmetry axis.
 Symmetry priors will be saved as:
@@ -377,9 +401,9 @@ demo-bin-picking
 The following example shows three corresponding images:  
 the original rendering, the front-surface label map, and the back-surface label map.
 <p align="center">
-  <img src="/show_vis/000000.jpg" width="32%">
-  <img src="/show_vis/000000_000000-f.png" width="32%">
-  <img src="/show_vis/000000_000000-b.png" width="32%">
+  <img src="show_vis/000000.jpg" width="32%">
+  <img src="show_vis/000000_000000-f.png" width="32%">
+  <img src="show_vis/000000_000000-b.png" width="32%">
 </p>
 
 ---
@@ -475,6 +499,8 @@ You can:
 | 📂 HccePose Weights | [demo-bin-picking/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking/HccePose) |
 | 🖼️ Test Images | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs) |
 | 🎥 Test Videos | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos) |
+| 📷 RGB-D (Hugging Face) | [test_imgs_RGBD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs_RGBD) — **`000000`–`000003`** (`{stem}_rgb.png`, `{stem}_depth.png`, `{stem}_camK.json`). Example: `hf download dataset SEU-WYL/HccePose --repo-type dataset --include "test_imgs_RGBD/*"` or [`scripts/download_hf_assets.py`](scripts/download_hf_assets.py) `--preset test` |
+| 📷 RGB-D (minimal git tree) | `test_imgs_RGBD/` may ship **`000003_*` only** in git for a minimal clone; copy or download the Hugging Face folder into `test_imgs_RGBD/` for multi-frame RGB-D scripts |
 
 > ⚠️ Note:  
 Files beginning with **`train_`** are only required for training.  
@@ -499,7 +525,7 @@ Several white 3D-printed objects are placed inside a bowl on a white table, then
 
 Example input image 👇  
 <div align="center">
- <img src="/test_imgs/IMG_20251007_165718.jpg" width="40%">
+ <img src="test_imgs/IMG_20251007_165718.jpg" width="40%">
 </div>
 
 Source image: [Example Link](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/test_imgs/IMG_20251007_165718.jpg)
@@ -508,6 +534,8 @@ Source image: [Example Link](https://github.com/WangYuLin-SEU/HCCEPose/blob/main
 
 You can directly use the following script for **6D pose estimation** and visualization:
 
+> **Color layout:** `cv2.imread` / `VideoCapture.read` yield **BGR** `uint8`. Pass them **unchanged** to `Tester.predict` (same as `s4_p3_test_mi10_bin_picking.py`). HccePose normalizes with `IMAGENET_MEAN_BGR` / `IMAGENET_STD_BGR`. FoundationPose converts BGR→RGB inside `Refinement_FP.inference_batch`. MegaPose feeds RGB to the upstream estimator; MegaPose **debug panels** are BGR for `cv2.imwrite`.
+
 <details>
 <summary>Click to expand code</summary>
 
@@ -515,9 +543,10 @@ You can directly use the following script for **6D pose estimation** and visuali
 import cv2, os, sys
 import numpy as np
 from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
 from HccePose.tester import Tester
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     sys.path.insert(0, os.getcwd())
     current_dir = os.path.dirname(sys.argv[0])
     dataset_path = os.path.join(current_dir, 'demo-bin-picking')
@@ -525,26 +554,38 @@ if __name__ == '__main__':
     bop_dataset_item = bop_dataset(dataset_path)
     obj_id = 1
     CUDA_DEVICE = '0'
-    # show_op = False
-    show_op = True
-    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
-    
+    hccepose_vis = True
+    save_visualizations = hccepose_vis
+    print_stage_timing = False
+    hccepose_acceleration = 'pytorch'
+
+    Tester_item = Tester(
+        bop_dataset_item,
+        hccepose_vis=hccepose_vis,
+        CUDA_DEVICE=CUDA_DEVICE,
+        hccepose_acceleration=hccepose_acceleration,
+    )
     for name in ['IMG_20251007_165718']:
-        file_name = os.path.join(test_img_path, '%s.jpg'%name)
-        image = cv2.cvtColor(cv2.imread(file_name), cv2.COLOR_RGB2BGR)
+        file_name = os.path.join(test_img_path, '%s.jpg' % name)
+        image = cv2.imread(file_name)
         cam_K = np.array([
             [2.83925618e+03, 0.00000000e+00, 2.02288638e+03],
             [0.00000000e+00, 2.84037288e+03, 1.53940473e+03],
             [0.00000000e+00, 0.00000000e+00, 1.00000000e+00],
         ])
-        results_dict = Tester_item.predict(cam_K, image, [obj_id],
-                                                        conf = 0.85, confidence_threshold = 0.85)
-        cv2.imwrite(file_name.replace('.jpg','_show_2d.jpg'), results_dict['show_2D_results'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis0.jpg'), results_dict['show_6D_vis0'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis1.jpg'), results_dict['show_6D_vis1'])
-        cv2.imwrite(file_name.replace('.jpg','_show_6d_vis2.jpg'), results_dict['show_6D_vis2'])
-    pass
+        results_dict = Tester_item.predict(
+            cam_K, image, [obj_id], conf=0.85, confidence_threshold=0.85,
+        )
+        print_stage_time_breakdown(results_dict, enabled=print_stage_timing, prefix=name)
+        save_visual_artifacts([
+            (file_name.replace('.jpg', '_show_2d.jpg'), results_dict.get('show_2D_results')),
+            (file_name.replace('.jpg', '_show_6d_vis0.jpg'), results_dict.get('show_6D_vis0')),
+            (file_name.replace('.jpg', '_show_6d_vis1.jpg'), results_dict.get('show_6D_vis1')),
+            (file_name.replace('.jpg', '_show_6d_vis2.jpg'), results_dict.get('show_6D_vis2')),
+        ], enabled=save_visualizations)
 ```
+
+Full options (acceleration, missing-image skips, output prefixes) match the repository script **`s4_p3_test_mi10_bin_picking.py`**.
 
 </details>
 
@@ -554,7 +595,7 @@ if __name__ == '__main__':
 
 2D Detection Result (_show_2d.jpg):
 
-<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_2d.jpg" width="40%"> </div>
+<div align="center"> <img src="show_vis/IMG_20251007_165718_show_2d.jpg" width="40%"> </div>
 
 
 Network Outputs:
@@ -565,8 +606,8 @@ Network Outputs:
 
 - Decoded 3D coordinate visualizations
 
-<div align="center"> <img src="/show_vis/IMG_20251007_165718_show_6d_vis0.jpg" width="100%"> 
-<img src="/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="100%"> </div>
+<div align="center"> <img src="show_vis/IMG_20251007_165718_show_6d_vis0.jpg" width="100%"> 
+<img src="show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="100%"> </div>
 
 ---
 
@@ -591,10 +632,10 @@ The single-frame pose estimation pipeline can be easily extended to video sequen
 import cv2, os, sys
 import numpy as np
 from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import print_stage_time_breakdown
 from HccePose.tester import Tester
 
 if __name__ == '__main__':
-    
     sys.path.insert(0, os.getcwd())
     current_dir = os.path.dirname(sys.argv[0])
     dataset_path = os.path.join(current_dir, 'demo-bin-picking')
@@ -602,17 +643,21 @@ if __name__ == '__main__':
     bop_dataset_item = bop_dataset(dataset_path)
     obj_id = 1
     CUDA_DEVICE = '0'
-    # show_op = False
-    show_op = True
-    
-    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
+    hccepose_vis = True
+    hccepose_acceleration = 'pytorch'
+    save_visualizations = hccepose_vis
+    print_stage_timing = False
+
+    Tester_item = Tester(
+        bop_dataset_item,
+        hccepose_vis=hccepose_vis,
+        CUDA_DEVICE=CUDA_DEVICE,
+        hccepose_acceleration=hccepose_acceleration,
+    )
     for name in ['VID_20251009_141247']:
-        file_name = os.path.join(test_video_path, '%s.mp4'%name)
+        file_name = os.path.join(test_video_path, '%s.mp4' % name)
         cap = cv2.VideoCapture(file_name)
-        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = cap.get(cv2.CAP_PROP_FPS)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out_1 = None
         out_2 = None
@@ -625,10 +670,14 @@ if __name__ == '__main__':
             ret, frame = cap.read()
             if not ret:
                 break
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            results_dict = Tester_item.predict(cam_K, frame, [obj_id],
-                                                            conf = 0.85, confidence_threshold = 0.85)
+            # Frames are already BGR (same convention as imread).
+            results_dict = Tester_item.predict(
+                cam_K, frame, [obj_id], conf=0.85, confidence_threshold=0.85,
+            )
+            print_stage_time_breakdown(results_dict, enabled=print_stage_timing, prefix='%s frame' % name)
             fps_hccepose = 1 / results_dict['time']
+            if not save_visualizations:
+                continue
             show_6D_vis1 = results_dict['show_6D_vis1']
             show_6D_vis1[show_6D_vis1 < 0] = 0
             show_6D_vis1[show_6D_vis1 > 255] = 255
@@ -637,7 +686,7 @@ if __name__ == '__main__':
                     file_name.replace('.mp4', '_show_1.mp4'),
                     fourcc,
                     fps,
-                    (show_6D_vis1.shape[1], show_6D_vis1.shape[0])
+                    (show_6D_vis1.shape[1], show_6D_vis1.shape[0]),
                 )
             out_1.write(show_6D_vis1.astype(np.uint8))
             show_6D_vis2 = results_dict['show_6D_vis2']
@@ -648,15 +697,27 @@ if __name__ == '__main__':
                     file_name.replace('.mp4', '_show_2.mp4'),
                     fourcc,
                     fps,
-                    (show_6D_vis2.shape[1], show_6D_vis2.shape[0])
+                    (show_6D_vis2.shape[1], show_6D_vis2.shape[0]),
                 )
-            cv2.putText(show_6D_vis2, "FPS: {0:.2f}".format(fps_hccepose), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4, cv2.LINE_AA)
+            cv2.putText(
+                show_6D_vis2,
+                'FPS: {0:.2f}'.format(fps_hccepose),
+                (20, 60),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                2,
+                (0, 255, 0),
+                4,
+                cv2.LINE_AA,
+            )
             out_2.write(show_6D_vis2.astype(np.uint8))
         cap.release()
-        out_1.release()
-        out_2.release()
-    pass
+        if out_1 is not None:
+            out_1.release()
+        if out_2 is not None:
+            out_2.release()
 ```
+
+See **`s4_p3_test_mi10_bin_picking_video.py`** for multi-video loops and the same flags.
 
 </details>
 
@@ -665,10 +726,10 @@ if __name__ == '__main__':
 #### 🎯 Visualization Results
 
 **Original Video:**
-<img src="/show_vis/VID_20251009_141247.gif" width=100%>
+<img src="show_vis/VID_20251009_141247.gif" width=100%>
 
 **Detection Results:**
-<img src="/show_vis/VID_20251009_141247_vis.gif" width=100%>
+<img src="show_vis/VID_20251009_141247_vis.gif" width=100%>
 
 ---
 
@@ -683,18 +744,403 @@ In addition, by passing a list of multiple object IDs to **`HccePose.tester`**, 
 | 📂 HccePose Weights | [demo-tex-objs/HccePose](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-tex-objs/HccePose) |
 | 🖼️ Test Images | [test_imgs](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs) |
 | 🎥 Test Videos | [test_videos](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_videos) |
+| 📷 RGB-D (Hugging Face) | [test_imgs_RGBD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs_RGBD) — **`000000`–`000003`** ([`scripts/download_hf_assets.py`](scripts/download_hf_assets.py) `--preset test`) |
+| 📷 RGB-D (minimal git tree) | `test_imgs_RGBD/` may ship **`000003_*` only**; download the Hugging Face folder for all sample stems |
 
 > ⚠️ Note:  
 Files beginning with **`train_`** are only required for training.  
 For this **Quick Start** section, only the above test files are needed.
 
 **Original Video:**
-<img src="/show_vis/VID_20251009_141731.gif" width=100%>
+<img src="show_vis/VID_20251009_141731.gif" width=100%>
 
 **Detection Results:**
-<img src="/show_vis/VID_20251009_141731_vis.gif" width=100%>
+<img src="show_vis/VID_20251009_141731_vis.gif" width=100%>
 
 </details>
+
+---
+
+#### 📷 RGB-D refinement (FoundationPose / MegaPose)
+
+This section mirrors the **single-image** and **video** tutorials above: the **RGB-D capture** figure (RGB + colorized depth) is shown directly, then **FoundationPose**, **MegaPose (RGB-D)**, and a **three-way comparison** with collapsible code blocks and **`show_vis/`** figures.
+
+Place each frame under **`test_imgs_RGBD/`** as **`{stem}_rgb.png`**, **`{stem}_depth.png`**, **`{stem}_camK.json`**. The JSON stores **`fx, fy, cx, cy`**; depth scaling follows **`convert_depth_to_meter`** in **`Refinement/refinement_test_utils.py`**. Download the sample pack from [Hugging Face — test_imgs_RGBD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs_RGBD) (**`000000`–`000003`**) so it matches that logic. A **git** snapshot may include only **`000003`**; add **`000000`–`000002`** from Hugging Face for multi-frame tables in **`s4_p3_test_mi10_bin_picking_RGBD_FP_vs_MP.py`** (e.g. `python scripts/download_hf_assets.py --preset test --endpoint auto`).
+
+**FoundationPose** needs **`2023-10-28-18-33-37/`** and **`2024-01-11-20-02-45/`** at the repo root (see *Optional: RGB-D refinement & acceleration* above). **MegaPose** may auto-setup on first use.
+
+**Color:** `load_capture_frame` reads `*_rgb.png` with **`cv2.imread`** → **BGR** `uint8`, same as the single-image tutorial. `save_visual_artifacts` / `cv2.imwrite` expect **BGR** for color JPEG/PNG. FoundationPose and MegaPose refinement paths apply the internal RGB/BGR conversions described in the Quick Start note above.
+
+---
+
+#### ⏳ Modules (RGB-D path)
+
+- **`HccePose.tester.Tester`** — pass meter-scale depth as **`depth=depth_m`**, and set **`use_foundationpose=True`** or **`use_megapose=True`** together with the corresponding **`foundationpose_*` / `megapose_*`** kwargs.  
+- **`Refinement.refinement_test_utils`** — **`list_capture_frame_names`**, **`load_capture_frame`**, and (for the comparison script) **`build_depth_comparison_visual`**.  
+- **`HccePose.test_script_utils`** — **`save_visual_artifacts`**, **`print_stage_time_breakdown`** (driven by **`print_stage_timing`** in the scripts).  
+- **`results_dict['time_dict']`** — optional per-stage timings (YOLO, HccePose, FoundationPose, MegaPose, visualization, …).
+
+**ONNX / TensorRT:** HccePose uses **`s4_p3_test_mi10_bin_picking_onnx.py`** / **`s4_p3_test_mi10_bin_picking_tensorrt.py`**; FoundationPose refinement can set **`foundationpose_acceleration`** in the RGB-D scripts. The comparison demo sets **`foundationpose_acceleration='onnx'`** by default in the repository file.
+
+---
+
+#### 📸 Example: RGB-D input (frame `000003`)
+
+Example RGB-D view: **left** = RGB (`000003_rgb.png`), **right** = pseudo-color depth (`000003_depth.png`) with a **compact TURBO color bar embedded on the right edge of the depth panel**; **numeric ticks (min / mid / max, meters) sit immediately to the left of that bar**. Depth uses **`convert_depth_to_meter`** from **`Refinement/refinement_test_utils.py`** (same as `load_capture_frame`), then linear mapping on valid pixels; invalid/zero depth stays black. RGB and depth panels are the same size and concatenated side by side.
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_rgb_depth_concat.png" width="85%">
+</div>
+
+Example raw inputs (also mirrored on [Hugging Face — test_imgs_RGBD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs_RGBD) for **`000000`–`000003`**): **`test_imgs_RGBD/000003_rgb.png`**, **`000003_depth.png`**, **`000003_camK.json`**.
+
+---
+
+#### 📸 Example: FoundationPose RGB-D refinement
+
+Run **`s4_p3_test_mi10_bin_picking_RGBD_foundationpose.py`** after placing FoundationPose weights. Toggle **`hccepose_vis`** / **`foundationpose_vis`** when you need HccePose or FoundationPose debug renders (files are written next to the captures unless you change the paths).
+
+<details>
+<summary>Click to expand code</summary>
+
+```python
+import cv2, os, sys
+from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
+from HccePose.tester import Tester
+from Refinement.refinement_test_utils import load_capture_frame, list_capture_frame_names
+
+
+if __name__ == '__main__':
+
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
+    capture_dir = os.path.join(current_dir, 'test_imgs_RGBD')
+    foundationpose_refine_dir = os.path.join(current_dir, '2023-10-28-18-33-37')
+    foundationpose_score_dir = os.path.join(current_dir, '2024-01-11-20-02-45')
+    bop_dataset_item = bop_dataset(dataset_path)
+    obj_id = 1
+    CUDA_DEVICE = '0'
+    hccepose_vis = False
+    foundationpose_vis = False
+    foundationpose_vis_stages = [1, 2, 3, 4, 5, 'score']
+    hccepose_acceleration = 'pytorch'
+    foundationpose_acceleration = 'pytorch'
+    save_visualizations = hccepose_vis or foundationpose_vis
+    print_stage_timing = False
+
+    tester_item = Tester(
+        bop_dataset_item,
+        hccepose_vis=hccepose_vis,
+        CUDA_DEVICE=CUDA_DEVICE,
+        foundationpose_refine_dir=foundationpose_refine_dir,
+        foundationpose_score_dir=foundationpose_score_dir,
+        hccepose_acceleration=hccepose_acceleration,
+        foundationpose_acceleration=foundationpose_acceleration,
+    )
+    frame_names = list_capture_frame_names(capture_dir)
+    for name in frame_names:
+        image, depth, depth_m, cam_K = load_capture_frame(capture_dir, name)
+
+        results_dict = tester_item.predict(
+            cam_K,
+            image,
+            [obj_id],
+            conf=0.85,
+            confidence_threshold=0.85,
+            depth=depth_m,
+            use_foundationpose=True,
+            foundationpose_vis=foundationpose_vis,
+            foundationpose_vis_stages=foundationpose_vis_stages,
+        )
+        print_stage_time_breakdown(results_dict, enabled=print_stage_timing, prefix=name)
+        save_visual_artifacts([
+            (os.path.join(capture_dir, '%s_show_2d.jpg' % name), results_dict.get('show_2D_results')),
+            (os.path.join(capture_dir, '%s_show_6d_vis0.jpg' % name), results_dict.get('show_6D_vis0')),
+            (os.path.join(capture_dir, '%s_show_6d_vis1.jpg' % name), results_dict.get('show_6D_vis1')),
+            (os.path.join(capture_dir, '%s_show_6d_vis2.jpg' % name), results_dict.get('show_6D_vis2')),
+            (os.path.join(capture_dir, '%s_show_foundationpose.jpg' % name), results_dict.get('show_foundationpose')),
+        ], enabled=save_visualizations)
+```
+
+This block matches the checked-in **`s4_p3_test_mi10_bin_picking_RGBD_foundationpose.py`**.
+
+</details>
+
+---
+
+#### 🎯 Visualization Results (FoundationPose)
+
+FoundationPose fusion view and decoded HccePose-style maps after refinement (exported from frame **`000003`**; figures live under **`show_vis/`** for the documentation):
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_foundationpose.jpg" width="100%">
+</div>
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_foundationpose_vis0.jpg" width="100%">
+ <img src="show_vis/rgbd_000003_foundationpose_vis1.jpg" width="100%">
+</div>
+
+---
+
+#### 📸 Example: MegaPose refinement (RGB-D branch)
+
+**`s4_p3_test_mi10_bin_picking_RGBD_megapose.py`** sets **`megapose_use_depth=True`** so **`megapose_variant_name='rgbd'`**. Switch to RGB-only by setting **`megapose_use_depth=False`** (`'rgb'` suffix in filenames).
+
+<details>
+<summary>Click to expand code</summary>
+
+```python
+import os, sys
+import cv2
+from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
+from HccePose.tester import Tester
+from Refinement.refinement_test_utils import load_capture_frame, list_capture_frame_names
+
+
+if __name__ == '__main__':
+
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
+    capture_dir = os.path.join(current_dir, 'test_imgs_RGBD')
+    bop_dataset_item = bop_dataset(dataset_path)
+    obj_id = 1
+    CUDA_DEVICE = '0'
+    hccepose_vis = True
+    hccepose_acceleration = 'pytorch'
+    megapose_use_depth = True
+    megapose_vis = True
+    megapose_vis_stages = [1, 2, 3, 4, 5]
+    megapose_variant_name = 'rgbd' if megapose_use_depth else 'rgb'
+    save_visualizations = hccepose_vis or megapose_vis
+    print_stage_timing = False
+
+    tester_item = Tester(
+        bop_dataset_item,
+        hccepose_vis=hccepose_vis,
+        CUDA_DEVICE=CUDA_DEVICE,
+        hccepose_acceleration=hccepose_acceleration,
+    )
+
+    frame_names = list_capture_frame_names(capture_dir)
+    for name in frame_names:
+        image, depth, depth_m, cam_K = load_capture_frame(capture_dir, name)
+        megapose_depth = depth_m if megapose_use_depth else None
+
+        results_mp = tester_item.predict(
+            cam_K,
+            image,
+            [obj_id],
+            conf=0.85,
+            confidence_threshold=0.85,
+            depth=megapose_depth,
+            use_megapose=True,
+            megapose_vis=megapose_vis,
+            megapose_vis_stages=megapose_vis_stages,
+        )
+        print_stage_time_breakdown(results_mp, enabled=print_stage_timing, prefix='%s | MegaPose %s' % (name, megapose_variant_name.upper()))
+
+        save_visual_artifacts([
+            (os.path.join(capture_dir, '%s_show_megapose.jpg' % name), results_mp.get('show_megapose')),
+            (os.path.join(capture_dir, '%s_megapose_%s_show_2d.jpg' % (name, megapose_variant_name)), results_mp.get('show_2D_results')),
+            (os.path.join(capture_dir, '%s_megapose_%s_show_6d_vis0.jpg' % (name, megapose_variant_name)), results_mp.get('show_6D_vis0')),
+            (os.path.join(capture_dir, '%s_megapose_%s_show_6d_vis1.jpg' % (name, megapose_variant_name)), results_mp.get('show_6D_vis1')),
+            (os.path.join(capture_dir, '%s_megapose_%s_show_6d_vis2.jpg' % (name, megapose_variant_name)), results_mp.get('show_6D_vis2')),
+        ], enabled=save_visualizations)
+```
+
+This block matches **`s4_p3_test_mi10_bin_picking_RGBD_megapose.py`**.
+
+</details>
+
+---
+
+#### 🎯 Visualization Results (MegaPose RGB-D)
+
+MegaPose debug canvas and decoded maps for the **`rgbd`** variant on **`000003`**:
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_megapose_rgbd.jpg" width="100%">
+</div>
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_megapose_rgbd_vis0.jpg" width="100%">
+ <img src="show_vis/rgbd_000003_megapose_rgbd_vis1.jpg" width="100%">
+</div>
+
+RGB-only MegaPose (`megapose_use_depth=False`) for the same stem:
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_megapose_rgb.jpg" width="100%">
+</div>
+
+---
+
+#### 📸 Example: HccePose vs FoundationPose vs MegaPose (comparison & depth fusion)
+
+**`s4_p3_test_mi10_bin_picking_RGBD_FP_vs_MP.py`** runs, for every frame, (1) HccePose with depth, (2) FoundationPose refinement, (3) MegaPose **rgb** and **rgbd** variants, saves side-by-side overlays, and builds **`build_depth_comparison_visual`** panels. The file also defines **`print_foundationpose_benchmark`** to sweep FoundationPose backends on the **first** frame—omitted below; open the script for the full listing.
+
+<details>
+<summary>Click to expand code (per-frame pipeline)</summary>
+
+```python
+import cv2, os, sys
+import numpy as np
+from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
+from HccePose.tester import Tester
+from Refinement.refinement_test_utils import build_depth_comparison_visual, load_capture_frame, list_capture_frame_names
+
+# The same repository file defines print_foundationpose_benchmark (and related helpers)
+# above __main__. Copy that file verbatim to run the optional first-frame backend sweep.
+
+if __name__ == '__main__':
+
+    sys.path.insert(0, os.getcwd())
+    current_dir = os.path.dirname(sys.argv[0])
+    dataset_path = os.path.join(current_dir, 'demo-bin-picking')
+    capture_dir = os.path.join(current_dir, 'test_imgs_RGBD')
+    foundationpose_refine_dir = os.path.join(current_dir, '2023-10-28-18-33-37')
+    foundationpose_score_dir = os.path.join(current_dir, '2024-01-11-20-02-45')
+    bop_dataset_item = bop_dataset(dataset_path)
+    obj_id = 1
+    obj_index = list(bop_dataset_item.obj_id_list).index(obj_id)
+    obj_model_path = bop_dataset_item.obj_model_list[obj_index]
+    CUDA_DEVICE = '0'
+    hccepose_vis = True
+    hccepose_acceleration = 'pytorch'
+    foundationpose_vis = False
+    foundationpose_vis_stages = [1, 2, 3, 4, 5, 'score']
+    foundationpose_acceleration = 'onnx'
+    megapose_vis = True
+    megapose_vis_stages = [1, 2, 3, 4, 5]
+    megapose_variants = [('rgbd', True), ('rgb', False)]
+    save_visualizations = hccepose_vis or foundationpose_vis or megapose_vis
+    print_stage_timing = False
+
+    foundationpose_runner = Tester(
+        bop_dataset_item,
+        hccepose_vis=hccepose_vis,
+        CUDA_DEVICE=CUDA_DEVICE,
+        foundationpose_refine_dir=foundationpose_refine_dir,
+        foundationpose_score_dir=foundationpose_score_dir,
+        hccepose_acceleration=hccepose_acceleration,
+        foundationpose_acceleration=foundationpose_acceleration,
+    )
+    megapose_runner = Tester(
+        bop_dataset_item,
+        hccepose_vis=hccepose_vis,
+        CUDA_DEVICE=CUDA_DEVICE,
+        hccepose_acceleration=hccepose_acceleration,
+    )
+
+    frame_names = list_capture_frame_names(capture_dir)
+    # print_foundationpose_benchmark(...) optional warm-up on frame_names[0]; see repository file.
+
+    for name in frame_names:
+        image, depth, depth_m, cam_K = load_capture_frame(capture_dir, name)
+
+        results_hccepose = foundationpose_runner.predict(
+            cam_K,
+            image,
+            [obj_id],
+            conf=0.85,
+            confidence_threshold=0.85,
+            depth=depth_m,
+        )
+        results_fp = foundationpose_runner.predict(
+            cam_K,
+            image,
+            [obj_id],
+            conf=0.85,
+            confidence_threshold=0.85,
+            depth=depth_m,
+            use_foundationpose=True,
+            foundationpose_vis=foundationpose_vis,
+            foundationpose_vis_stages=foundationpose_vis_stages,
+        )
+
+        print_stage_time_breakdown(results_hccepose, enabled=print_stage_timing, prefix='%s | HccePose' % name)
+        print_stage_time_breakdown(results_fp, enabled=print_stage_timing, prefix='%s | FoundationPose' % name)
+
+        save_visual_artifacts([
+            (os.path.join(capture_dir, '%s_hccepose_show_2d.jpg' % name), results_hccepose.get('show_2D_results')),
+            (os.path.join(capture_dir, '%s_hccepose_show_6d_vis0.jpg' % name), results_hccepose.get('show_6D_vis0')),
+            (os.path.join(capture_dir, '%s_hccepose_show_6d_vis1.jpg' % name), results_hccepose.get('show_6D_vis1')),
+            (os.path.join(capture_dir, '%s_hccepose_show_6d_vis2.jpg' % name), results_hccepose.get('show_6D_vis2')),
+            (os.path.join(capture_dir, '%s_foundationpose_show_2d.jpg' % name), results_fp.get('show_2D_results')),
+            (os.path.join(capture_dir, '%s_foundationpose_show_6d_vis0.jpg' % name), results_fp.get('show_6D_vis0')),
+            (os.path.join(capture_dir, '%s_foundationpose_show_6d_vis1.jpg' % name), results_fp.get('show_6D_vis1')),
+            (os.path.join(capture_dir, '%s_foundationpose_show_6d_vis2.jpg' % name), results_fp.get('show_6D_vis2')),
+            (os.path.join(capture_dir, '%s_show_foundationpose.jpg' % name), results_fp.get('show_foundationpose')),
+        ], enabled=save_visualizations)
+
+        for megapose_variant_name, megapose_use_depth in megapose_variants:
+            megapose_depth = depth_m if megapose_use_depth else None
+            results_mp = megapose_runner.predict(
+                cam_K,
+                image,
+                [obj_id],
+                conf=0.85,
+                confidence_threshold=0.85,
+                depth=megapose_depth,
+                use_megapose=True,
+                megapose_vis=megapose_vis,
+                megapose_vis_stages=megapose_vis_stages,
+            )
+
+            print_stage_time_breakdown(results_mp, enabled=print_stage_timing, prefix='%s | MegaPose %s' % (name, megapose_variant_name.upper()))
+
+            save_visual_artifacts([
+                (os.path.join(capture_dir, '%s_show_megapose_%s.jpg' % (name, megapose_variant_name)), results_mp.get('show_megapose')),
+                (os.path.join(capture_dir, '%s_megapose_%s_show_2d.jpg' % (name, megapose_variant_name)), results_mp.get('show_2D_results')),
+                (os.path.join(capture_dir, '%s_megapose_%s_show_6d_vis0.jpg' % (name, megapose_variant_name)), results_mp.get('show_6D_vis0')),
+                (os.path.join(capture_dir, '%s_megapose_%s_show_6d_vis1.jpg' % (name, megapose_variant_name)), results_mp.get('show_6D_vis1')),
+                (os.path.join(capture_dir, '%s_megapose_%s_show_6d_vis2.jpg' % (name, megapose_variant_name)), results_mp.get('show_6D_vis2')),
+            ], enabled=save_visualizations)
+
+            pose_sets_mm = {}
+            if obj_id in results_hccepose and 'Rts' in results_hccepose[obj_id]:
+                pose_sets_mm['HccePose'] = results_hccepose[obj_id]['Rts']
+            if obj_id in results_fp and 'Rts' in results_fp[obj_id]:
+                pose_sets_mm['FoundationPose'] = results_fp[obj_id]['Rts']
+            if obj_id in results_mp and 'Rts' in results_mp[obj_id]:
+                pose_sets_mm['MegaPose'] = results_mp[obj_id]['Rts']
+            if save_visualizations:
+                depth_compare_vis, depth_compare_summary = build_depth_comparison_visual(
+                    depth,
+                    cam_K,
+                    obj_model_path,
+                    pose_sets_mm,
+                    device=str(foundationpose_runner.device),
+                    max_items=4,
+                )
+                save_visual_artifacts([
+                    (os.path.join(capture_dir, '%s_compare_depth_hccepose_foundationpose_megapose_%s.jpg' % (name, megapose_variant_name)), depth_compare_vis),
+                ], enabled=True)
+```
+
+The authoritative version (including imports for **`print_foundationpose_benchmark`**) is **`s4_p3_test_mi10_bin_picking_RGBD_FP_vs_MP.py`**.
+
+</details>
+
+---
+
+#### 🎯 Visualization Results (depth comparison)
+
+Depth-aligned comparison panels for **MegaPose RGB** vs **MegaPose RGB-D** branches (`000003`):
+
+<div align="center">
+ <img src="show_vis/rgbd_000003_compare_depth_rgb.jpg" width="100%">
+</div>
+
+<div align="center">
+ <img src="show_vis/rgbd_depth_compare_000003.jpg" width="100%">
+</div>
 
 ---
 
@@ -730,7 +1176,9 @@ The **6D localization score** remains consistent with the 2024 submission,
 while the **2D segmentation score** improved by **0.002**, thanks to the correction of minor implementation bugs.
 <details>
 <summary>Click to expand</summary>
-### <img src="/show_vis/BOP-website-lmo.png" width=100%>
+<div align="center">
+<img src="show_vis/BOP-website-lmo.png" width="100%" alt="BOP LM-O results">
+</div>
 </details>
 
 ---
@@ -762,9 +1210,14 @@ All components are expected to be completed by the end of 2025, with continuous 
 ---
 
 ## 🏆 BOP LeaderBoards
-### <img src="/show_vis/bop-6D-loc.png" width=100%>
-### <img src="/show_vis/bop-2D-seg.png" width=100%>
+<div align="center">
+<img src="show_vis/bop-6D-loc.png" width="100%" alt="BOP 6D localization leaderboard">
+<img src="show_vis/bop-2D-seg.png" width="100%" alt="BOP 2D segmentation leaderboard">
+</div>
 
+## Acknowledgments
+
+This project builds on public datasets, benchmarks, and methods that the code and tutorials reference directly, including: the [**BOP benchmark**](https://bop.felk.cvut.cz/) and [**bop\_toolkit**](https://github.com/thodan/bop_toolkit); [**BlenderProc**](https://github.com/DLR-RM/BlenderProc) for rendering; [**Ultralytics YOLO**](https://github.com/ultralytics/ultralytics) for detection; [**FoundationPose**](https://github.com/NVlabs/FoundationPose) and [**MegaPose**](https://github.com/megapose6d/megapose6d) for RGB-D refinement integrations; and [**KASAL**](https://pypi.org/project/kasal-6d/) where used in the dependency stack.
 
 ***
 If you find our work useful, please cite it as follows: 

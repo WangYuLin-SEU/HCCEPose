@@ -4,6 +4,7 @@
 import cv2, os, sys
 import numpy as np
 from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import print_stage_time_breakdown
 from HccePose.tester import Tester
 
 if __name__ == '__main__':
@@ -15,18 +16,17 @@ if __name__ == '__main__':
     bop_dataset_item = bop_dataset(dataset_path)
     obj_id = 1
     CUDA_DEVICE = '0'
-    # show_op = False
-    show_op = True
+    hccepose_vis = True
+    hccepose_acceleration = 'pytorch'
+    save_visualizations = hccepose_vis
+    print_stage_timing = False
     
-    Tester_item = Tester(bop_dataset_item, show_op = show_op, CUDA_DEVICE=CUDA_DEVICE)
+    Tester_item = Tester(bop_dataset_item, hccepose_vis = hccepose_vis, CUDA_DEVICE=CUDA_DEVICE, hccepose_acceleration=hccepose_acceleration)
     for name in ['VID_20251009_141247',
                  'VID_20251009_141444']:
         file_name = os.path.join(test_video_path, '%s.mp4'%name)
         cap = cv2.VideoCapture(file_name)
-        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = cap.get(cv2.CAP_PROP_FPS)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out_1 = None
         out_2 = None
@@ -39,10 +39,12 @@ if __name__ == '__main__':
             ret, frame = cap.read()
             if not ret:
                 break
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             results_dict = Tester_item.predict(cam_K, frame, [obj_id],
                                                             conf = 0.85, confidence_threshold = 0.85)
+            print_stage_time_breakdown(results_dict, enabled=print_stage_timing, prefix='%s frame' % name)
             fps_hccepose = 1 / results_dict['time']
+            if not save_visualizations:
+                continue
             show_6D_vis1 = results_dict['show_6D_vis1']
             show_6D_vis1[show_6D_vis1 < 0] = 0
             show_6D_vis1[show_6D_vis1 > 255] = 255
@@ -64,9 +66,10 @@ if __name__ == '__main__':
                     fps,
                     (show_6D_vis2.shape[1], show_6D_vis2.shape[0])
                 )
-            cv2.putText(show_6D_vis2, "FPS: {0:.2f}".format(fps_hccepose), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4, cv2.LINE_AA)
+            cv2.putText(show_6D_vis2, 'FPS: {0:.2f}'.format(fps_hccepose), (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4, cv2.LINE_AA)
             out_2.write(show_6D_vis2.astype(np.uint8))
         cap.release()
-        out_1.release()
-        out_2.release()
-    pass
+        if out_1 is not None:
+            out_1.release()
+        if out_2 is not None:
+            out_2.release()
