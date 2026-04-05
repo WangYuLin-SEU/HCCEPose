@@ -30,7 +30,9 @@ HccePose(BF) 提出了一种 **层次化连续坐标编码（Hierarchical Contin
 - 2025.10.28: s4_p1_gen_bf_labels.py 已更新。若数据集中不存在 camera.json，脚本将自动创建一个默认文件。
 - 2026.04.04：新增 **RGB-D 微调**（**FoundationPose** / **MegaPose**，`Refinement/` 与 `s4_p3_test_mi10_bin_picking_RGBD_*.py`）；**HccePose** 与 **FoundationPose** 的 **ONNX / TensorRT** 加速选项（`hccepose_acceleration`、`foundationpose_acceleration`）；`results_dict['time_dict']` 分阶段耗时与 `print_stage_time_breakdown`。示例 RGB-D 帧 **`000000`–`000003`** 已上传至 [Hugging Face — test_imgs_RGBD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs_RGBD)（每帧 `{stem}_rgb.png`、`{stem}_depth.png`、`{stem}_camK.json`）。**Git** 可仍只内置 **`000003_*`**；多帧请从该目录同步到 **`test_imgs_RGBD/`**（可用 [`scripts/download_hf_assets.py`](scripts/download_hf_assets.py)；网页 Dataset card 用 [`hf-dataset-card/README.md`](hf-dataset-card/README.md) 上传为根目录 `README.md`，中文见 [`hf-dataset-card/README_CN.md`](hf-dataset-card/README_CN.md)）。
 - 2026.04.04（文档）：快速开始与 RGB-D 小节明确 **OpenCV BGR** 约定（`cv2.imread` / `VideoCapture` 结果**原样**传入 `Tester.predict`），删除在 `imread` 后误加的 `COLOR_RGB2BGR`。代码注释与 BGR 训练归一化、FoundationPose 入口 BGR→RGB、MegaPose 可视化 BGR 拼图等实现对齐。
+- 2026.04.06（文档）：**最小推理**清单、**首跑耗时**说明、**故障排查**、可选 [`requirements-inference.txt`](requirements-inference.txt)，以及建议在独立 **venv/conda** 中运行（ONNX 路径可能触发自动 `pip install`）。
 ---
+<a id="environment-setup"></a>
 ## 🔧 环境配置
 
 <details>
@@ -74,6 +76,8 @@ python -c "import imageio; imageio.plugins.freeimage.download()"
 pip install -U "huggingface_hub[hf_transfer]==0.36.0"
 
 ```
+
+**单文件捷径（推理栈，不含 `bpy`）：** 在按上文安装好 **torch / torchvision / torchaudio**（CUDA 轮子源）之后，可执行 `pip install -r requirements-inference.txt`（详见该文件内注释）。若需 BlenderProc / 完整训练流程，仍请按需安装 **`bpy`** 一行。
 
 <details>
 <summary>可选：RGB-D 微调与加速</summary>
@@ -123,6 +127,44 @@ python scripts/wget_hf_demo_assets.py --endpoint hf --verify-only # 仅校验大
 
 ---
 
+<a id="minimal-inference-setup"></a>
+## 🎯 最小推理环境（Bin-Picking RGB）
+
+若你**只想**跑 **Bin-Picking 单目 RGB** 示例（**`s4_p3_test_mi10_bin_picking.py`**），不必先搭完整 BlenderProc 训练链，可按下列最小集合准备。
+
+**仓库根目录必须具备**
+
+| 内容 | 说明 |
+|------|------|
+| `HccePose/` | 核心代码（自 Git 克隆）。 |
+| **`bop_toolkit/`** | `HccePose.bop_loader` 会 `import bop_toolkit` — 请在根目录解压 **`bop_toolkit.zip`**（或保持等效目录结构）。 |
+| `demo-bin-picking/` | 含 `models/`、`yolo11/`、`HccePose/` 权重，布局与 [Hugging Face — demo-bin-picking](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking) 一致。 |
+| `test_imgs/` | 脚本中循环使用的示例 JPG。 |
+
+**Python 环境**：请按上文 [环境配置](#environment-setup) 中的 **pip 版本钉** 安装（推荐 **Python 3.10**）。在安装好 **torch / torchvision / torchaudio**（CUDA 轮子的 `--index-url` 与 README 一致）之后，可用 [`requirements-inference.txt`](requirements-inference.txt) 一次性安装其余推理常用依赖（**不含** `bpy`）。
+
+**仅跑上述脚本时通常不需要**
+
+- **`blenderproc.zip`** 与 **`bpy`** — 面向 BlenderProc 合成数据与训练相关流程。
+- **FoundationPose 权重目录**、**`test_imgs_RGBD/`**、**MegaPose / ONNX / TensorRT** — 仅在运行对应 **`s4_p3_test_*.py`** 时需要。
+
+**建议**：为 HccePose 单独建 **conda 环境或 venv**。ONNX 相关脚本在首次构造 `Tester` 时可能通过 `ensure_acceleration_backend_environment` **自动执行 `pip install`**（如 `onnx`、`onnxruntime-gpu`），独立环境可避免污染系统 Python。
+
+### ⏱ 首跑耗时（心理预期）
+
+| 环节 | 说明 |
+|------|------|
+| **MegaPose**（如 `s4_p3_test_mi10_bin_picking_RGBD_megapose.py`） | **首次**可能需 **数十分钟**（克隆 `megapose6d`、在 `.envs/megapose/` 建 conda 前缀、安装 PyTorch 栈、下载模型等）。**同一机器、缓存仍在**时，再次运行通常可降至 **约一分钟量级**（视硬件与帧数而定）。 |
+| **`download_hf_assets.py` / `wget_hf_demo_assets.py`** | 主要取决于带宽；在 AutoDL 等环境可先 `source /etc/network_turbo`（若存在）。 |
+| **ONNX** | 首次以 ONNX 后端构造 `Tester` 时可能触发 **一次性** `pip` 安装 ONNX Runtime GPU 等。 |
+
+### 🩹 故障排查（常见）
+
+1. **`ValueError: All ufuncs must have type numpy.ufunc`**（多出现在 `scipy` / `imgaug` 调用链）：**NumPy 与 SciPy** 组合与参考环境不一致。请按 [环境配置](#environment-setup) 重装（例如 **`numpy==1.26.4`**、**`scipy==1.15.3`**），并在 **Python 3.10** 上验证。若使用 **Python 3.12** 等版本，需自行重新验证整组依赖，勿假设与 README 钉版本兼容。
+2. **`ImportError: numpy.core.multiarray`** /  **`AttributeError: _ARRAY_API`**（`import cv2` 时）：OpenCV 的 wheel 与当前 **NumPy 主版本** 不匹配。请在同一环境中按 README 钉版本重装 **opencv** 与 **numpy**。
+3. **TensorRT 脚本失败**（`s4_p3_test_mi10_bin_picking_tensorrt.py`）：需匹配可用的 **`libnvinfer`** / 驱动与 TensorRT 栈。验证主流程时可先只跑 **`hccepose_acceleration='pytorch'`** 或 **`'onnx'`**；TensorRT 视为可选项。
+
+---
 
 ## 🧱 自定义数据集及训练
 
@@ -482,6 +524,9 @@ total samples = total iteration × batch size × GPU number
 
 
 ## ✏️ 快速开始
+
+> **最快跑通一条 demo：** 见 [最小推理环境（Bin-Picking RGB）](#minimal-inference-setup) — 仅需 Bin-Picking RGB，无需 BlenderProc / `bpy`。
+
 针对 **Bin-Picking** 问题，本项目提供了一个基于 **HccePose(BF)** 的简易应用示例。  
 为降低复现难度，示例使用的物体（由普通 3D 打印机以白色 PLA 材料打印）和相机（小米手机）均为常见易得设备。  
 

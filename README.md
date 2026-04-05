@@ -30,7 +30,9 @@
 - 2025.10.28: s4_p1_gen_bf_labels.py has been updated. If the dataset does not contain a camera.json, the script will automatically create a default one.
 - 2026.04.04: RGB-D refinement with **FoundationPose** / **MegaPose** (`Refinement/`, example `s4_p3_test_mi10_bin_picking_RGBD_*.py`); optional **ONNX / TensorRT** acceleration for HccePose and FoundationPose (`hccepose_acceleration`, `foundationpose_acceleration`); per-stage timings via `results_dict['time_dict']` and `print_stage_time_breakdown`. Sample RGB-D frames **`000000`–`000003`** are on [Hugging Face — test_imgs_RGBD](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/test_imgs_RGBD) (each stem: `{stem}_rgb.png`, `{stem}_depth.png`, `{stem}_camK.json`). A **git** checkout may still ship only **`000003_*`** under `test_imgs_RGBD/` to keep the repo small; download that folder for all four stems (see [`scripts/download_hf_assets.py`](scripts/download_hf_assets.py), [`hf-dataset-card/README.md`](hf-dataset-card/README.md)).
 - 2026.04.04 (docs): Quick Start and RGB-D sections now state the **OpenCV BGR** convention (`cv2.imread` / `VideoCapture` → pass unchanged to `Tester.predict`); removed erroneous `COLOR_RGB2BGR` after `imread`. Code comments aligned with BGR training norms, FoundationPose BGR→RGB at the refiner entry, and MegaPose BGR debug panels.
+- 2026.04.06 (docs): **Minimal inference** checklist, **first-run time** expectations, **troubleshooting**, optional [`requirements-inference.txt`](requirements-inference.txt), and a note to use a **dedicated venv/conda env** when ONNX scripts may auto-install packages.
 ---
+<a id="environment-setup"></a>
 ## 🔧 Environment Setup
 
 <details>
@@ -74,6 +76,8 @@ python -c "import imageio; imageio.plugins.freeimage.download()"
 pip install -U "huggingface_hub[hf_transfer]==0.36.0"
 
 ```
+
+**One-file shortcut (inference stack, excludes `bpy`):** after installing **torch / torchvision / torchaudio** from the PyTorch CUDA index above, run `pip install -r requirements-inference.txt` (see comments in that file). Full BlenderProc / training users should still follow the **`bpy`** line when needed.
 
 <details>
 <summary>Optional: RGB-D refinement & acceleration</summary>
@@ -120,6 +124,45 @@ python scripts/wget_hf_demo_assets.py --endpoint hf --verify-only # size check o
 ```
 
 If the official hub is unreachable without the accelerator, enable `network_turbo` (or your own VPN) first, then retry with `--endpoint hf`. Use `--endpoint mirror` only if your mirror exposes the Hub **tree API** without 403.
+
+---
+
+<a id="minimal-inference-setup"></a>
+## 🎯 Minimal setup (inference demo)
+
+Use this if you only want to run the **Bin-Picking RGB** example (**`s4_p3_test_mi10_bin_picking.py`**) without the full BlenderProc training stack.
+
+**Must have at the repository root**
+
+| Item | Why |
+|------|-----|
+| `HccePose/` | Core package (from git). |
+| **`bop_toolkit/`** | `HccePose.bop_loader` imports `bop_toolkit` — unzip **`bop_toolkit.zip`** here (or keep an equivalent tree). |
+| `demo-bin-picking/` | `models/`, `yolo11/`, `HccePose/` weights ([Hugging Face layout](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/main/demo-bin-picking)). |
+| `test_imgs/` | Sample images for the script loop. |
+
+**Python environment**: follow the **pip pins** in [Environment Setup](#environment-setup) (Python **3.10** recommended). For a one-shot install of the non-PyTorch pins, see [`requirements-inference.txt`](requirements-inference.txt) after installing **torch / torchvision / torchaudio** from the CUDA wheel index.
+
+**Not needed for that script alone**
+
+- **`blenderproc.zip`** and **`bpy`** — only for BlenderProc synthesis / training-related workflows.
+- **FoundationPose weight folders**, **`test_imgs_RGBD/`**, **MegaPose / ONNX / TensorRT** — only when you run the matching `s4_p3_test_*.py` scripts.
+
+**Recommended**: use a **dedicated conda env or venv** for HccePose. The ONNX test path may call `ensure_acceleration_backend_environment` and run **`pip install`** for `onnx` / `onnxruntime-gpu`; an isolated env avoids surprising your system Python.
+
+### ⏱ First-run time (what to expect)
+
+| Step | Typical note |
+|------|----------------|
+| **MegaPose** (`s4_p3_test_mi10_bin_picking_RGBD_megapose.py`, etc.) | **First** run can take **tens of minutes** (clone `megapose6d`, `conda` env under `.envs/megapose/`, PyTorch stack, model download). **Later** runs on the same machine are usually **on the order of one minute** for the same script, if caches remain. |
+| **`download_hf_assets.py` / `wget_hf_demo_assets.py`** | Depends on bandwidth; use `source /etc/network_turbo` on hosts like AutoDL when available. |
+| **ONNX** | First `Tester` construction with ONNX may trigger a **one-time** `pip` of ONNX Runtime GPU wheels. |
+
+### 🩹 Troubleshooting (common)
+
+1. **`ValueError: All ufuncs must have type numpy.ufunc`** (often under `scipy` / `imgaug`): your **NumPy / SciPy** pair does not match. Reinstall the versions from [Environment Setup](#environment-setup) (e.g. **`numpy==1.26.4`**, **`scipy==1.15.3`**) on **Python 3.10**. Avoid mixing **Python 3.12** with the reference pin set unless you re-validate the stack.
+2. **`ImportError: numpy.core.multiarray`** / **`AttributeError: _ARRAY_API`** on `import cv2`: OpenCV’s wheel was built against a **different NumPy major** than the one installed. Align **opencv** and **numpy** with the pinned versions in the environment section (reinstall both in the same env).
+3. **TensorRT script fails** (`s4_p3_test_mi10_bin_picking_tensorrt.py`): TensorRT needs a matching **`libnvinfer`** / driver stack. To verify the core pipeline first, run **`hccepose_acceleration='pytorch'`** or **`'onnx'`** only; treat TensorRT as optional.
 
 ---
 
@@ -502,6 +545,8 @@ total samples = total iteration × batch size × GPU number
 
 
 ## ✏️ Quick Start
+
+> **Smallest path to a first result:** see [Minimal setup (inference demo)](#minimal-inference-setup) — Bin-Picking RGB demo only, without BlenderProc / `bpy`.
 
 This project provides a simple **HccePose(BF)-based** application example for the **Bin-Picking** task.  
 To reduce reproduction difficulty, both the objects (3D printed with standard white PLA material) and the camera (Xiaomi smartphone) are easily accessible devices.
