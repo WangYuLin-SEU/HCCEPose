@@ -4,22 +4,21 @@
 import json
 import os
 import sys
-import cv2
-import numpy as np
-import torch
-
-from HccePose.bop_loader import bop_dataset
-from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
-from HccePose.tester import Tester
 
 
 def add_title(image, title, height=28):
+    import cv2
+    import numpy as np
+
     header = np.full((height, image.shape[1], 3), 18, dtype=np.uint8)
     cv2.putText(header, str(title), (8, int(height * 0.72)), cv2.FONT_HERSHEY_SIMPLEX, 0.60, (230, 230, 230), 1, cv2.LINE_AA)
     return np.concatenate([header, image], axis=0)
 
 
 def hstack_images(images):
+    import cv2
+    import numpy as np
+
     images = [image for image in images if image is not None]
     if len(images) == 0:
         return None
@@ -38,6 +37,8 @@ def hstack_images(images):
 
 
 def rotation_error_deg(R_a, R_b):
+    import numpy as np
+
     rel = R_a @ R_b.T
     trace = float(np.trace(rel))
     cos_theta = (trace - 1.0) * 0.5
@@ -46,6 +47,9 @@ def rotation_error_deg(R_a, R_b):
 
 
 def build_comparison(results_pytorch, results_tensorrt, obj_id):
+    import numpy as np
+    import torch
+
     summary = {
         'obj_id': int(obj_id),
         'pytorch_time_s': float(results_pytorch.get('time', 0.0)),
@@ -93,8 +97,17 @@ def build_comparison(results_pytorch, results_tensorrt, obj_id):
 
 
 if __name__ == '__main__':
-    sys.path.insert(0, os.getcwd())
-    current_dir = os.path.dirname(sys.argv[0])
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(current_dir)
+    sys.path.insert(0, current_dir)
+
+    import cv2
+    import numpy as np
+    import torch
+    from HccePose.bop_loader import bop_dataset
+    from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
+    from HccePose.tester import Tester
+
     dataset_path = os.path.join(current_dir, 'demo-bin-picking')
     test_img_path = os.path.join(current_dir, 'test_imgs')
     bop_dataset_item = bop_dataset(dataset_path)

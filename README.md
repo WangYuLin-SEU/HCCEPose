@@ -49,18 +49,21 @@ unzip blenderproc.zip
 Configure Ubuntu System Environment (Python 3.10)
 
 > ⚠️ A GPU driver with EGL support must be pre-installed.
+>
+> Version pins below match a reference **Conda `py310`** interpreter (**Python 3.10.19**) after `pip install` (PyTorch wheels report suffixes such as `+cu128` in `pip list`).
+
 ```bash 
 apt-get update && apt-get install -y wget software-properties-common gnupg2 python3-pip
 
 apt-get update && apt-get install -y libegl1-mesa-dev libgles2-mesa-dev libx11-dev libxext-dev libxrender-dev
 
-pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
 
 apt-get update && apt-get install pkg-config libglvnd0 libgl1 libglx0 libegl1 libgles2 libglvnd-dev libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev cmake curl ninja-build
 
-pip install ultralytics==8.3.70 fvcore==0.1.5.post20221221 pybind11==2.12.0 trimesh==4.2.2 ninja==1.11.1.1 kornia==0.7.2 open3d==0.19.0 transformations==2024.6.1 numpy==1.26.4 opencv-python==4.9.0.80 opencv-contrib-python==4.9.0.80
+pip install ultralytics==8.3.233 fvcore==0.1.5.post20221221 pybind11==2.12.0 trimesh==4.2.2 ninja==1.11.1.1 kornia==0.6.9 open3d==0.19.0 transformations==2024.6.1 numpy==1.26.4 opencv-python==4.9.0.80 opencv-contrib-python==4.9.0.80
 
-pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle glumpy Pillow vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d rich h5py
+pip install scipy==1.15.3 kiwisolver==1.4.9 matplotlib==3.10.7 imageio==2.37.2 pypng Cython==3.2.1 PyOpenGL triangle glumpy Pillow==11.3.0 vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d==0.1.3 rich==14.2.0 h5py==3.15.1 diffrp-nvdiffrast
 
 pip install bpy==3.6.0 --extra-index-url https://download.blender.org/pypi/
 
@@ -68,7 +71,7 @@ apt-get install libsm6 libxrender1 libxext-dev
 
 python -c "import imageio; imageio.plugins.freeimage.download()"
 
-pip install -U "huggingface_hub[hf_transfer]"
+pip install -U "huggingface_hub[hf_transfer]==0.36.0"
 
 ```
 
@@ -76,9 +79,9 @@ pip install -U "huggingface_hub[hf_transfer]"
 <summary>Optional: RGB-D refinement & acceleration</summary>
 
 - **BOP toolkit path**: keep `bop_toolkit/` at the project root (unzip `bop_toolkit.zip` here) so imports match the training and test scripts.
-- **FoundationPose** (RGB-D refinement): install [nvdiffrast](https://github.com/NVlabs/nvdiffrast) per the upstream project. **Weights are not included in this repo.** Download the official bundle from [NVlabs/FoundationPose](https://github.com/NVlabs/FoundationPose) (*Data prepare*) — [Google Drive folder](https://drive.google.com/drive/folders/1DFezOAD0oD1BblsXVxqDsl8fj0qzB82i?usp=sharing) — and place the refiner and scorer under the project root as **`2023-10-28-18-33-37/`** and **`2024-01-11-20-02-45/`** (each with `config.yml`, `model_best.pth`), matching this repository’s scripts. Optional mirror (not NVIDIA-hosted): [gpue/foundationpose-weights](https://huggingface.co/gpue/foundationpose-weights). **License:** use of FoundationPose weights is subject to the [official FoundationPose license](https://github.com/NVlabs/FoundationPose); do not assume unrestricted commercial use.
-- **ONNX Runtime GPU / TensorRT**: HccePose and FoundationPose can use `HccePose.hccepose_acceleration` and `Refinement.foundationpose_acceleration` for ONNX or TensorRT backends when enabled from the test scripts (see `s4_p3_test_mi10_bin_picking_onnx.py`, `s4_p3_test_mi10_bin_picking_tensorrt.py`, and RGB-D examples).
-- **MegaPose**: on first `register_megapose()` / first MegaPose refinement path, the code can **automatically** clone [megapose6d](https://github.com/megapose6d/megapose6d.git) into **`third_party_megapose6d/`**, create a **Python 3.9** environment under **`.envs/megapose/`**, install dependencies, and download models (e.g. under `local_data/megapose-models` inside that tree). Requires network and a writable project directory. **License:** MegaPose code and models follow the [megapose6d](https://github.com/megapose6d/megapose6d) upstream license.
+- **FoundationPose** (RGB-D refinement): **nvdiffrast** (`import nvdiffrast.torch`, `Refinement/foundationpose.py`) is provided by **`diffrp-nvdiffrast`**, already listed in the main `pip install` commands above. To build from source instead, see [NVlabs/nvdiffrast](https://github.com/NVlabs/nvdiffrast). **Weights are not included in this repo.** Download the official bundle from [NVlabs/FoundationPose](https://github.com/NVlabs/FoundationPose) (*Data prepare*) — [Google Drive folder](https://drive.google.com/drive/folders/1DFezOAD0oD1BblsXVxqDsl8fj0qzB82i?usp=sharing) — and place the refiner and scorer under the project root as **`2023-10-28-18-33-37/`** and **`2024-01-11-20-02-45/`** (each with `config.yml`, `model_best.pth`), matching this repository’s scripts. Optional mirror (not NVIDIA-hosted): [gpue/foundationpose-weights](https://huggingface.co/gpue/foundationpose-weights). **License:** use of FoundationPose weights is subject to the [official FoundationPose license](https://github.com/NVlabs/FoundationPose); do not assume unrestricted commercial use.
+- **ONNX Runtime GPU / TensorRT**: HccePose and FoundationPose can use `HccePose.hccepose_acceleration` and `Refinement.foundationpose_acceleration` for ONNX or TensorRT backends when enabled from the test scripts (see `s4_p3_test_mi10_bin_picking_onnx.py`, `s4_p3_test_mi10_bin_picking_tensorrt.py`, and RGB-D examples). On first use, `HccePose.tester.Tester` calls `ensure_acceleration_backend_environment` to install/check **onnx** and **onnxruntime-gpu** when needed; TensorRT additionally requires matching **libnvinfer** (e.g. `pip install tensorrt` or NVIDIA’s tarball on `LD_LIBRARY_PATH`). Example pins from the same reference **py310** env: **onnx==1.21.0**, **onnxruntime-gpu==1.23.2**, **tensorrt 10.16.x** (variant depends on your CUDA stack—align with your ORT build).
+- **MegaPose**: on first `register_megapose()` / first MegaPose refinement path, the code can **automatically** clone [megapose6d](https://github.com/megapose6d/megapose6d.git) into **`third_party_megapose6d/`**, create a **dedicated Python 3.9** prefix under **`.envs/megapose/`** (via `conda create -p … python=3.9`), install MegaPose’s **own** PyTorch/torchvision stack there, and download models (e.g. under `local_data/megapose-models`). **Inference runs in subprocesses using `.envs/megapose/bin/python`**, not your main HccePose interpreter (e.g. Python 3.10): **do not install MegaPose’s torch stack into the py310 env**—keep the two environments separate. Requires **conda** on `PATH`, network, and a writable project directory. **License:** MegaPose code and models follow the [megapose6d](https://github.com/megapose6d/megapose6d) upstream license.
 
 </details>
 
@@ -88,13 +91,35 @@ pip install -U "huggingface_hub[hf_transfer]"
 
 ### 📥 Bulk download from Hugging Face (optional)
 
+**Hosts such as AutoDL** often need the platform VPN / academic accelerator **before** talking to Hugging Face (official site or API). If your image provides it:
+
+```bash
+source /etc/network_turbo
+```
+
+Then run the download commands in the **same shell session**. After that, prefer **`--endpoint hf`** (official `huggingface.co`) for both scripts; third-party mirrors may return HTTP 403 to the tree API from some regions.
+
 The helper [`scripts/download_hf_assets.py`](scripts/download_hf_assets.py) lives **only in this GitHub repo**, not in the Hugging Face dataset file list. Run it from the **repository root**: it downloads into the **same relative paths** as Quick Start / RGB-D examples (`test_imgs/`, `test_videos/`, `test_imgs_RGBD/`, `demo-bin-picking/`, `demo-tex-objs/` beside `HccePose/`, etc.) — same layout as copying those folders from the dataset browser or using a fully prepared dev tree.
 
 ```bash
-python scripts/download_hf_assets.py --preset test --endpoint auto
+source /etc/network_turbo   # when available
+python scripts/download_hf_assets.py --preset test --endpoint hf
 ```
 
 Default `--dest` is the repo root. `--endpoint auto` tries the official hub, then `https://hf-mirror.com`. See `python scripts/download_hf_assets.py --help` for presets and optional `--foundationpose` (community mirror — check license). Dataset card text: [`hf-dataset-card/README.md`](hf-dataset-card/README.md) → publish as **`README.md`** on the HF dataset repo (it links back to this script and explains paths).
+
+**Fallback: per-file `wget` (when `snapshot_download` hangs or drops)** — [`scripts/wget_hf_demo_assets.py`](scripts/wget_hf_demo_assets.py) lists files via the Hub tree API, downloads each with resumable `wget -c`, and checks byte sizes against the API. It skips generated `*_show_*` artifacts under `test_imgs/` / `test_videos/`. It also pulls the four FoundationPose weight files into **`2023-10-28-18-33-37/`** and **`2024-01-11-20-02-45/`** at the repo root (same layout as the manual / Drive setup). On constrained networks (e.g. AutoDL), run `source /etc/network_turbo` first if available; point pip and temp dirs at a large disk to avoid filling the root overlay, e.g. `export PIP_CACHE_DIR=/path/to/big/pip-cache TMPDIR=/path/to/big/tmp`.
+
+```bash
+source /etc/network_turbo   # when available
+cd HCCEPose
+python scripts/wget_hf_demo_assets.py --endpoint hf              # parallel wget (default ~8 workers)
+python scripts/wget_hf_demo_assets.py --endpoint hf -j 4        # cap concurrency if the hub rate-limits
+python scripts/wget_hf_demo_assets.py --endpoint hf -j 1          # strictly sequential
+python scripts/wget_hf_demo_assets.py --endpoint hf --verify-only # size check only
+```
+
+If the official hub is unreachable without the accelerator, enable `network_turbo` (or your own VPN) first, then retry with `--endpoint hf`. Use `--endpoint mirror` only if your mirror exposes the Hub **tree API** without 403.
 
 ---
 
@@ -587,6 +612,8 @@ if __name__ == '__main__':
 
 Full options (acceleration, missing-image skips, output prefixes) match the repository script **`s4_p3_test_mi10_bin_picking.py`**.
 
+**Video demos:** **`s4_p3_test_mi10_bin_picking_video.py`** and **`s4_p3_test_mi10_tex_objs_video.py`** iterate whole clips under **`test_videos/`** and can take a long time. For routine validation, prefer the single-image scripts above; use the **`*_video.py`** files when you need full-sequence outputs.
+
 </details>
 
 ---
@@ -982,7 +1009,7 @@ RGB-only MegaPose (`megapose_use_depth=False`) for the same stem:
 
 #### 📸 Example: HccePose vs FoundationPose vs MegaPose (comparison & depth fusion)
 
-**`s4_p3_test_mi10_bin_picking_RGBD_FP_vs_MP.py`** runs, for every frame, (1) HccePose with depth, (2) FoundationPose refinement, (3) MegaPose **rgb** and **rgbd** variants, saves side-by-side overlays, and builds **`build_depth_comparison_visual`** panels. The file also defines **`print_foundationpose_benchmark`** to sweep FoundationPose backends on the **first** frame—omitted below; open the script for the full listing.
+**`s4_p3_test_mi10_bin_picking_RGBD_FP_vs_MP.py`** runs, for every frame, (1) HccePose with depth, (2) FoundationPose refinement, (3) MegaPose **rgb** and **rgbd** variants, saves side-by-side overlays, and builds **`build_depth_comparison_visual`** panels. The file also defines **`print_foundationpose_benchmark`** to sweep FoundationPose backends on the **first** frame—omitted below; open the script for the full listing. It defaults **`foundationpose_acceleration='onnx'`**; this README’s **PyTorch 2.8.0+cu128** line includes **`torch.backends.mha`**, which ONNX export expects. On **much older PyTorch (e.g. 2.2)** you may see **`AttributeError: module 'torch.backends' has no attribute 'mha'`**—upgrade PyTorch or switch that flag to a non-ONNX mode if appropriate.
 
 <details>
 <summary>Click to expand code (per-frame pipeline)</summary>

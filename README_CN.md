@@ -49,18 +49,21 @@ unzip blenderproc.zip
 配置 Ubuntu 系统环境 (Python 3.10)
 
 ⚠️ 需要提前安装 带有 EGL 支持的显卡驱动
+
+以下版本号与参考机上的 **Conda `py310`**（**Python 3.10.19**）在 `pip install` 后的 `pip list` 对齐（PyTorch 轮子在列表中可能显示 `+cu128` 等后缀）。
+
 ```bash
 apt-get update && apt-get install -y wget software-properties-common gnupg2 python3-pip
 
 apt-get update && apt-get install -y libegl1-mesa-dev libgles2-mesa-dev libx11-dev libxext-dev libxrender-dev
 
-pip install torch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
 
 apt-get update && apt-get install pkg-config libglvnd0 libgl1 libglx0 libegl1 libgles2 libglvnd-dev libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev cmake curl ninja-build
 
-pip install ultralytics==8.3.70 fvcore==0.1.5.post20221221 pybind11==2.12.0 trimesh==4.2.2 ninja==1.11.1.1 kornia==0.7.2 open3d==0.19.0 transformations==2024.6.1 numpy==1.26.4 opencv-python==4.9.0.80 opencv-contrib-python==4.9.0.80
+pip install ultralytics==8.3.233 fvcore==0.1.5.post20221221 pybind11==2.12.0 trimesh==4.2.2 ninja==1.11.1.1 kornia==0.6.9 open3d==0.19.0 transformations==2024.6.1 numpy==1.26.4 opencv-python==4.9.0.80 opencv-contrib-python==4.9.0.80
 
-pip install scipy kiwisolver matplotlib imageio pypng Cython PyOpenGL triangle glumpy Pillow vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d rich h5py
+pip install scipy==1.15.3 kiwisolver==1.4.9 matplotlib==3.10.7 imageio==2.37.2 pypng Cython==3.2.1 PyOpenGL triangle glumpy Pillow==11.3.0 vispy imgaug mathutils pyrender pytz tqdm tensorboard kasal-6d==0.1.3 rich==14.2.0 h5py==3.15.1 diffrp-nvdiffrast
 
 pip install bpy==3.6.0 --extra-index-url https://download.blender.org/pypi/
 
@@ -68,7 +71,7 @@ apt-get install libsm6 libxrender1 libxext-dev
 
 python -c "import imageio; imageio.plugins.freeimage.download()"
 
-pip install -U "huggingface_hub[hf_transfer]"
+pip install -U "huggingface_hub[hf_transfer]==0.36.0"
 
 ```
 
@@ -76,9 +79,9 @@ pip install -U "huggingface_hub[hf_transfer]"
 <summary>可选：RGB-D 微调与加速</summary>
 
 - **bop_toolkit**：请将 `bop_toolkit.zip` 解压到项目根目录的 **`bop_toolkit/`**，与训练、测试脚本的导入路径一致。
-- **FoundationPose**（RGB-D 微调）：需按上游安装 [nvdiffrast](https://github.com/NVlabs/nvdiffrast)。**权重不包含在本仓库中。** 请从 [NVlabs/FoundationPose](https://github.com/NVlabs/FoundationPose) 文档 *Data prepare* 与 [Google Drive 权重包](https://drive.google.com/drive/folders/1DFezOAD0oD1BblsXVxqDsl8fj0qzB82i?usp=sharing) 获取，将 refiner / scorer 置于项目根目录 **`2023-10-28-18-33-37/`**、**`2024-01-11-20-02-45/`**（各含 `config.yml`、`model_best.pth`）。可选非官方镜像：[gpue/foundationpose-weights](https://huggingface.co/gpue/foundationpose-weights)（非 NVIDIA 托管，仅供不便访问 Drive 时选用）。**许可说明：** FoundationPose 权重使用须遵守其[官方许可](https://github.com/NVlabs/FoundationPose)，请勿默认可任意商用。
-- **ONNX Runtime GPU / TensorRT**：HccePose 与 FoundationPose 可分别通过 `HccePose.hccepose_acceleration`、`Refinement.foundationpose_acceleration` 启用 ONNX 或 TensorRT；示例见 `s4_p3_test_mi10_bin_picking_onnx.py`、`s4_p3_test_mi10_bin_picking_tensorrt.py` 及 RGB-D 脚本中的相关参数。
-- **MegaPose**：首次 `register_megapose()` 或首次跑通 MegaPose 路径时，可**自动**克隆 [megapose6d](https://github.com/megapose6d/megapose6d.git) 至 **`third_party_megapose6d/`**、创建 **Python 3.9** 子环境 **`.envs/megapose/`**、安装依赖并下载模型（如 `local_data/megapose-models` 等，具体以上游为准）。需联网且项目目录可写。**许可说明：** MegaPose 代码与模型以 [megapose6d 官方许可](https://github.com/megapose6d/megapose6d)为准。
+- **FoundationPose**（RGB-D 微调）：**nvdiffrast**（`import nvdiffrast.torch`，`Refinement/foundationpose.py`）由 **`diffrp-nvdiffrast`** 提供，已包含于上文主环境 `pip install` 列表。若需从源码构建，参见 [NVlabs/nvdiffrast](https://github.com/NVlabs/nvdiffrast)。**权重不包含在本仓库中。** 请从 [NVlabs/FoundationPose](https://github.com/NVlabs/FoundationPose) 文档 *Data prepare* 与 [Google Drive 权重包](https://drive.google.com/drive/folders/1DFezOAD0oD1BblsXVxqDsl8fj0qzB82i?usp=sharing) 获取，将 refiner / scorer 置于项目根目录 **`2023-10-28-18-33-37/`**、**`2024-01-11-20-02-45/`**（各含 `config.yml`、`model_best.pth`）。可选非官方镜像：[gpue/foundationpose-weights](https://huggingface.co/gpue/foundationpose-weights)（非 NVIDIA 托管，仅供不便访问 Drive 时选用）。**许可说明：** FoundationPose 权重使用须遵守其[官方许可](https://github.com/NVlabs/FoundationPose)，请勿默认可任意商用。
+- **ONNX Runtime GPU / TensorRT**：HccePose 与 FoundationPose 可分别通过 `HccePose.hccepose_acceleration`、`Refinement.foundationpose_acceleration` 启用 ONNX 或 TensorRT；示例见 `s4_p3_test_mi10_bin_picking_onnx.py`、`s4_p3_test_mi10_bin_picking_tensorrt.py` 及 RGB-D 脚本中的相关参数。首次构造 `HccePose.tester.Tester` 且需要 ONNX/TensorRT 时，会调用 `ensure_acceleration_backend_environment` 自动安装/检查 **onnx** 与 **onnxruntime-gpu**；TensorRT 另需可用的 **libnvinfer**（如 `pip install tensorrt` 或在启动 Python 前将 TensorRT 的 `lib` 加入 `LD_LIBRARY_PATH`）。同一参考 **py310** 环境示例：**onnx==1.21.0**、**onnxruntime-gpu==1.23.2**、**tensorrt 10.16.x**（具体 CUDA 变体需与所用 ORT 构建一致）。
+- **MegaPose**：首次 `register_megapose()` 或首次跑通 MegaPose 路径时，可**自动**克隆 [megapose6d](https://github.com/megapose6d/megapose6d.git) 至 **`third_party_megapose6d/`**，并用 **conda** 在项目根 **`.envs/megapose/`** 创建**独立的 Python 3.9 前缀**（`conda create -p … python=3.9`），在其中安装 MegaPose 所需的 **PyTorch/torchvision** 等，再下载模型（如 `local_data/megapose-models`，以上游为准）。**实际推理由子进程调用 `.envs/megapose/bin/python` 执行**，与 HccePose 主环境（例如 **Python 3.10**）分离：**请勿把 MegaPose 的 torch 栈装进 py310**，两套环境各司其职。宿主机需 **`conda`** 在 `PATH`，且项目目录可写、能联网。**许可说明：** MegaPose 代码与模型以 [megapose6d 官方许可](https://github.com/megapose6d/megapose6d)为准。
 
 </details>
 
@@ -88,13 +91,35 @@ pip install -U "huggingface_hub[hf_transfer]"
 
 ### 📥 从 Hugging Face 批量下载（可选）
 
+**AutoDL 等环境**访问 Hugging Face（官网与 API）前，通常需要先开启平台提供的 **VPN / 学术加速**。若镜像中存在该文件：
+
+```bash
+source /etc/network_turbo
+```
+
+请在**同一终端会话**里再执行下方下载命令。开启加速后建议统一使用 **`--endpoint hf`**（直连官方 `huggingface.co`）；部分地区的第三方镜像可能对 **tree API** 返回 HTTP **403**。
+
 [`scripts/download_hf_assets.py`](scripts/download_hf_assets.py) **仅在本 GitHub 仓库**，不在 Hugging Face 数据集文件列表中。在 **HCCEPose 仓库根目录**运行后，数据写入路径与 Quick Start / RGB-D 示例一致：`test_imgs/`、`test_videos/`、`test_imgs_RGBD/`、`demo-bin-picking/`、`demo-tex-objs/` 等位于克隆根目录，与手工从网页下载或维护者本机已配好环境**相同布局**。
 
 ```bash
-python scripts/download_hf_assets.py --preset test --endpoint auto
+source /etc/network_turbo   # 若存在
+python scripts/download_hf_assets.py --preset test --endpoint hf
 ```
 
 默认 `--dest` 为仓库根。`--endpoint auto` 先官方后 `https://hf-mirror.com`。详见 `python scripts/download_hf_assets.py --help`（含 **`--foundationpose`**，须核对许可）。Hugging Face Dataset 卡片用 [`hf-dataset-card/README.md`](hf-dataset-card/README.md)；中文 [`hf-dataset-card/README_CN.md`](hf-dataset-card/README_CN.md)。
+
+**备选：`wget` 按文件拉取（`snapshot_download` 卡住或频繁断线时）** — [`scripts/wget_hf_demo_assets.py`](scripts/wget_hf_demo_assets.py) 通过 Hub **tree API** 枚举文件，用可断点续传的 **`wget -c`** 逐文件下载，并与 API 中的 **字节大小** 校验；会跳过 `test_imgs/`、`test_videos/` 下生成的 `*_show_*`。脚本会同时拉取 **FoundationPose** 四个权重文件到仓库根目录的 **`2023-10-28-18-33-37/`**、**`2024-01-11-20-02-45/`**（与 README 中手动 / Drive 布局一致）。在 AutoDL 等环境可先 `source /etc/network_turbo`（若存在）；将 pip 缓存与临时目录指到大盘，避免根分区写满，例如：`export PIP_CACHE_DIR=/path/to/big/pip-cache TMPDIR=/path/to/big/tmp`。
+
+```bash
+source /etc/network_turbo   # 若存在
+cd HCCEPose
+python scripts/wget_hf_demo_assets.py --endpoint hf              # 并行 wget（默认约 8 路）
+python scripts/wget_hf_demo_assets.py --endpoint hf -j 4        # 限流，避免被 Hub 限速
+python scripts/wget_hf_demo_assets.py --endpoint hf -j 1        # 严格顺序下载
+python scripts/wget_hf_demo_assets.py --endpoint hf --verify-only # 仅校验大小
+```
+
+若未开加速时官方站不可达，请先 `source /etc/network_turbo`（或自备 VPN）再使用 `--endpoint hf`。仅在确认镜像的 **tree API** 可访问、无 403 时再尝试 `--endpoint mirror`。
 
 ---
 
@@ -560,6 +585,8 @@ if __name__ == '__main__':
 
 完整参数与加速选项见仓库脚本 **`s4_p3_test_mi10_bin_picking.py`**。
 
+**视频脚本：** **`s4_p3_test_mi10_bin_picking_video.py`**、**`s4_p3_test_mi10_tex_objs_video.py`** 会按帧处理 **`test_videos/`** 下整段视频，**耗时明显更长**。日常冒烟/校验可优先用上文单图脚本；需要完整序列输出时再跑 **`*_video.py`**。
+
 </details>
 
 ---
@@ -950,7 +977,7 @@ if __name__ == '__main__':
 
 #### 📸 示例：HccePose / FoundationPose / MegaPose 对比与深度融合
 
-**`s4_p3_test_mi10_bin_picking_RGBD_FP_vs_MP.py`** 对每一帧依次跑 HccePose（带深度）、FoundationPose、MegaPose 的 **rgb** 与 **rgbd**，保存叠加图，并用 **`build_depth_comparison_visual`** 生成深度对比拼图。文件中还定义了 **`print_foundationpose_benchmark`**，用于在**首帧**上对比 FoundationPose 不同后端（PyTorch/ONNX/TensorRT）；下述代码块为**逐帧主流程**，完整可运行版本请以仓库文件为准。
+**`s4_p3_test_mi10_bin_picking_RGBD_FP_vs_MP.py`** 对每一帧依次跑 HccePose（带深度）、FoundationPose、MegaPose 的 **rgb** 与 **rgbd**，保存叠加图，并用 **`build_depth_comparison_visual`** 生成深度对比拼图。文件中还定义了 **`print_foundationpose_benchmark`**，用于在**首帧**上对比 FoundationPose 不同后端（PyTorch/ONNX/TensorRT）；下述代码块为**逐帧主流程**，完整可运行版本请以仓库文件为准。脚本默认 **`foundationpose_acceleration='onnx'`**；本 README 的 **PyTorch 2.8.0+cu128** 安装行已包含 **`torch.backends.mha`**，满足 ONNX 导出所需。若仍使用 **较旧版本（如 PyTorch 2.2）**，可能出现 **`AttributeError: module 'torch.backends' has no attribute 'mha'`**——请升级 PyTorch，或在脚本中改为非 ONNX 的加速选项（视环境而定）。
 
 <details>
 <summary>点击展开代码（逐帧主流程）</summary>

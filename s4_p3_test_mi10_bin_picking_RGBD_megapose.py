@@ -1,23 +1,33 @@
 # Author: Yulin Wang (yulinwang@seu.edu.cn)
 # School of Mechanical Engineering, Southeast University, China
 
-import os, sys
-import cv2
-from HccePose.bop_loader import bop_dataset
-from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
-from HccePose.tester import Tester
-from Refinement.refinement_test_utils import load_capture_frame, list_capture_frame_names
+import os
+import sys
 
 
 if __name__ == '__main__':
 
-    sys.path.insert(0, os.getcwd())
-    current_dir = os.path.dirname(sys.argv[0])
+    # Repo root: robust first run (MegaPose setup, demo assets) regardless of shell cwd.
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(current_dir)
+    sys.path.insert(0, current_dir)
+
+    CUDA_DEVICE = '0'
+
+    from HccePose.ensure_rgbd_megapose_demo import prepare_rgbd_megapose_demo_environment
+
+    prepare_rgbd_megapose_demo_environment(cuda_device=CUDA_DEVICE, project_root=current_dir)
+
+    import cv2
+    from HccePose.bop_loader import bop_dataset
+    from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
+    from HccePose.tester import Tester
+    from Refinement.refinement_test_utils import load_capture_frame, list_capture_frame_names
+
     dataset_path = os.path.join(current_dir, 'demo-bin-picking')
     capture_dir = os.path.join(current_dir, 'test_imgs_RGBD')
     bop_dataset_item = bop_dataset(dataset_path)
     obj_id = 1
-    CUDA_DEVICE = '0'
     hccepose_vis = True
     hccepose_acceleration = 'pytorch'
     megapose_use_depth = True
