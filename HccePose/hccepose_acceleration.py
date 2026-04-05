@@ -87,6 +87,68 @@ def _prepare_onnxruntime_cuda(ort):
             pass
 
 
+def _tensorrt_lib_search_dirs():
+    '''
+    Directories that may contain libnvinfer (pip layouts, env, common system paths).
+    '''
+    roots = []
+    for sp in list(site.getsitepackages()):
+        if sp and os.path.isdir(sp):
+            roots.append(sp)
+    user_site = getattr(site, 'getusersitepackages', lambda: None)()
+    if user_site and os.path.isdir(user_site):
+        roots.append(user_site)
+    rel_subdirs = (
+        'tensorrt_libs',
+        os.path.join('nvidia', 'tensorrt', 'lib'),
+        os.path.join('nvidia', 'tensorrt', 'lib64'),
+    )
+    out = []
+    for package_root in roots:
+        for sub in rel_subdirs:
+            d = os.path.join(package_root, sub)
+            if os.path.isdir(d):
+                out.append(d)
+    try:
+        import tensorrt as trt
+
+        pkg_dir = Path(trt.__file__).resolve().parent
+        out.append(str(pkg_dir))
+        out.append(str(pkg_dir.parent))
+    except ImportError:
+        pass
+    trt_root = os.environ.get('TENSORRT_ROOT') or os.environ.get('TensorRT_ROOT')
+    if trt_root:
+        for sub in ('lib', 'lib64', os.path.join('targets', 'x86_64-linux-gnu', 'lib')):
+            d = os.path.join(trt_root, sub)
+            if os.path.isdir(d):
+                out.append(d)
+    for extra in (
+        '/usr/lib/x86_64-linux-gnu',
+        '/usr/local/tensorrt/lib',
+        '/usr/local/TensorRT/lib',
+    ):
+        if os.path.isdir(extra):
+            out.append(extra)
+    seen = set()
+    uniq = []
+    for d in out:
+        if d not in seen:
+            seen.add(d)
+            uniq.append(d)
+    return uniq
+
+
+def tensorrt_libnvinfer_candidates():
+    '''
+    Paths to libnvinfer*.so* visible under known search dirs (for diagnostics / preflight).
+    '''
+    hits = []
+    for lib_dir in _tensorrt_lib_search_dirs():
+        hits.extend(glob.glob(os.path.join(lib_dir, 'libnvinfer.so*')))
+    return sorted(set(hits))
+
+
 def _prepare_tensorrt_libraries():
     '''
     ---
@@ -113,23 +175,23 @@ def _prepare_tensorrt_libraries():
     返回:
         - loaded: 成功加载的 TensorRT 动态库路径列表。
     '''
-    loaded = []
-    for package_root in site.getsitepackages():
-        lib_dir = os.path.join(package_root, 'tensorrt_libs')
-        if not os.path.isdir(lib_dir):
+    for lib_dir in _tensorrt_lib_search_dirs():
+        bundle = []
+        bundle.extend(sorted(glob.glob(os.path.join(lib_dir, 'libnvinfer.so*'))))
+        bundle.extend(sorted(glob.glob(os.path.join(lib_dir, 'libnvonnxparser.so*'))))
+        bundle.extend(sorted(glob.glob(os.path.join(lib_dir, 'libnvinfer_plugin.so*'))))
+        if not bundle:
             continue
-        lib_paths = sorted(glob.glob(os.path.join(lib_dir, 'libnvinfer*.so*')))
-        lib_paths += sorted(glob.glob(os.path.join(lib_dir, 'libnvonnxparser*.so*')))
-        lib_paths += sorted(glob.glob(os.path.join(lib_dir, 'libnvinfer_plugin*.so*')))
-        for lib_path in lib_paths:
+        ok = []
+        for lib_path in bundle:
             try:
                 ctypes.CDLL(lib_path, mode=ctypes.RTLD_GLOBAL)
-                loaded.append(lib_path)
+                ok.append(lib_path)
             except OSError:
                 pass
-        if loaded:
-            break
-    return loaded
+        if any(os.path.basename(p).startswith('libnvinfer.so') for p in ok):
+            return ok
+    return []
 
 
 def _checkpoint_signature(checkpoint_path):

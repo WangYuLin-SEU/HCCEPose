@@ -19,6 +19,7 @@ plugged in as optional post-processing steps.
 '''
 
 import os, torch, kornia, time, cv2, random
+from pathlib import Path
 import numpy as np 
 from ultralytics import YOLO
 from HccePose.bop_loader import bop_dataset, IMAGENET_MEAN_BGR, IMAGENET_STD_BGR
@@ -367,7 +368,16 @@ class Tester():
             raise ValueError('Unsupported FoundationPose acceleration backend: %s' % foundationpose_acceleration)
         self.acceleration_cache_dir = hccepose_acceleration_cache_dir
         self.foundationpose_acceleration_cache_dir = foundationpose_acceleration_cache_dir
-            
+
+        _repo_root = str(Path(__file__).resolve().parents[1])
+        from HccePose.ensure_rgbd_megapose_demo import ensure_acceleration_backend_environment
+
+        ensure_acceleration_backend_environment(
+            _repo_root,
+            self.acceleration,
+            self.foundationpose_acceleration,
+        )
+
         self.model_yolo = YOLO(os.path.join(bop_dataset_item.dataset_path, 'yolo11', 
                                             'train_obj_s', 'detection', 'obj_s', 
                                             'yolo11-detection-obj_s.pt')).to(device).eval()
