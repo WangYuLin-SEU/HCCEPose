@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -398,17 +399,59 @@ class Refinement_MP:
         ---
         ---
         Resolve the conda executable used to manage the MegaPose environment.
+        Never hardcode an install path: use the same discovery order as typical
+        conda workflows (env vars, then the running interpreter layout, then PATH).
         ---
         ---
         获取用于管理 MegaPose 环境的 conda 可执行程序。
+        不写死安装路径：依次使用环境变量、当前解释器所在前缀、再在 PATH 中查找。
         '''
-        conda_exe = os.environ.get('CONDA_EXE')
-        if conda_exe:
-            return conda_exe
-        conda_exe = shutil.which('conda')
-        if conda_exe:
-            return conda_exe
-        raise RuntimeError('Conda executable is not found. Please install MegaPose manually or make conda available in PATH.')
+        def _ok(path):
+            return path is not None and Path(path).is_file() and os.access(path, os.X_OK)
+
+        for key in ('CONDA_EXE', 'HCCEPOSE_CONDA_EXE'):
+            p = os.environ.get(key)
+            if _ok(p):
+                return str(Path(p).resolve())
+
+        prefix = os.environ.get('CONDA_PREFIX')
+        if prefix:
+            pfx = Path(prefix).resolve()
+            prefix_candidates = [pfx / 'bin' / 'conda']
+            if pfx.parent.name == 'envs':
+                prefix_candidates.append(pfx.parent.parent / 'bin' / 'conda')
+            for rel in prefix_candidates:
+                if _ok(rel):
+                    return str(rel.resolve())
+
+        # Interpreter is often .../conda_root/bin/python or .../conda_root/envs/name/bin/python
+        try:
+            bin_dir = Path(sys.executable).resolve().parent
+            if bin_dir.name == 'bin':
+                direct = bin_dir / 'conda'
+                if _ok(direct):
+                    return str(direct)
+                cur = bin_dir.parent
+                for _ in range(8):
+                    if cur.parent == cur:
+                        break
+                    cand = cur / 'bin' / 'conda'
+                    if _ok(cand):
+                        return str(cand.resolve())
+                    cur = cur.parent
+        except (OSError, ValueError):
+            pass
+
+        p = shutil.which('conda')
+        if _ok(p):
+            return str(Path(p).resolve())
+
+        raise RuntimeError(
+            'Conda executable not found. Set CONDA_EXE (or HCCEPOSE_CONDA_EXE) to the conda binary, '
+            'activate a conda env so CONDA_PREFIX is set, or ensure `conda` is on PATH.\n'
+            '未找到 conda：请设置 CONDA_EXE（或 HCCEPOSE_CONDA_EXE）、先 conda activate 使 CONDA_PREFIX 生效，'
+            '或把 conda 加入 PATH。'
+        )
 
     def _require_bop_toolkit(self):
         '''
@@ -453,8 +496,15 @@ class Refinement_MP:
             text=True if capture_output else False,
         )
         if completed.returncode != 0:
-            stdout = completed.stdout if capture_output else ''
-            stderr = completed.stderr if capture_output else ''
+            if capture_output:
+                stdout = completed.stdout or ''
+                stderr = completed.stderr or ''
+            else:
+                stdout = (
+                    '(not captured because capture_output=False; see process output above, '
+                    'or call with capture_output=True for logs in this exception)'
+                )
+                stderr = stdout
             raise RuntimeError(
                 'MegaPose host command failed\nCMD: %s\nSTDOUT:\n%s\nSTDERR:\n%s'
                 % (' '.join(map(str, args)), stdout, stderr)
@@ -473,8 +523,9 @@ class Refinement_MP:
         env = os.environ.copy()
         conda_lib = self.env_prefix / 'lib'
         conda_bin = self.env_prefix / 'bin'
-        env['MEGAPOSE_DIR'] = str(self.megapose_repo_dir)
-        env['MEGAPOSE_DATA_DIR'] = str(self.megapose_data_dir)
+        # Resolved paths: MegaPose + yaml load must not depend on process cwd (IDE / scripts).
+        env['MEGAPOSE_DIR'] = os.fspath(self.megapose_repo_dir.resolve())
+        env['MEGAPOSE_DATA_DIR'] = os.fspath(self.megapose_data_dir.resolve())
         env['CONDA_PREFIX'] = str(self.env_prefix)
         env['PYTHONPATH'] = str(self.bop_toolkit_dir) + os.pathsep + str(self.megapose_repo_dir / 'src') + os.pathsep + env.get('PYTHONPATH', '')
         env['PATH'] = str(conda_bin) + os.pathsep + env.get('PATH', '')
@@ -533,6 +584,76 @@ class Refinement_MP:
             self._run_env_python(['-m', 'pip', 'install', '-e', '.', '--no-deps'], cwd=self.megapose_repo_dir, capture_output=False)
             self._run_env_python(['-m', 'pip', 'install', *MEGAPOSE_PIP_PACKAGES], capture_output=False)
 
+    def _ensure_pinocchio(self):
+        '''
+        ---
+        ---
+        MegaPose imports `pinocchio` at runtime. Fresh conda envs get it from
+        `conda install pinocchio` in `ensure_setup`; a manually prepared prefix
+        (e.g. pip-only PyTorch) may skip that path—install on demand.
+        ---
+        ---
+        MegaPose 运行时需要 `pinocchio`。全新 conda 环境会在 `ensure_setup` 里用
+        `conda install pinocchio` 安装；若前缀是手工准备的（例如仅用 pip 装 torch），
+        可能漏装本依赖，此处按需补装。
+        '''
+        if not self.megapose_python.exists():
+            return
+        try:
+            self._run_env_python(['-c', 'import pinocchio'])
+        except RuntimeError:
+            conda_exe = self._get_conda_exe()
+            # capture_output=True so solver/download errors appear in the raised RuntimeError
+            self._run_host_subprocess(
+                [
+                    conda_exe, 'install', '-y', '-p', str(self.env_prefix),
+                    '--override-channels', '-c', 'conda-forge', 'pinocchio',
+                ],
+                capture_output=True,
+            )
+            self._run_env_python(['-c', 'import pinocchio'])
+
+    def _ensure_mkl_numpy_for_megapose(self):
+        '''
+        ---
+        ---
+        `pinocchio` pulls conda-forge MKL 2024+ while PyTorch 1.11 `libtorch_cpu` expects
+        an MKL stack that still resolves `iJIT_NotifyEvent` (ImportError at import time).
+        MegaPose upstream uses `np.float_`, removed in NumPy 2.0.
+        Pin MKL 2021.4 and NumPy 1.26.x inside the MegaPose prefix when needed.
+        ---
+        ---
+        pinocchio 会拉取较新的 MKL，与 PyTorch 1.11 的 libtorch_cpu（iJIT 符号）不兼容；
+        MegaPose 源码依赖 NumPy 1.x。按需将前缀内的 MKL / NumPy 固定到兼容版本。
+        '''
+        if not self.megapose_python.exists():
+            return
+        try:
+            self._run_env_python([
+                '-c',
+                'import numpy, torch; '
+                'assert int(numpy.__version__.split(".")[0]) < 2; '
+                'torch.zeros(1)',
+            ])
+            return
+        except RuntimeError:
+            pass
+        conda_exe = self._get_conda_exe()
+        self._run_host_subprocess(
+            [
+                conda_exe, 'install', '-y', '-p', str(self.env_prefix),
+                '--override-channels', '-c', 'conda-forge',
+                'mkl=2021.4.0', 'numpy=1.26.4',
+            ],
+            capture_output=False,
+        )
+        self._run_env_python([
+            '-c',
+            'import numpy, torch; '
+            'assert int(numpy.__version__.split(".")[0]) < 2; '
+            'torch.zeros(1)',
+        ])
+
     def _models_root(self):
         '''
         ---
@@ -549,15 +670,23 @@ class Refinement_MP:
         ---
         ---
         List the MegaPose model files required by the currently configured variants.
+        Inference loads `config.yaml` next to each checkpoint; partial mirrors that
+        only ship `.pth.tar` must trigger a full rclone sync.
         ---
         ---
         列出当前配置下 MegaPose 各变体所需的模型文件。
+        推理需要每个 checkpoint 旁的 `config.yaml`；仅含权重的镜像不完整时应触发 rclone 补全。
         '''
-        return [
-            self._models_root() / 'coarse-rgb-906902141' / 'checkpoint.pth.tar',
-            self._models_root() / 'refiner-rgb-653307694' / 'checkpoint.pth.tar',
-            self._models_root() / 'refiner-rgbd-288182519' / 'checkpoint.pth.tar',
-        ]
+        out = []
+        for run_id in (
+            'coarse-rgb-906902141',
+            'refiner-rgb-653307694',
+            'refiner-rgbd-288182519',
+        ):
+            base = self._models_root() / run_id
+            out.append(base / 'checkpoint.pth.tar')
+            out.append(base / 'config.yaml')
+        return out
 
     def ensure_setup(self):
         '''
@@ -593,28 +722,133 @@ class Refinement_MP:
         if not self.megapose_python.exists():
             conda_exe = self._get_conda_exe()
             # Upstream MegaPose requires Python 3.9; see megapose6d conda/environment_full.yaml
-            self._run_host_subprocess(
-                [conda_exe, 'create', '-y', '-p', str(self.env_prefix), 'python=3.9'],
-                capture_output=False,
-            )
+            # --override-channels: ignore ~/.condarc mirrors (e.g. broken pkgs/free) so setup stays reproducible
             self._run_host_subprocess(
                 [
-                    conda_exe, 'install', '-y', '-p', str(self.env_prefix), '-c', 'pytorch', '-c', 'conda-forge',
-                    'pytorch=1.11', 'torchvision=0.12', 'cudatoolkit=11.3', 'pillow', 'rclone'
+                    conda_exe, 'create', '-y', '-p', str(self.env_prefix),
+                    '--override-channels', '-c', 'conda-forge', 'python=3.9',
                 ],
                 capture_output=False,
             )
             self._run_host_subprocess(
-                [conda_exe, 'install', '-y', '-p', str(self.env_prefix), '-c', 'conda-forge', 'pinocchio'],
+                [
+                    conda_exe, 'install', '-y', '-p', str(self.env_prefix),
+                    '--override-channels', '-c', 'pytorch', '-c', 'conda-forge',
+                    'pytorch=1.11', 'torchvision=0.12', 'cudatoolkit=11.3', 'pillow', 'rclone',
+                ],
+                capture_output=False,
+            )
+            self._run_host_subprocess(
+                [
+                    conda_exe, 'install', '-y', '-p', str(self.env_prefix),
+                    '--override-channels', '-c', 'conda-forge', 'pinocchio',
+                ],
                 capture_output=False,
             )
             env_created = True
 
         self._ensure_python_runtime(force_reinstall=repo_created or env_created)
+        self._ensure_pinocchio()
+        self._ensure_mkl_numpy_for_megapose()
 
         self.megapose_data_dir.mkdir(parents=True, exist_ok=True)
-        if not all(path.exists() for path in self._required_model_files()):
+        self._sync_megapose_pretrained_weights()
+
+    def _ensure_rclone_in_megapose_env(self):
+        '''
+        Older prefixes may lack `rclone`; MegaPose weights are fetched via rclone.
+        '''
+        rclone_bin = self.env_prefix / 'bin' / 'rclone'
+        if rclone_bin.is_file():
+            return
+        conda_exe = self._get_conda_exe()
+        self._run_host_subprocess(
+            [
+                conda_exe, 'install', '-y', '-p', str(self.env_prefix),
+                '--override-channels', '-c', 'conda-forge', 'rclone',
+            ],
+            capture_output=False,
+        )
+
+    def _rclone_conf_path(self):
+        cfg = self.megapose_repo_dir / 'rclone.conf'
+        if not cfg.is_file():
+            raise FileNotFoundError(
+                'MegaPose rclone.conf missing at %s (expected next to third_party_megapose6d checkout).'
+                % cfg
+            )
+        return os.fspath(cfg)
+
+    def _rclone_fetch_megapose_inference_artifacts(self):
+        '''
+        Upstream `megapose.scripts.download` uses `rclone copyto` with `--exclude *epoch*`;
+        with some rclone/cache states the tree sync reports "up to date" while `config.yaml`
+        never appears locally. Pull only `config.yaml` + `checkpoint.pth.tar` per run via
+        `rclone copy`, which is reliable for HCCEPose inference.
+        '''
+        rclone = os.fspath(self.env_prefix / 'bin' / 'rclone')
+        cfg = self._rclone_conf_path()
+        meg_root = self.megapose_data_dir / 'megapose-models'
+        meg_root.mkdir(parents=True, exist_ok=True)
+        env = os.environ.copy()
+        env['PATH'] = os.fspath(self.env_prefix / 'bin') + os.pathsep + env.get('PATH', '')
+        run_ids = (
+            'coarse-rgb-906902141',
+            'refiner-rgb-653307694',
+            'refiner-rgbd-288182519',
+        )
+        for rid in run_ids:
+            dstdir = meg_root / rid
+            dstdir.mkdir(parents=True, exist_ok=True)
+            dst = os.fspath(dstdir) + '/'
+            for name in ('config.yaml', 'checkpoint.pth.tar'):
+                src = 'inria_data:megapose-models/%s/%s' % (rid, name)
+                completed = subprocess.run(
+                    [
+                        rclone, 'copy', src, dst,
+                        '--config', cfg,
+                        '--retries', '8',
+                        '--low-level-retries', '32',
+                        '--stats-one-line',
+                    ],
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                )
+                if completed.returncode != 0:
+                    raise RuntimeError(
+                        'rclone copy failed for %s (exit %s)\n%s\n%s'
+                        % (src, completed.returncode, completed.stdout, completed.stderr)
+                    )
+
+    def _sync_megapose_pretrained_weights(self):
+        '''
+        Ensure every MegaPose run dir has checkpoint + config.yaml (Inria rclone).
+        Prefer per-file `rclone copy`; fall back to upstream script once if needed.
+        '''
+        self._ensure_rclone_in_megapose_env()
+
+        def _missing():
+            return [p for p in self._required_model_files() if not p.is_file()]
+
+        if not _missing():
+            return
+        self._rclone_fetch_megapose_inference_artifacts()
+        if not _missing():
+            return
+        try:
             self._run_env_python(['-m', 'megapose.scripts.download', '--megapose_models'], capture_output=False)
+        except RuntimeError:
+            pass
+        self._rclone_fetch_megapose_inference_artifacts()
+        missing = _missing()
+        if missing:
+            raise FileNotFoundError(
+                'MegaPose pretrained files are still incomplete after rclone. Missing:\n  %s\n'
+                'Check your network connection. The project pulls `config.yaml` and '
+                '`checkpoint.pth.tar` per run via rclone (see Refinement_MP._rclone_fetch_megapose_inference_artifacts).\n'
+                % '\n  '.join(os.fspath(p) for p in missing)
+            )
 
     def download_models(self):
         '''
@@ -626,7 +860,6 @@ class Refinement_MP:
         如本地不存在所需权重，则下载 MegaPose 模型文件。
         '''
         self.ensure_setup()
-        self._run_env_python(['-m', 'megapose.scripts.download', '--megapose_models'], capture_output=False)
 
     def download_example_data(self):
         '''

@@ -44,6 +44,87 @@ MEGAPOSE_PIP_PACKAGES = [
 ]
 
 
+def _megapose_resolved_local_data(project_root):
+    megapose_repo = (Path(project_root) / 'third_party_megapose6d').resolve()
+    data = megapose_repo / 'local_data'
+    data.mkdir(parents=True, exist_ok=True)
+    return data
+
+
+def _ensure_megapose_model_artifacts(project_root, coarse_run_id, refiner_run_id):
+    '''
+    MegaPose inference needs `config.yaml` next to each `checkpoint.pth.tar`. Partial
+    mirrors (checkpoint-only) or skipped rclone leave VS Code / subprocess debugging
+    failing with FileNotFoundError; try the official downloader once before load.
+    Paths are resolved from `MEGAPOSE_DATA_DIR` (set by Refinement_MP) or repo default;
+    checks do not depend on cwd.
+    '''
+    megapose_repo = (Path(project_root) / 'third_party_megapose6d').resolve()
+    local_data = Path(os.environ['MEGAPOSE_DATA_DIR']).resolve()
+    models_root = (local_data / 'megapose-models').resolve()
+
+    run_ids = list(dict.fromkeys((coarse_run_id, refiner_run_id)))
+    paths_needed = []
+    for rid in run_ids:
+        paths_needed.append(models_root / rid / 'checkpoint.pth.tar')
+        paths_needed.append(models_root / rid / 'config.yaml')
+    if all(p.is_file() for p in paths_needed):
+        return
+
+    env = os.environ.copy()
+    bin_dir = str(Path(sys.executable).resolve().parent)
+    env['PATH'] = bin_dir + os.pathsep + env.get('PATH', '')
+    env['MEGAPOSE_DATA_DIR'] = os.fspath(local_data)
+    env['MEGAPOSE_DIR'] = os.fspath(megapose_repo)
+
+    cmd = [sys.executable, '-m', 'megapose.scripts.download', '--megapose_models']
+    proc = subprocess.run(cmd, cwd=os.fspath(megapose_repo), env=env, capture_output=False)
+    if proc.returncode != 0:
+        raise RuntimeError(
+            'megapose.scripts.download --megapose_models failed (exit %s). '
+            'Install `rclone` in this env (conda package `rclone`) and ensure PATH '
+            'includes its bin when debugging.\n'
+            '官方模型下载失败（退出码 %s）：请在 megapose 环境中安装 rclone，'
+            '调试时保证 PATH 含该环境的 bin。'
+            % (proc.returncode, proc.returncode)
+        )
+
+    still = [p for p in paths_needed if not p.is_file()]
+    if still:
+        # Upstream download uses copyto + epoch excludes; often skips config.yaml.
+        rclone = Path(sys.executable).resolve().parent / 'rclone'
+        cfg = megapose_repo / 'rclone.conf'
+        if rclone.is_file() and cfg.is_file():
+            rc_env = os.environ.copy()
+            rc_env['PATH'] = str(rclone.parent) + os.pathsep + rc_env.get('PATH', '')
+            for rid in run_ids:
+                dstdir = models_root / rid
+                dstdir.mkdir(parents=True, exist_ok=True)
+                dst = os.fspath(dstdir) + '/'
+                for name in ('config.yaml', 'checkpoint.pth.tar'):
+                    src = 'inria_data:megapose-models/%s/%s' % (rid, name)
+                    subprocess.run(
+                        [
+                            os.fspath(rclone), 'copy', src, dst,
+                            '--config', os.fspath(cfg),
+                            '--retries', '8', '--low-level-retries', '32',
+                        ],
+                        env=rc_env,
+                        capture_output=False,
+                    )
+        still = [p for p in paths_needed if not p.is_file()]
+    if still:
+        raise FileNotFoundError(
+            'MegaPose model files still missing after download and per-file rclone:\n  %s\n'
+            'Example: %s copy inria_data:megapose-models/<run_id>/config.yaml <dest>/ --config %s'
+            % (
+                '\n  '.join(os.fspath(p) for p in still),
+                os.fspath(Path(sys.executable).resolve().parent / 'rclone'),
+                os.fspath(megapose_repo / 'rclone.conf'),
+            )
+        )
+
+
 def _megapose_parse_vis_stages(vis_stages, refine_stage_count):
     '''
     ---
@@ -614,6 +695,10 @@ def _run_megapose_job(input_json_path, input_npz_path, output_npz_path):
     if bop_toolkit_dir not in sys.path:
         sys.path.insert(0, bop_toolkit_dir)
 
+    # megapose.config reads MEGAPOSE_DATA_DIR at import time; parent usually sets it.
+    if not os.environ.get('MEGAPOSE_DATA_DIR'):
+        os.environ['MEGAPOSE_DATA_DIR'] = os.fspath(_megapose_resolved_local_data(project_root))
+
     import pandas as pd
     import torch
     import trimesh
@@ -725,13 +810,19 @@ def _run_megapose_job(input_json_path, input_npz_path, output_npz_path):
         raise ValueError('Selected MegaPose model requires depth input.')
 
     renderer_kwargs = {'preload_cache': False, 'split_objects': False, 'n_workers': 1}
+    _ensure_megapose_model_artifacts(
+        project_root,
+        model_info['coarse_run_id'],
+        model_info['refiner_run_id'],
+    )
+    models_root = Path(os.environ['MEGAPOSE_DATA_DIR']).resolve() / 'megapose-models'
     coarse_model, refiner_model, _ = load_pose_models(
         coarse_run_id=model_info['coarse_run_id'],
         refiner_run_id=model_info['refiner_run_id'],
         object_dataset=object_dataset,
         force_panda3d_renderer=True,
         renderer_kwargs=renderer_kwargs,
-        models_root=Path(os.environ['MEGAPOSE_DATA_DIR']) / 'megapose-models',
+        models_root=models_root,
     )
     pose_estimator = PoseEstimator(
         refiner_model=refiner_model,
