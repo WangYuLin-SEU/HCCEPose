@@ -1,0 +1,136 @@
+site_name: HccePose (BF)
+site_description: Documentation for front and back surface based 6D object pose estimation.
+site_url: https://wangyulin-seu.github.io/HCCEPose/
+repo_url: https://github.com/WangYuLin-SEU/HCCEPose
+repo_name: WangYuLin-SEU/HCCEPose
+docs_dir: docs/content
+site_dir: site
+use_directory_urls: true
+hooks:
+  - docs/hooks.py
+watch:
+  - README.md
+  - README_CN.md
+  - docs/hooks.py
+  - docs/stylesheets
+theme:
+  name: material
+  language: en
+  font: false
+  icon:
+    logo: material/cube-outline
+    repo: fontawesome/brands/github
+  palette:
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: custom
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      primary: custom
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - search.highlight
+    - search.suggest
+plugins:
+  - search
+  - i18n:
+      docs_structure: folder
+      # Also makes shared (unlocalized) images available in the Chinese build.
+      # Both READMEs must still contain every chapter: the hook validates this.
+      fallback_to_default: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: zh
+          name: 中文
+          build: true
+          site_description: HccePose (BF) 文档：基于物体正背面表面的 6D 位姿估计。
+          nav_translations:
+            Overview: 项目介绍
+            Getting started: 入门
+            Minimal inference: 最小推理环境
+            Installation: 环境配置
+            Downloads: 资源下载
+            RGB demo: RGB 图像示例
+            Troubleshooting: 故障排查
+            Custom training: 自定义训练
+            Object preparation: 物体预处理与对称分析
+            PBR rendering: PBR 数据渲染
+            2D detector: 2D 检测器训练
+            Surface labels: 正背面标签制备
+            HccePose training: HccePose 训练
+            Inference: 推理
+            Video: 视频示例
+            RGB-D inputs: RGB-D 输入
+            FoundationPose: FoundationPose
+            MegaPose: MegaPose
+            Refinement comparison: 微调对比
+            Benchmarks: 评测
+            BOP evaluation: BOP 评测
+            Leaderboards: 历史榜单
+            Project: 项目信息
+            Updates: 更新记录
+            Historical roadmap: 历史更新计划
+            Citation: 致谢与引用
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 2-3
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tilde
+  - pymdownx.magiclink
+extra_css:
+  - assets/stylesheets/extra.css
+validation:
+  nav:
+    omitted_files: warn
+  links:
+    not_found: warn
+    anchors: warn
+nav:
+  - Overview: index.md
+  - Getting started:
+      - Minimal inference: minimal-inference.md
+      - Installation: installation.md
+      - Downloads: downloads.md
+      - RGB demo: quick-start.md
+      - Troubleshooting: troubleshooting.md
+  - Custom training:
+      - Object preparation: objects.md
+      - PBR rendering: rendering.md
+      - 2D detector: detector.md
+      - Surface labels: labels.md
+      - HccePose training: training.md
+  - Inference:
+      - Video: video.md
+      - RGB-D inputs: rgbd.md
+      - FoundationPose: foundationpose.md
+      - MegaPose: megapose.md
+      - Refinement comparison: comparison.md
+  - Benchmarks:
+      - BOP evaluation: bop.md
+      - Leaderboards: results.md
+  - Project:
+      - Updates: updates.md
+      - Historical roadmap: roadmap.md
+      - Citation: citation.md

@@ -1,0 +1,4 @@
+# Documentation build output only.
+/site/
+/docs/__pycache__/
+/.venv-docs/
