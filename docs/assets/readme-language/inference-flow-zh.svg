@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="320" viewBox="0 0 1000 320" role="img" aria-labelledby="title description">
+  <title id="title">HCCEPose 推理总览</title>
+  <desc id="description">RGB 图像经 YOLO 和 HccePose 后，表面坐标送入 PnP，可选用 MegaPose 精修。WAPR 可结合 RGB-D 和 CAD 从实例掩码估计位姿，也可使用 PnP 位姿初值继续精修。当前示例采用无需位姿初值的掩码估计接口。虚线表示可选路径。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 1 9 5 0 9" fill="none" stroke="#334155" stroke-width="1.2"/></marker>
+  </defs>
+  <rect width="1000" height="320" fill="#fff"/>
+  <g fill="#fff" stroke="#334155" stroke-width="1.5">
+    <rect x="20" y="28" width="110" height="72" rx="2"/>
+    <rect x="170" y="28" width="140" height="72" rx="2"/>
+    <rect x="350" y="28" width="230" height="72" rx="2"/>
+    <rect x="660" y="28" width="120" height="72" rx="2"/>
+    <rect x="825" y="28" width="150" height="72" rx="2"/>
+    <rect x="825" y="120" width="150" height="48" rx="2" stroke-dasharray="6 4"/>
+    <rect x="350" y="194" width="230" height="72" rx="2"/>
+    <rect x="660" y="194" width="120" height="72" rx="2" stroke-dasharray="6 4"/>
+    <rect x="825" y="194" width="150" height="72" rx="2"/>
+  </g>
+  <g fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#arrow)">
+    <path d="M132 64H162"/>
+    <path d="M312 64H342"/>
+    <path d="M582 64H652"/>
+    <path d="M782 64H817"/>
+    <path d="M900 102V113"/>
+    <path d="M465 102V137H620V214H652"/>
+    <path d="M720 102V186" stroke-dasharray="6 4"/>
+    <path d="M582 230H652"/>
+    <path d="M782 230H817"/>
+  </g>
+  <g font-family="Times New Roman, Liberation Serif, Noto Serif CJK SC, Source Han Serif SC, serif" font-size="20" font-weight="400" fill="#172b3f" text-anchor="middle">
+    <text x="75" y="57">RGB</text>
+    <text x="75" y="83">图像</text>
+    <text x="240" y="57">YOLO</text>
+    <text x="240" y="83">检测与裁剪</text>
+    <text x="465" y="57">HccePose(BF)</text>
+    <text x="465" y="83">掩码与表面坐标</text>
+    <text x="720" y="57">PnP</text>
+    <text x="720" y="83">2D–3D, K</text>
+    <text x="900" y="57">6D 位姿</text>
+    <text x="900" y="83">(R, t)</text>
+    <text x="900" y="151">MegaPose</text>
+    <text x="543" y="128">实例掩码</text>
+    <text x="735" y="159" text-anchor="start">位姿初值</text>
+    <text x="465" y="223">RGB-D 与 CAD</text>
+    <text x="465" y="249">相机内参、模型直径</text>
+    <text x="720" y="237">WAPR</text>
+    <text x="900" y="223">6D 位姿</text>
+    <text x="900" y="249">与 score_6d</text>
+    <text x="350" y="305" text-anchor="start">虚线：可选</text>
+    <text x="660" y="305" text-anchor="start">掩码接口：无需位姿初值</text>
+  </g>
+</svg>
