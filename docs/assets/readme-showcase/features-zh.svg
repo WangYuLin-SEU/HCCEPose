@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="112" viewBox="0 0 960 112">
+<defs><linearGradient id="surface" x2="1" y2="1"><stop stop-color="#edf9fc"/><stop offset=".58" stop-color="#f3f4ff"/><stop offset="1" stop-color="#faf0fa"/></linearGradient></defs>
+<rect x=".5" y=".5" width="959" height="111" rx="18" fill="url(#surface)" stroke="#d6e0f0"/>
+<text x="120" y="48" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Noto Sans CJK SC,Arial,sans-serif" font-size="25" font-weight="750" fill="#176da7">RGB</text>
+<text x="120" y="82" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Noto Sans CJK SC,Arial,sans-serif" font-size="15" fill="#566b85">RGB 图像输入</text>
+<path d="M240 28v56" stroke="#d7dfef"/>
+<text x="360" y="48" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Noto Sans CJK SC,Arial,sans-serif" font-size="25" font-weight="750" fill="#176da7">BF</text>
+<text x="360" y="82" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Noto Sans CJK SC,Arial,sans-serif" font-size="15" fill="#566b85">联合预测前后表面</text>
+<path d="M480 28v56" stroke="#d7dfef"/>
+<text x="600" y="48" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Noto Sans CJK SC,Arial,sans-serif" font-size="25" font-weight="750" fill="#176da7">2D ↔ 3D</text>
+<text x="600" y="82" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Noto Sans CJK SC,Arial,sans-serif" font-size="15" fill="#566b85">超密集对应</text>
+<path d="M720 28v56" stroke="#d7dfef"/>
+<text x="840" y="48" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Noto Sans CJK SC,Arial,sans-serif" font-size="25" font-weight="750" fill="#176da7">6D</text>
+<text x="840" y="82" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Noto Sans CJK SC,Arial,sans-serif" font-size="15" fill="#566b85">物体相对相机位姿</text>
+</svg>
