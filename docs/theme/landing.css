@@ -1,0 +1,363 @@
+/* Shared layout: 1156px banner, 900px reading area; mobile side gutters are 12px/16px.
+   统一页面版心：横幅 1156px，阅读正文 900px；手机分别留 12px/16px 边距。 */
+/* Keep supporting copy readable; hierarchy comes from weight, color, and spacing.
+   说明文字保持可读字号；通过字重、颜色和留白区分层级，手机端不再缩成微字。 */
+.landing-page { --lp-body-width: 900px; --lp-blue: #0968d2; --muted: #56677c; font-size: 18px; line-height: 1.8; }
+:root[data-theme="dark"] .landing-page { --muted: #aab9ca; }
+html:has(.landing-page) { scroll-behavior: smooth; scroll-padding-top: 100px; }
+.lp-container { width: calc(100% - 44px); max-width: var(--lp-body-width); margin-inline: auto; }
+.lp-header { position: sticky; top: 0; z-index: 40; background: var(--bg); border-bottom: 1px solid var(--line); }
+.lp-header-inner { display: flex; align-items: center; gap: 40px; width: min(var(--banner-width), calc(100% - var(--site-gutter) * 2)); height: 72px; margin-inline: auto; }
+.lp-brand { font-size: 21px; letter-spacing: -.6px; }
+.lp-brand .brand-mark { width: 34px; height: 36px; background: var(--lp-blue); }
+.lp-nav { display: flex; align-items: center; gap: 12px; }
+.lp-nav a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 52px; padding: 0 8px; color: var(--muted); font-size: 16px; font-weight: 600; text-decoration: none; white-space: nowrap; text-align: center; }
+.lp-nav a:hover, .lp-nav a[aria-current="page"] { color: var(--accent); }
+.lp-nav a[aria-current="page"] { position: relative; }
+.lp-nav a[aria-current="page"]::after { content: ""; position: absolute; width: 15px; height: 3px; border-radius: 2px; left: 50%; bottom: 0; transform: translateX(-50%); background: var(--accent); }
+.lp-external { margin-left: 5px; font-size: 16px; }
+.lp-header-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.lp-icon-button { display: inline-grid; place-items: center; width: 46px; height: 46px; padding: 11px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--text); }
+.lp-icon-button:hover { background: var(--subtle); }
+.lp-icon-button:active { background: var(--accent-soft); border-color: var(--accent); }
+.lp-icon-button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+#landing-theme-toggle svg path { fill: currentColor; stroke: none; }
+.lp-menu-toggle { display: none; }
+.lp-hero.lp-container { width: min(var(--banner-width), calc(100% - var(--site-gutter) * 2)); max-width: var(--banner-width); }
+.lp-hero { position: relative; isolation: isolate; display: flex; align-items: center; margin-top: 20px; min-height: 460px; border-radius: 12px; overflow: hidden; background: #071d37; color: #fff; }
+.lp-hero-art, .lp-hero-shade { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lp-hero-art { object-fit: cover; object-position: center; z-index: -3; }
+.lp-hero-shade { background: linear-gradient(90deg, rgba(4, 17, 37, .75) 0%, rgba(4, 17, 37, .36) 48%, rgba(4, 17, 37, .08) 100%); z-index: -2; }
+.lp-hero-content { position: relative; width: 64%; max-width: 640px; padding: 32px 44px; }
+.lp-paper-label { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; max-width: 100%; align-items: center; color: #bdd3e8; text-decoration: none; font-size: 16px; font-weight: 500; line-height: 1.6; }
+.lp-paper-meta, .lp-paper-method { display: inline-flex; align-items: center; gap: 8px; }
+.lp-paper-label:hover { color: #fff; }
+.lp-status-dot { width: 6px; height: 6px; border-radius: 50%; background: #65d9ff; box-shadow: 0 0 13px #65d9ff6b; }
+.lp-hero h1 { margin: 16px 0 12px; color: #fff; font-size: 60px; line-height: 1; letter-spacing: -2px; font-weight: 800; }
+.lp-hero-title { margin: 0; font-size: 27px; font-weight: 650; line-height: 1.4; letter-spacing: -.5px; }
+.lp-hero-description { max-width: 520px; margin: 16px 0 24px; font-size: 18px; line-height: 1.8; color: #d0e1f1; }
+.lp-hero-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; width: 100%; max-width: 500px; }
+/* Equal icon slots keep the visible label centered when the other language is wider.
+   两侧图标槽等宽，较短译文仍落在按钮中心，不再被英文占位和单侧箭头挤偏。 */
+.lp-button { display: inline-grid; grid-template-columns: 18px minmax(0, 1fr) 18px; align-items: center; justify-items: center; column-gap: 8px; min-height: 48px; padding: 11px 16px; border-radius: 7px; border: 1px solid transparent; text-decoration: none; font-size: 16px; font-weight: 650; line-height: 1.5; transition: background .16s, border-color .16s, box-shadow .16s; }
+.lp-button .language-pair, .lp-button .language-pair > .zh, .lp-button .language-pair > .en { width: 100%; text-align: center; }
+.lp-button .language-pair, .lp-case-tabs .language-pair { align-items: center; text-align: center; }
+.lp-button-icon { display: grid; place-items: center; width: 18px; height: 18px; font-size: 18px; line-height: 1; }
+.lp-button-icon:first-child { visibility: hidden; }
+.lp-button:hover { text-decoration: none; box-shadow: 0 3px 10px #00162d20; }
+.lp-button:active { box-shadow: inset 0 2px 4px #00162d26; }
+.lp-hero :focus-visible, .lp-video-stage :focus-visible { outline-color: #8ad9ff; }
+.lp-button-white { color: #10375e; background: #fff; }
+.lp-button-white:hover { background: #e5f3ff; }
+.lp-button-glass { border-color: #b8d5f080; color: #f0f7ff; background: #0b2b4e66; }
+.lp-button-glass:hover { background: #17446b; }
+.lp-button-blue { background: #0968d2; color: #fff; }
+.lp-button-blue:hover { background: #0757b0; }
+.lp-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 25px; padding: 24px 12px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(110deg, #eef9fc9e, #f5f3fc80 62%, #fdf3f680); }
+.lp-facts p { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; min-width: 0; margin: 0; padding-inline: 8px; font-size: 16px; line-height: 1.6; color: var(--muted); text-align: center; }
+.lp-facts p + p { border-left: 1px solid #7f94bd30; }
+.lp-fact-symbol { color: #25698b; font-weight: 700; font-size: 23px; white-space: nowrap; }
+.lp-facts p:nth-child(2) .lp-fact-symbol { color: #6655a5; }
+.lp-facts p:nth-child(3) .lp-fact-symbol { color: #4563b1; }
+.lp-facts p:nth-child(4) .lp-fact-symbol { color: #9b4e7a; }
+.lp-section { padding-block: 64px; }
+.lp-section-heading { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 36px; margin-bottom: 30px; }
+.lp-eyebrow { display: flex; align-items: center; gap: 12px; margin: 0 0 22px; color: var(--muted); font-size: 16px; font-weight: 550; letter-spacing: .04em; }
+.lp-eyebrow::after { content: ""; flex: 0 0 30px; height: 1px; background: linear-gradient(90deg, #8298bb, transparent); }
+.lp-section-index { color: #7463a5; font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.landing-page h2 { color: var(--heading); margin: 0; font-size: 32px; line-height: 1.4; font-weight: 730; letter-spacing: -.6px; }
+.lp-section-intro { margin: 0; color: var(--text); font-size: 18px; line-height: 1.85; }
+.lp-section-intro > p { margin: 0 0 20px; }
+.lp-section-intro > .lp-intro-lead { color: var(--heading); font-size: 21px; line-height: 1.65; font-weight: 600; letter-spacing: -.25px; }
+.lp-gradient-ink { color: #5962a1; background: linear-gradient(110deg, #157c90, #4f65b6 42%, #8e4f9a 75%, #af527d); background-size: 180% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: lp-ink-flow 16s ease-in-out infinite alternate; }
+.lp-text-link { display: inline-flex; align-items: center; min-height: 46px; padding: 4px 0; font-size: 17px; font-weight: 650; text-decoration: none; }
+.lp-text-link .language-pair-inline [aria-hidden="true"] { transition: transform .25s ease; }
+.lp-text-link:hover { text-decoration: none; }
+.lp-text-link:hover .language-pair-inline [aria-hidden="true"] { transform: translate(3px, -2px); }
+
+/* Soft color fields and eight contours connect the editorial copy to the real figure.
+   柔和色场和八层轮廓衔接文案与论文原图，不将装饰当成算法预测。 */
+.lp-method-section { padding-top: 42px; }
+.lp-ambient-panel { position: relative; isolation: isolate; overflow: hidden; --pointer-x: 50%; --pointer-y: 50%; }
+.lp-ambient-panel::after { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0; background: radial-gradient(360px circle at var(--pointer-x) var(--pointer-y), #78cddd20, transparent 72%); transition: opacity .65s ease; }
+.lp-ambient-panel:hover::after, .lp-ambient-panel:focus-within::after { opacity: 1; }
+.lp-method-panel { margin-bottom: 26px; padding: 38px 34px 36px; border: 1px solid #dce3f1; border-radius: 22px; background: radial-gradient(ellipse at 3% 0%, #c9f0f358, transparent 60%), radial-gradient(ellipse at 100% 65%, #e5d9fc80, transparent 68%), linear-gradient(125deg, #f8fcfe, #f8f8ff 60%, #fcf6fa); box-shadow: 0 14px 40px #2d426509; }
+.lp-method-panel::before { content: ""; position: absolute; inset: 0 0 auto; height: 2px; background: linear-gradient(90deg, #42b6c0, #8c85dc 55%, #de91b1); }
+.lp-method-contours { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: .19; }
+.lp-method-panel > .lp-section-heading { position: relative; z-index: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1.04fr); gap: 32px; margin-bottom: 0; }
+.lp-method-panel h2, .lp-examples-heading h2 { font-size: 39px; font-weight: 760; line-height: 1.4; letter-spacing: -.9px; }
+.lp-method-title-group { min-width: 0; }
+.lp-method-panel .lp-section-intro { padding-top: 3px; }
+.lp-method-link { padding: 7px 16px; border: 1px solid #7789b540; border-radius: 30px; background: #ffffffa6; box-shadow: 0 3px 9px #304b7305; transition: background .25s, border-color .25s, box-shadow .25s; }
+.lp-method-link:hover { border-color: #7f94c0; background: #fff; box-shadow: 0 4px 15px #304b7310; }
+.lp-encoding-motif { display: flex; align-items: center; gap: 4px; width: max-content; max-width: 100%; height: 54px; margin-top: 30px; }
+.lp-encoding-motif i { width: 12px; height: 31px; border-radius: 3px; background: linear-gradient(180deg, #4db7b9, #8692df 56%, #c79fce); opacity: .7; }
+.lp-encoding-motif i:nth-child(2n) { background: repeating-linear-gradient(180deg, #4b9fac 0 6px, #dfe6f5 6px 8px, #8587ca 8px 14px); }
+.lp-encoding-motif i:nth-child(n+5) { background: repeating-linear-gradient(180deg, #4b9fac 0 3px, #e9eafa 3px 4px, #8780c4 4px 7px, #ce91b6 7px 9px); }
+.lp-encoding-motif i:nth-child(3n) { height: 41px; }
+.lp-encoding-motif i:nth-child(4n) { height: 48px; }
+.lp-encoding-motif span { margin-left: 10px; color: var(--muted); font-size: 17px; letter-spacing: .04em; }
+.lp-method-figure { position: relative; margin: 0; padding: 23px 20px 16px; border: 1px solid var(--line); border-radius: 16px; background: #fff; box-shadow: 0 8px 30px #2d426508; }
+.lp-method-figure a { display: block; cursor: zoom-in; }
+.lp-method-figure img { display: block; width: 100%; height: auto; }
+.lp-method-figure figcaption { margin: 18px 0 0; padding-top: 13px; border-top: 1px solid #e3e9f0; color: #56677c; text-align: center; font-size: 16px; line-height: 1.6; }
+/* Share heading and body rows across the three steps, including both translations.
+   三个步骤共用标题与正文行；任一译文换行时，正文起点仍保持对齐。 */
+.lp-method-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto; gap: 8px 24px; margin: 30px 0 0; padding: 22px 0 0; list-style: none; border-top: 1px solid var(--line); }
+.lp-method-steps li { position: relative; display: grid; grid-row: span 2; grid-template-columns: 32px minmax(0, 1fr); grid-template-rows: subgrid; column-gap: 12px; padding-top: 10px; min-width: 0; }
+.lp-method-steps li > div { display: grid; grid-column: 2; grid-row: 1 / span 2; grid-template-rows: subgrid; min-width: 0; }
+.lp-method-steps li::before { content: ""; position: absolute; top: -23px; left: 0; width: 40px; height: 2px; background: linear-gradient(90deg, #3b9eaa, #9b78c6); }
+.lp-step-number { display: grid; place-items: center; flex: 0 0 32px; height: 32px; margin-top: 1px; border-radius: 50%; background: #eaf0fa; color: #4f69a7; font-size: 16px; font-weight: 600; }
+.lp-method-steps h3 { margin: 0; color: var(--heading); font-size: 20px; font-weight: 650; }
+.lp-method-steps p { margin: 0; color: var(--text); font-size: 18px; line-height: 1.8; }
+.lp-method-note { margin: 30px 0 0; padding-top: 21px; border-top: 1px solid var(--line); color: var(--muted); font-size: 16px; line-height: 1.8; }
+.lp-examples-section { position: relative; isolation: isolate; border-block: 1px solid var(--line); background: radial-gradient(ellipse at 0% 0%, #d5eef650, transparent 50%), radial-gradient(ellipse at 100% 65%, #e5defb65, transparent 58%), linear-gradient(155deg, #f7fafe, #f5f6fb 55%, #fbf6fa); }
+.lp-examples-heading { position: relative; margin-bottom: 32px; padding-bottom: 28px; border-bottom: 1px solid #91a3c52e; }
+.lp-examples-heading::after { content: ""; position: absolute; bottom: -1px; left: 0; width: 120px; height: 2px; background: linear-gradient(90deg, #46abb5, #b29ad2, transparent); }
+.lp-examples-heading .lp-section-intro { padding-top: 4px; }
+
+/* A shared sliding selection makes the example switch feel continuous in either language.
+   案例共用滑动选中底色，中英文使用相同网格，切换过程保持连续。 */
+.lp-case-tabs { position: relative; isolation: isolate; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 6px; margin-bottom: 28px; border: 1px solid #ccd8e9; border-radius: 16px; background: #edf2f8c2; box-shadow: inset 0 1px 2px #34528305; }
+.lp-case-tab-glider { position: absolute; z-index: -1; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 24px) / 3); border: 1px solid #c5d2e7; border-radius: 11px; background: linear-gradient(110deg, #fff, #f0f7ff 65%, #f4efff); box-shadow: 0 3px 10px #354f7d10; transform: translateX(calc(var(--case-index) * (100% + 6px))); transition: transform .48s cubic-bezier(.22, 1, .36, 1); }
+.lp-case-tabs button { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 56px; gap: 10px; padding: 11px 8px; border: 0; border-radius: 11px; background: transparent; color: var(--muted); font-size: 17px; font-weight: 600; line-height: 1.5; text-align: center; transition: color .25s, background .25s; }
+.lp-case-tabs button:hover { color: var(--accent); background: #ffffff52; }
+.lp-case-tabs button[aria-selected="true"] { color: #265a9a; }
+.lp-tab-number { display: grid; place-items: center; flex: 0 0 28px; height: 28px; border-radius: 50%; background: #8c9fbc14; font-size: 16px; color: var(--muted); font-weight: 500; }
+.lp-case-tabs button[aria-selected="true"] .lp-tab-number { background: #dceafb; color: #2c64a8; }
+/* All panels share rows, including hidden panels, so tabs never change the deck height.
+   隐藏面板仍参与尺寸计算；visibility + inert 隔离交互，三个案例共享高度与文字基线。 */
+.lp-case-deck {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  grid-template-rows: repeat(6, auto);
+  column-gap: 30px;
+  row-gap: 16px;
+  padding: 28px;
+  border: 1px solid #d8e2f0;
+  border-radius: 22px;
+  background: linear-gradient(130deg, #ffffffed, #fbfcffed 65%, #f9f7ffed);
+  box-shadow: 0 14px 36px #253d6609, inset 0 1px 0 #ffffffc9;
+}
+.lp-case {
+  display: grid;
+  grid-area: 1 / 1 / -1 / -1;
+  grid-template-columns: subgrid;
+  grid-template-rows: subgrid;
+  min-width: 0;
+}
+.lp-case[hidden] { display: grid !important; visibility: hidden; pointer-events: none; }
+.lp-case:not([hidden]) { animation: lp-case-arrive .3s ease both; }
+.lp-case-visual { grid-column: 1; grid-row: 1 / -1; align-self: center; min-width: 0; margin: 0; }
+/* Media dimensions belong to the frame, never to a video's intrinsic layout size.
+   图片与视频由同一画框约束；绝对定位和 contain 保持完整比例，不裁切，也不挤压文案。 */
+.lp-case-media {
+  display: block;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  overflow: hidden;
+  border: 1px solid #bfcddd;
+  border-radius: 14px;
+  background: radial-gradient(ellipse at 50% 30%, #182b42, #080f1c 85%);
+  box-shadow: 0 5px 18px #142c4812, inset 0 0 0 1px #ffffff10;
+}
+.lp-case-visual > a { cursor: zoom-in; transition: border-color .25s, box-shadow .25s; }
+.lp-case-visual > a:hover { border-color: #879fc1; box-shadow: 0 8px 22px #314a751c; }
+.lp-case-media > img,
+.lp-video-stage video,
+.lp-video-stage .video-player > video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: none;
+  margin: 0;
+  object-fit: contain;
+}
+.lp-video-stage .video-player {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+.lp-case-visual figcaption { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 10px; align-items: center; min-height: 54px; margin-top: 10px; padding-left: 2px; color: var(--muted); font-size: 16px; line-height: 1.6; }
+.lp-media-open { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #d6e1ee; border-radius: 10px; background: #f6f9fe; color: var(--accent); font-size: 21px; text-decoration: none; transition: border-color .2s, background .2s; }
+.lp-media-open:hover { border-color: #91adcf; background: #ebf3fd; text-decoration: none; }
+.lp-scene-open { color: inherit; text-decoration-color: var(--line); }
+.lp-scene-open:hover { color: var(--accent); }
+.lp-media-open:disabled { cursor: wait; opacity: .5; }
+.lp-case-copy { display: grid; grid-column: 2; grid-row: 1 / -1; grid-template-rows: subgrid; min-width: 0; padding: 0; }
+.lp-case-kicker { grid-row: 1; display: flex; align-items: center; gap: 8px; margin: 0; color: #68619a; font-size: 16px; font-weight: 600; line-height: 1.6; letter-spacing: .015em; }
+.lp-case-kicker::before { content: ""; flex: 0 0 7px; height: 7px; border-radius: 50%; background: #7d81c5; box-shadow: 0 0 0 4px #858ad410; }
+.lp-case-copy h3 { grid-row: 2; margin: 0; color: var(--heading); font-size: 28px; line-height: 1.4; letter-spacing: -.5px; }
+.lp-case-description { grid-row: 3; margin: 0; color: var(--text); font-size: 18px; line-height: 1.8; }
+.lp-case-detail { grid-row: 4; display: grid; align-items: center; margin: 0; padding: 12px 14px; border: 1px solid #dce4f1; border-radius: 10px; background: linear-gradient(110deg, #f0f5fc, #f6f2fc); color: var(--muted); font-size: 16px; line-height: 1.65; }
+.lp-case-action { grid-row: 5; width: 100%; min-height: 48px; border-color: #b8cce5; border-radius: 10px; color: #225f9b; background: linear-gradient(110deg, #edf6ff, #f2efff); }
+.lp-case-action:hover { border-color: #819fc6; background: #e9f2ff; }
+.lp-other-backends { grid-row: 6; margin: 0; color: var(--muted); font-size: 16px; line-height: 1.6; }
+.lp-start { display: grid; grid-template-columns: minmax(260px, .85fr) minmax(0, 1.5fr); gap: 32px; align-items: start; }
+.lp-start-heading { display: flex; flex-direction: column; align-self: stretch; padding: 30px 25px 34px; border: 1px solid #354266; border-radius: 21px; background: radial-gradient(ellipse at 90% 90%, #6054878c, transparent 65%), radial-gradient(ellipse at 5% 0%, #246c7970, transparent 65%), #111f38; color: #e3eefb; }
+.lp-start-heading::before { content: ""; position: absolute; width: 470px; height: 300px; right: -230px; bottom: -170px; border-radius: 50%; background: repeating-radial-gradient(ellipse, transparent 0 17px, #b3b4eb4d 18px 19px, transparent 20px 30px); transform: rotate(-25deg); pointer-events: none; }
+.lp-start-heading > * { position: relative; z-index: 1; }
+.lp-start-heading .lp-eyebrow { color: #bacbe3; }
+.lp-start-heading .lp-section-index { color: #a1d8e0; }
+.lp-start-heading h2 { color: #f3f7ff; font-size: 34px; }
+.lp-start-heading > p:not(.lp-eyebrow) { margin: 20px 0 27px; color: #cfdaeb; font-size: 18px; line-height: 1.8; }
+.lp-start-heading .lp-button { width: 100%; margin-top: auto; }
+.lp-entry-list { overflow: hidden; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(125deg, #f4f9fd99, #f8f5fc80); }
+.lp-entry { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr) 26px; gap: 16px; padding: 25px 16px; border-bottom: 1px solid var(--line); color: var(--text); text-decoration: none; transition: background .3s; }
+.lp-entry:last-child { border-bottom: 0; }
+.lp-entry:hover, .lp-entry:focus-visible { text-decoration: none; background: linear-gradient(105deg, #e9f4fb9e, #f4effa80); }
+.lp-entry h3 { color: var(--heading); font-size: 20px; font-weight: 650; margin: 0 0 8px; }
+.lp-entry:hover h3 { color: var(--accent); }
+.lp-entry p { color: var(--text); font-size: 18px; margin: 0 0 12px; line-height: 1.8; }
+.lp-entry-number { display: grid; place-items: center; height: 32px; border-radius: 9px; background: #edf0f9; color: #6a66a0; font-size: 16px; font-weight: 600; }
+.lp-entry-meta { color: var(--muted); font-size: 16px; line-height: 1.6; }
+.lp-entry-arrow { display: grid; place-items: center; width: 26px; height: 32px; color: var(--accent); font-size: 24px; transition: transform .25s; }
+.lp-entry:hover .lp-entry-arrow, .lp-entry:focus-visible .lp-entry-arrow { transform: translate(3px, -3px); }
+.lp-footer { display: flex; align-items: center; justify-content: space-between; gap: 40px; padding-block: 32px 40px; border-top: 1px solid var(--line); }
+.lp-footer-brand { display: inline-flex; gap: 14px; align-items: center; color: var(--heading); font-size: 21px; font-weight: 750; text-decoration: none; }
+.lp-footer-brand > span { color: var(--accent); font-size: 17px; }
+.lp-footer p { color: var(--muted); font-size: 16px; line-height: 1.6; margin: 10px 0 0; }
+.lp-footer nav { display: flex; flex-wrap: wrap; gap: 25px; }
+.lp-footer nav a { display: inline-flex; align-items: center; min-height: 44px; color: var(--muted); font-size: 16px; text-decoration: none; }
+.lp-footer nav a:hover { color: var(--accent); text-decoration: underline; }
+.lp-footer nav a > span[aria-hidden] { margin-left: 5px; }
+
+/* Dark surfaces keep the same hierarchy and readable contrast as the light edition.
+   深色版保留相同层次与可读对比，论文原图继续使用白底。 */
+:root[data-theme="dark"] .lp-facts { background: linear-gradient(110deg, #17303c, #24283d 65%, #312439); }
+:root[data-theme="dark"] .lp-fact-symbol { color: #8fd0dc; }
+:root[data-theme="dark"] .lp-facts p:nth-child(2) .lp-fact-symbol { color: #b8a9e7; }
+:root[data-theme="dark"] .lp-facts p:nth-child(3) .lp-fact-symbol { color: #9abde9; }
+:root[data-theme="dark"] .lp-facts p:nth-child(4) .lp-fact-symbol { color: #deb2cf; }
+:root[data-theme="dark"] .lp-section-index { color: #b6a8df; }
+:root[data-theme="dark"] .lp-gradient-ink { background-image: linear-gradient(110deg, #83d1da, #b2bdf8 42%, #cfb0e3 75%, #e8aec7); }
+:root[data-theme="dark"] .lp-method-panel { border-color: #34405a; background: radial-gradient(ellipse at 0% 0%, #23414b80, transparent 65%), radial-gradient(ellipse at 100% 70%, #47335480, transparent 70%), #182234; box-shadow: none; }
+:root[data-theme="dark"] .lp-method-contours { opacity: .28; }
+:root[data-theme="dark"] .lp-method-link { border-color: #667da166; background: #26354a; }
+:root[data-theme="dark"] .lp-method-link:hover { background: #30415b; }
+:root[data-theme="dark"] .lp-step-number, :root[data-theme="dark"] .lp-entry-number { color: #bcbae8; background: #2a314b; }
+:root[data-theme="dark"] .lp-examples-section { background: radial-gradient(ellipse at 0% 0%, #1b3d4c50, transparent 55%), radial-gradient(ellipse at 100% 65%, #47314e55, transparent 60%), #151f2e; }
+:root[data-theme="dark"] .lp-case-tabs { border-color: #3a4962; background: #1b283b; }
+:root[data-theme="dark"] .lp-case-tab-glider { border-color: #5c7094; background: linear-gradient(110deg, #2c4258, #363950); box-shadow: none; }
+:root[data-theme="dark"] .lp-case-tabs button:hover { background: #d2e2ff08; }
+:root[data-theme="dark"] .lp-case-tabs button[aria-selected="true"] { color: #b2d8ff; }
+:root[data-theme="dark"] .lp-case-tabs button[aria-selected="true"] .lp-tab-number { background: #3a5274; color: #d0e1ff; }
+:root[data-theme="dark"] .lp-case-deck { border-color: #34405a; background: linear-gradient(130deg, #1b2a3a, #23263b); box-shadow: inset 0 1px 0 #ffffff06; }
+:root[data-theme="dark"] .lp-case-kicker { color: #bab3e6; }
+:root[data-theme="dark"] .lp-case-detail { background: #293449; border-color: #455371; }
+:root[data-theme="dark"] .lp-case-action, :root[data-theme="dark"] .lp-media-open { color: #b1d5fb; background: #2b3d55; border-color: #4d6485; }
+:root[data-theme="dark"] .lp-case-action:hover, :root[data-theme="dark"] .lp-media-open:hover { background: #354b68; }
+:root[data-theme="dark"] .lp-entry-list { background: linear-gradient(125deg, #192b39, #24263b); }
+:root[data-theme="dark"] .lp-entry:hover, :root[data-theme="dark"] .lp-entry:focus-visible { background: linear-gradient(105deg, #21384a, #2c2c42); }
+
+@keyframes lp-ink-flow { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+@keyframes lp-case-arrive { from { opacity: .35; } to { opacity: 1; } }
+@media (max-width: 1150px) {
+  .lp-header-inner { gap: 30px; }
+  .lp-nav { gap: 8px; }
+  .lp-hero-content { width: 100%; }
+  .lp-section-heading { gap: 30px; }
+  .lp-case-deck { column-gap: 25px; }
+  .lp-start { gap: 36px; }
+}
+@media (max-width: 760px) {
+  html:has(.landing-page) { scroll-padding-top: 80px; }
+  .lp-header-inner { height: 66px; gap: 14px; }
+  .lp-brand { font-size: 18px; gap: 8px; }
+  .lp-brand .brand-mark { width: 28px; height: 30px; font-size: 18px; }
+  .lp-header-actions { gap: 7px; }
+  .lp-menu-toggle { display: inline-grid; }
+  .lp-nav { display: none; position: absolute; top: 66px; left: 0; right: 0; padding: 16px 12px 22px; background: var(--bg); border-bottom: 1px solid var(--line); box-shadow: 0 12px 20px #001c3612; }
+  .lp-nav.is-open { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+  .lp-nav a { justify-content: flex-start; padding: 12px 14px; border-radius: 6px; text-align: left; }
+  .lp-nav a[aria-current="page"] { background: var(--accent-soft); }
+  .lp-nav a[aria-current="page"]::after { display: none; }
+  .lp-hero { margin-top: 12px; min-height: 480px; border-radius: 9px; }
+  .lp-hero-art { object-position: 60% center; }
+  .lp-hero-shade { background: linear-gradient(105deg, rgba(4, 17, 37, .83), rgba(4, 17, 37, .38)); }
+  .lp-hero-content { width: 100%; max-width: none; padding: 34px 26px 42px; }
+  .lp-paper-label { column-gap: 8px; }
+  .lp-hero h1 { font-size: 46px; letter-spacing: -2px; margin-top: 22px; }
+  .lp-hero-title { font-size: 25px; line-height: 1.45; }
+  .lp-hero-description { margin: 18px 0 24px; max-width: 520px; }
+  .lp-facts { grid-template-columns: repeat(2, 1fr); gap: 19px 10px; padding-block: 24px; }
+  .lp-facts p:nth-child(3) { border-left: 0; }
+  .lp-facts p { padding-inline: 0; }
+  .lp-section { padding-block: 55px; }
+  .lp-section-heading { grid-template-columns: 1fr; gap: 23px; margin-bottom: 27px; }
+  .lp-eyebrow { margin-bottom: 12px; }
+  .landing-page h2 { font-size: 29px; }
+  .lp-method-section { padding-top: 30px; }
+  .lp-method-panel { padding: 28px 24px; border-radius: 18px; }
+  .lp-method-panel > .lp-section-heading { grid-template-columns: minmax(0, 1fr); gap: 26px; }
+  .lp-method-panel h2, .lp-examples-heading h2 { font-size: 32px; }
+  .lp-encoding-motif { margin-top: 16px; height: 43px; }
+  .lp-encoding-motif i { height: 25px; }
+  .lp-encoding-motif i:nth-child(3n) { height: 33px; }
+  .lp-encoding-motif i:nth-child(4n) { height: 39px; }
+  .lp-method-contours { opacity: .12; }
+  .lp-section-intro > .lp-intro-lead { font-size: 20px; }
+  .lp-examples-heading { padding-bottom: 23px; }
+  .lp-method-figure { padding: 13px 10px 10px; border-radius: 8px; }
+  .lp-method-figure figcaption { margin-top: 14px; }
+  .lp-method-steps { grid-template-columns: 1fr; grid-template-rows: none; gap: 24px; }
+  .lp-method-steps li { display: flex; grid-row: auto; gap: 12px; }
+  .lp-method-steps li > div { display: block; }
+  .lp-method-steps li::before { display: none; }
+  .lp-method-steps h3 { margin-bottom: 5px; }
+  .lp-case-tabs { gap: 6px; margin-bottom: 20px; border-radius: 13px; }
+  .lp-case-tabs button { gap: 5px; font-size: 16px; }
+  .lp-case-deck { grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(7, auto); gap: 16px; padding: 20px; border-radius: 18px; }
+  .lp-case-visual { grid-column: 1; grid-row: 1; align-self: start; }
+  .lp-case-copy { grid-column: 1; grid-row: 2 / -1; }
+  .lp-case-copy h3 { font-size: 27px; }
+  .lp-case-media { border-radius: 11px; }
+  .lp-start { grid-template-columns: 1fr; gap: 28px; }
+  .lp-start-heading { padding: 28px; }
+  .lp-entry { gap: 12px; grid-template-columns: 22px minmax(0, 1fr) 20px; padding-block: 25px; }
+  .lp-footer { flex-direction: column; align-items: flex-start; gap: 24px; padding-block: 27px 35px; }
+  .lp-footer nav { gap: 20px; }
+}
+@media (max-width: 720px) {
+  .lp-container { width: calc(100% - 32px); }
+}
+@media (max-width: 380px) {
+  .lp-header-inner { gap: 8px; }
+  .lp-header-actions { gap: 4px; }
+  .lp-brand { font-size: 16px; }
+  .lp-brand .brand-mark { display: none; }
+  .lp-hero-content { padding-inline: 22px; }
+  .lp-hero h1 { font-size: 42px; }
+  .lp-hero-title { font-size: 23px; }
+  .lp-case-tabs button { padding-inline: 4px; }
+  .lp-tab-number { display: none; }
+  .lp-method-panel { padding-inline: 19px; }
+  .lp-method-panel h2, .lp-examples-heading h2 { font-size: 28px; }
+  .lp-eyebrow { gap: 8px; letter-spacing: 0; }
+  .lp-eyebrow::after { flex-basis: 18px; }
+  .lp-case-deck { padding: 16px; }
+  .lp-start-heading { padding-inline: 22px; }
+}
+@media (max-width: 560px) {
+  .lp-hero-actions { grid-template-columns: 1fr; max-width: 360px; }
+  .lp-tab-number { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .landing-page *, .landing-page *::before, .landing-page *::after { transition: none !important; } .lp-gradient-ink, .lp-case:not([hidden]) { animation: none; } }
+/* Match the documentation on short screens: scroll navigation away to expose the preview.
+   与文档页一致，矮屏让导航随页滚走，给交互预览留出空间。 */
+@media (max-height: 500px) {
+  .lp-header { position: relative; top: auto; }
+  html:has(.landing-page) { scroll-padding-top: 24px; }
+}
+@media (forced-colors: active) { .lp-gradient-ink { background: none; -webkit-text-fill-color: currentColor; } .lp-method-contours, .lp-case-tab-glider { display: none; } .lp-case-tabs button[aria-selected="true"] { outline: 2px solid Highlight; } }
+@media print { .lp-header, .lp-hero-actions { display: none; } .lp-hero { min-height: 0; height: auto; } .lp-hero-content { width: 100%; padding: 25px; } .lp-section { padding-block: 25px; } .lp-case-deck { display: block; } .lp-case, .lp-case[hidden] { display: block !important; visibility: visible; margin-bottom: 28px; } .lp-case-copy { display: block; } .lp-case-tabs { display: none; } }

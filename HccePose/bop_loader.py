@@ -17,9 +17,10 @@ if sys0 == "Linux":
 
 # Set the path to `bop_toolkit`.
 # 设置 `bop_toolkit` 的路径。
-sys.path.insert(0, os.getcwd())
-current_directory = sys.argv[0]
-pa_ = os.path.join(os.path.dirname(current_directory), 'bop_toolkit')
+# Resolve the provided toolkit relative to this module, including external launchers.
+# 从当前模块定位随附工具包，支持从仓库外部启动。
+project_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+pa_ = os.path.join(project_directory, 'bop_toolkit')
 sys.path.append(pa_)
 from bop_toolkit.bop_toolkit_lib import inout, renderer, misc, pose_error, pycoco_utils
 from kasal.utils import load_json2dict
@@ -1363,5 +1364,4 @@ class test_bop_dataset_back_front(Dataset):
         GT_Front_hcce = torch.from_numpy(GT_Front_hcce).permute(2, 0, 1)
         GT_Back_hcce = torch.from_numpy(GT_Back_hcce).permute(2, 0, 1)
         return rgb_c, mask_vis_c, GT_Front_hcce, GT_Back_hcce
-
 

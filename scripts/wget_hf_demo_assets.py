@@ -25,6 +25,12 @@ import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# Resolve the adjacent shared manifest even when launched outside the project.
+# 从当前脚本定位相邻的共用清单，支持从仓库外启动。
+script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, script_dir)
+from _hf_demo import HF_REVISION, REQUIRED_DEMO_FILES, validate_selected_demo
+
 DATASET = "SEU-WYL/HccePose"
 OFFICIAL_HUB = "https://huggingface.co"
 DEFAULT_MIRROR = "https://hf-mirror.com"
@@ -43,14 +49,6 @@ DATASET_SUBTREES = [
     "demo-tex-objs/yolo11",
     "demo-tex-objs/HccePose",
 ]
-FP_REPO = "gpue/foundationpose-weights"
-FP_PATHS = [
-    "2023-10-28-18-33-37/config.yml",
-    "2023-10-28-18-33-37/model_best.pth",
-    "2024-01-11-20-02-45/config.yml",
-    "2024-01-11-20-02-45/model_best.pth",
-]
-
 _print_lock = threading.Lock()
 
 
@@ -75,24 +73,18 @@ def hub_base(endpoint: str) -> tuple[str, str]:
 
 
 def dataset_resolve_base(base: str) -> str:
-    return f"{base}/datasets/{DATASET}/resolve/main"
+    return f"{base}/datasets/{DATASET}/resolve/{HF_REVISION}"
 
 
-def fp_resolve_base(base: str) -> str:
-    return f"{base}/{FP_REPO}/resolve/main"
 
 
 def tree_api_dataset(subtree: str, base: str) -> list[dict]:
     enc = urllib.parse.quote(subtree, safe="/")
-    url = f"{base}/api/datasets/{DATASET}/tree/main/{enc}?recursive=true"
+    url = f"{base}/api/datasets/{DATASET}/tree/{HF_REVISION}/{enc}?recursive=true"
     with urllib.request.urlopen(url, timeout=120) as r:
         return json.loads(r.read().decode())
 
 
-def tree_api_model(repo: str, base: str) -> list[dict]:
-    url = f"{base}/api/models/{repo}/tree/main?recursive=true"
-    with urllib.request.urlopen(url, timeout=120) as r:
-        return json.loads(r.read().decode())
 
 
 def should_skip_test_img(path: str) -> bool:
@@ -118,8 +110,7 @@ def collect_dataset_manifest(base: str) -> dict[str, int]:
         try:
             items = tree_api_dataset(sub, base)
         except Exception as e:
-            print(f"[!] tree failed {sub!r}: {e}", file=sys.stderr)
-            continue
+            raise RuntimeError(f"Cannot read the pinned resource tree {sub!r}: {e}") from e
         for it in items:
             if it.get("type") != "file":
                 continue
@@ -135,31 +126,13 @@ def collect_dataset_manifest(base: str) -> dict[str, int]:
     return manifest
 
 
-def collect_foundationpose_manifest(base: str) -> dict[str, int]:
-    out: dict[str, int] = {}
-    try:
-        items = tree_api_model(FP_REPO, base)
-    except Exception as e:
-        print(f"[!] tree failed {FP_REPO}: {e}", file=sys.stderr)
-        return out
-    want = set(FP_PATHS)
-    for it in items:
-        if it.get("type") != "file":
-            continue
-        p = it["path"]
-        if p not in want:
-            continue
-        sz = int(it.get("size") or 0)
-        if sz > 0:
-            out[p] = sz
-    return out
 
 
 def local_file_ok(dest: str, expected: int) -> bool:
     return os.path.isfile(dest) and os.path.getsize(dest) == expected
 
 
-def wget_file(url: str, dest: str) -> bool:
+def wget_file(url: str, dest: str, expected_size: int | None = None) -> bool:
     os.makedirs(os.path.dirname(dest), mode=0o755, exist_ok=True)
     tmp = dest + ".part"
     if os.path.isfile(tmp):
@@ -175,6 +148,9 @@ def wget_file(url: str, dest: str) -> bool:
     try:
         subprocess.run(cmd, check=True)
         if not os.path.isfile(tmp):
+            return False
+        if os.path.getsize(tmp) <= 0 or (expected_size is not None and os.path.getsize(tmp) != expected_size):
+            os.remove(tmp)
             return False
         os.replace(tmp, dest)
         return True
@@ -195,15 +171,12 @@ def _download_task(rel: str, expected: int | None, url: str, root: str) -> bool:
     if expected is not None:
         if local_file_ok(dest, expected):
             return True
-        if os.path.isfile(dest):
-            try:
-                os.remove(dest)
-            except OSError:
-                pass
     else:
         if os.path.isfile(dest) and os.path.getsize(dest) > 0:
             return True
-    if not wget_file(url, dest):
+    # Replace an existing file only after a complete download has passed its size check.
+    # 下载完成且大小校验通过后才替换已有文件。
+    if not wget_file(url, dest, expected):
         return False
     if expected is not None:
         return local_file_ok(dest, expected)
@@ -288,13 +261,13 @@ def main() -> int:
     print(f"[i] Hub base: {base} ({label})")
     print(f"[i] Parallel jobs: {args.jobs}")
     ds_base = dataset_resolve_base(base)
-    fp_base = fp_resolve_base(base)
     ds = collect_dataset_manifest(base)
-    fp = collect_foundationpose_manifest(base)
     if args.verify_only:
         b1 = verify_only(root, ds, "dataset")[1]
-        b2 = verify_only(root, fp, "foundationpose")[1]
-        return 0 if b1 + b2 == 0 else 1
+        if b1:
+            return 1
+        validate_selected_demo(root, list(ds))
+        return 0
 
     jobs: list[tuple[str, int | None, str]] = []
     skipped = 0
@@ -303,41 +276,16 @@ def main() -> int:
         if local_file_ok(dest, expected):
             skipped += 1
             continue
-        if os.path.isfile(dest):
-            try:
-                os.remove(dest)
-            except OSError:
-                pass
         url = f"{ds_base}/{urllib.parse.quote(rel, safe='/')}"
         jobs.append((rel, expected, url))
-
-    for rel, expected in sorted(fp.items()):
-        dest = os.path.join(root, rel)
-        if local_file_ok(dest, expected):
-            skipped += 1
-            continue
-        if os.path.isfile(dest):
-            try:
-                os.remove(dest)
-            except OSError:
-                pass
-        url = f"{fp_base}/{urllib.parse.quote(rel, safe='/')}"
-        jobs.append((rel, expected, url))
-
-    for p in FP_PATHS:
-        if p in fp:
-            continue
-        dest = os.path.join(root, p)
-        if os.path.isfile(dest) and os.path.getsize(dest) > 0:
-            skipped += 1
-            continue
-        url = f"{fp_base}/{urllib.parse.quote(p, safe='/')}"
-        jobs.append((p, None, url))
 
     print(f"[i] already complete (skipped): {skipped}, to download: {len(jobs)}")
     ok, fail = run_downloads(jobs, root, args.jobs)
     print(f"[i] downloaded ok={ok}, failed={fail} (skipped before queue: {skipped})")
-    return 0 if fail == 0 else 1
+    if fail:
+        return 1
+    validate_selected_demo(root, list(ds))
+    return 0
 
 
 if __name__ == "__main__":

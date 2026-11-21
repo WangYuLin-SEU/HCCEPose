@@ -1,0 +1,239 @@
+[
+  {
+    "label": {
+      "zh": "概览",
+      "en": "Overview"
+    },
+    "pages": [
+      {
+        "slug": "index",
+        "title": {
+          "zh": "文档导航",
+          "en": "Documentation guide"
+        }
+      },
+      {
+        "slug": "method",
+        "title": {
+          "zh": "方法与流程",
+          "en": "Method and pipeline"
+        }
+      },
+      {
+        "slug": "project-structure",
+        "title": {
+          "zh": "项目结构",
+          "en": "Project structure"
+        }
+      }
+    ]
+  },
+  {
+    "label": {
+      "zh": "快速入门",
+      "en": "Start here"
+    },
+    "pages": [
+      {
+        "slug": "installation",
+        "title": {
+          "zh": "环境安装",
+          "en": "Installation"
+        }
+      },
+      {
+        "slug": "assets",
+        "title": {
+          "zh": "模型与输入",
+          "en": "Models and inputs"
+        }
+      },
+      {
+        "slug": "quickstart",
+        "title": {
+          "zh": "第一次预测",
+          "en": "Your first prediction"
+        }
+      },
+      {
+        "slug": "troubleshooting",
+        "title": {
+          "zh": "常见问题",
+          "en": "Troubleshooting"
+        }
+      }
+    ]
+  },
+  {
+    "label": {
+      "zh": "使用案例",
+      "en": "Examples"
+    },
+    "pages": [
+      {
+        "slug": "rgb-inference",
+        "title": {
+          "zh": "RGB 图片推理",
+          "en": "RGB image inference"
+        }
+      },
+      {
+        "slug": "video",
+        "title": {
+          "zh": "视频推理",
+          "en": "Video inference"
+        }
+      },
+      {
+        "slug": "rgbd-wapr",
+        "title": {
+          "zh": "WAPR 接入",
+          "en": "WAPR integration"
+        }
+      },
+      {
+        "slug": "wapr-postprocessing",
+        "title": {
+          "zh": "WAPR 评分筛选与 NMS",
+          "en": "WAPR score filtering and NMS"
+        }
+      },
+      {
+        "slug": "rgbd-megapose",
+        "title": {
+          "zh": "MegaPose 位姿精修",
+          "en": "MegaPose refinement"
+        }
+      },
+      {
+        "slug": "depth-comparison",
+        "title": {
+          "zh": "位姿精修与深度对比",
+          "en": "Refinement and depth comparison"
+        }
+      },
+      {
+        "slug": "acceleration",
+        "title": {
+          "zh": "ONNX 与 TensorRT",
+          "en": "ONNX and TensorRT"
+        }
+      }
+    ]
+  },
+  {
+    "label": {
+      "zh": "为新物体训练",
+      "en": "Train new objects"
+    },
+    "pages": [
+      {
+        "slug": "object-preparation",
+        "title": {
+          "zh": "网格与对称信息",
+          "en": "Meshes and symmetry"
+        }
+      },
+      {
+        "slug": "rendering",
+        "title": {
+          "zh": "PBR 场景渲染",
+          "en": "PBR rendering"
+        }
+      },
+      {
+        "slug": "detector-training",
+        "title": {
+          "zh": "检测器训练",
+          "en": "Detector training"
+        }
+      },
+      {
+        "slug": "coordinate-labels",
+        "title": {
+          "zh": "前后表面坐标标签",
+          "en": "Front/back coordinate labels"
+        }
+      },
+      {
+        "slug": "pose-training",
+        "title": {
+          "zh": "位姿网络训练",
+          "en": "Pose network training"
+        }
+      }
+    ]
+  },
+  {
+    "label": {
+      "zh": "接口文档",
+      "en": "API reference"
+    },
+    "pages": [
+      {
+        "slug": "tester-api",
+        "title": {
+          "zh": "Tester 接口",
+          "en": "Tester API"
+        }
+      },
+      {
+        "slug": "results-api",
+        "title": {
+          "zh": "结果与坐标",
+          "en": "Results and coordinates"
+        }
+      },
+      {
+        "slug": "refinement-api",
+        "title": {
+          "zh": "位姿精修与 RGB-D 接口",
+          "en": "Refinement and RGB-D API"
+        }
+      },
+      {
+        "slug": "data-api",
+        "title": {
+          "zh": "数据加载接口",
+          "en": "Data loading API"
+        }
+      },
+      {
+        "slug": "utilities-api",
+        "title": {
+          "zh": "工具与进阶接口",
+          "en": "Utilities and advanced API"
+        }
+      }
+    ]
+  },
+  {
+    "label": {
+      "zh": "项目",
+      "en": "Project"
+    },
+    "pages": [
+      {
+        "slug": "bop-evaluation",
+        "title": {
+          "zh": "BOP 评测",
+          "en": "BOP evaluation"
+        }
+      },
+      {
+        "slug": "changelog",
+        "title": {
+          "zh": "公开更新记录",
+          "en": "Public changelog"
+        }
+      },
+      {
+        "slug": "citation",
+        "title": {
+          "zh": "引用与许可",
+          "en": "Citation and licenses"
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+<html data-lang="en" data-theme="light" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>HCCEPose + WAPR · RGB-D / 3D</title>
+<link href="viewer.css?v=view-feedback-cache-20261117" rel="stylesheet"/>
+<link rel="canonical" href="https://wangyulin-seu.github.io/hccepose/assets/docs/assets/wapr-viewer/index.html">
+</head>
+<body>
+<main class="studio">
+<header class="studio-heading"><div><span class="eyebrow">HCCEPOSE × WAPR</span><h1><span class="zh">查看候选位姿与深度点云</span><span class="en">Inspect candidate poses against the depth cloud</span></h1></div><span class="frame" id="scene-label">000003 · WBPS ≥ 0.75</span></header>
+<div aria-label="显示选项" class="toolbar" data-label-en="Display controls" data-label-zh="显示选项">
+<div aria-label="候选位姿筛选" class="mode-switch" data-label-en="Filter candidate poses" data-label-zh="候选位姿筛选" role="group">
+<button aria-pressed="true" data-mode="all" type="button"><span class="zh">全部已评分 <span data-count="all">16</span></span><span class="en">All scored <span data-count="all">16</span></span></button>
+<button aria-pressed="false" data-mode="accepted" type="button"><span class="zh">保留 <span data-count="accepted">7</span></span><span class="en">Accepted <span data-count="accepted">7</span></span></button>
+<button aria-pressed="false" data-mode="selected" type="button"><span class="zh">仅看选中项</span><span class="en">Selected only</span></button>
+</div>
+<label><input checked="" id="cloud-toggle" type="checkbox"/><span class="zh">深度点云</span><span class="en">Depth cloud</span></label>
+<label><input checked="" id="mesh-toggle" type="checkbox"/><span class="zh">CAD 网格</span><span class="en">CAD mesh</span></label>
+<label data-title-zh="以线框显示 CAD；需要开启 CAD 网格" data-title-en="Show CAD as wireframes; requires CAD meshes to be enabled" title="以线框显示 CAD；需要开启 CAD 网格"><input id="edges-toggle" type="checkbox"/><span class="zh">CAD 线框模式</span><span class="en">CAD wireframe mode</span></label>
+<button class="align-button" data-align-image="" data-title-en="Restore the calibrated RGB camera view" data-title-zh="恢复 RGB 相机的标定视角" id="reset" title="恢复 RGB 相机的标定视角" type="button"><span class="zh">↺ 对齐原图</span><span class="en">↺ Align with RGB</span></button>
+<button id="fullscreen" type="button"><span class="zh">全屏</span><span class="en">Fullscreen</span></button>
+</div>
+<div class="view-navigation"><div class="view-tools" role="group" data-label-zh="右侧视图操作" data-label-en="3D view controls" aria-label="右侧视图操作"><button type="button" data-view-tool="translate" aria-pressed="true" disabled><span class="zh">平移</span><span class="en">Pan</span></button><button type="button" data-view-tool="rotate" aria-pressed="false" disabled><span class="zh">旋转</span><span class="en">Rotate</span></button><button type="button" data-view-tool="orbit" aria-pressed="false" disabled><span class="zh">自由查看</span><span class="en">Orbit</span></button></div><output id="view-feedback" aria-live="off"></output><p id="view-help"></p></div>
+<div class="views">
+<section class="view"><h2><span class="zh">RGB · 位姿投影</span><span class="en">RGB · Pose projections</span><span class="view-tag">2D ↔ 3D</span></h2><canvas aria-label="点击图中的框以选择三维网格" data-label-en="Select a box to highlight its 3D mesh" data-label-zh="点击图中的框以选择三维网格" height="400" id="photo" tabindex="0" width="640"></canvas></section>
+<section class="view"><h2><span class="zh">深度点云与 CAD 网格</span><span class="en">Depth cloud and CAD meshes</span><button class="view-align" data-align-image="" data-title-en="Restore the calibrated RGB camera view" data-title-zh="恢复 RGB 相机的标定视角" title="恢复 RGB 相机的标定视角" type="button"><span class="zh">↺ 对齐原图</span><span class="en">↺ Align with RGB</span></button></h2><div class="cloud-stage"><canvas aria-describedby="view-help" aria-label="深度点云与 CAD 三维视图" data-label-en="3D view of the depth cloud and CAD meshes" data-label-zh="深度点云与 CAD 三维视图" id="cloud" tabindex="0"></canvas><div id="loading" role="status"><span class="spinner"></span><span class="zh">正在准备三维场景…</span><span class="en">Preparing 3D scene…</span></div></div></section>
+</div>
+<div aria-label="图例" class="geometry-legend" data-label-en="Legend" data-label-zh="图例">
+<span><i aria-hidden="true" class="legend-points"></i><span class="zh">白点：实测深度</span><span class="en">White points: measured depth</span></span>
+<span><i aria-hidden="true" class="legend-mesh legend-pass"></i><span class="zh">绿色：保留的位姿</span><span class="en">Green: accepted pose</span></span>
+<span><i aria-hidden="true" class="legend-mesh legend-fail"></i><span class="zh">红色：低于阈值</span><span class="en">Red: below threshold</span></span>
+<span><i aria-hidden="true" class="legend-mesh legend-duplicate"></i><span class="zh">橙色：重复位姿</span><span class="en">Amber: duplicate pose</span></span>
+<span><i aria-hidden="true" class="legend-selected"></i><span class="zh">金色轮廓：当前选中</span><span class="en">Gold outline: selected mesh</span></span>
+</div>
+<p aria-live="polite" class="selection" id="selection"><span class="zh">正在读取已保存的位姿和评分…</span><span class="en">Reading saved poses and scores…</span></p>
+<div aria-label="选择已评分的位姿" class="instances" data-label-en="Select a scored pose" data-label-zh="选择已评分的位姿" id="instances" role="group"></div>
+<p class="hint"><span class="zh">点击图中的框、下方条目或三维网格可同步高亮。右侧选“平移”后拖彩色轴，选“旋转”后拖刻度环，滚轮始终缩放；“自由查看”保留拖动旋转、右键或 Shift 拖动平移。手机可单指拖动轴或环，双指缩放；“自由查看”支持单指旋转和双指平移/缩放。拖轴或环时加入第二指，会结束单指操作并转为双指查看。操作仅调整右侧视图，点击“对齐原图”恢复。若某条轴正对视线，先用“自由查看”转动视角。</span><span class="en">Select a box, an entry, or a mesh to highlight it in both views. Choose Pan and drag a colored axis, or Rotate and drag a graduated ring; scroll to zoom in either mode. Orbit retains drag-to-rotate and right/Shift-drag-to-pan. On touchscreens, drag handles with one finger and pinch to zoom; Orbit supports one-finger rotation and two-finger pan/zoom. Adding a second finger ends the handle drag and switches to two-finger navigation. These controls adjust only the 3D view; Align with RGB restores it. Orbit first if an axis points directly along your line of sight.</span></p>
+<p class="note"><span class="zh">本示例展示已保存的三角块 RGB-D 位姿和评分，浏览器不执行推理。白色散点来自观测深度，叠加显示时 CAD 后方的测量点也可能可见；绿、红、橙色网格分别标记保留、低分和重复项。颜色表示示例筛选状态，不是真值对错；评分也不是概率。三维坐标以米为单位。</span><span class="en">This example displays saved RGB-D poses and scores for the triangular parts; no inference runs in the browser. White points come from observed depth and are overlaid, so measured points behind CAD surfaces may remain visible. Green, red and amber meshes indicate accepted, low-scoring and duplicate entries. Colors describe the example’s selection state, not ground-truth correctness, and scores are not probabilities. 3D coordinates are in meters.</span></p>
+<a class="license" href="THREE-LICENSE.txt" rel="noopener" target="_blank">Three.js r160 · MIT</a>
+</main>
+<script src="viewer.js?v=english-default-20261118" type="module"></script>
+</body>
+</html>

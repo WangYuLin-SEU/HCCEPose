@@ -96,10 +96,9 @@ def solve_PnP(pred_m_f_c_np, pnp_op = 2, reprojectionError = 1.5, bfu = None, it
     if pnp_op == 0:
         success, rvecs, tvecs = cv2.solvePnP(Points_3D.astype(np.float32), coord_image_np.astype(np.float32),  
                                                 cam_K, None, flags=cv2.SOLVEPNP_EPNP)
+        if not success:
+            return return_info
         rot, _ = cv2.Rodrigues(rvecs, jacobian=None)
-        if success is False:
-            rot = np.eye(3)
-            tvecs = np.zeros((3, 1))
         reprojection, _ = cv2.projectPoints(pred_front, rvecs, tvecs, cam_K, None)
         reprojection = reprojection.reshape((-1,2))
         error = np.linalg.norm(reprojection - coord_image_np, axis = 1)
@@ -119,23 +118,23 @@ def solve_PnP(pred_m_f_c_np, pnp_op = 2, reprojectionError = 1.5, bfu = None, it
                                                         coord_image_np.astype(np.float32), cam_K, distCoeffs=None,
                                                         reprojectionError=reprojectionError, confidence=0.995,
                                                         iterationsCount=iterationsCount, flags=cv2.SOLVEPNP_EPNP)
+        if not success:
+            return return_info
         reprojection_1, _ = cv2.projectPoints(Points_3D, rvecs_1, tvecs_1, cam_K, None)
         reprojection_1 = reprojection_1.reshape((-1,2))
         error_1 = np.linalg.norm(reprojection_1 - coord_image_np, axis = 1)
         inliers_1 = np.where(error_1 < reprojectionError )[0].reshape((-1,1))
-        if success:
-            rvecs_2, tvecs_2 = cv2.solvePnPRefineVVS(Points_3D[inliers[:, 0], :].astype(np.float32),
-                                                coord_image_np[inliers[:, 0], :].astype(np.float32),
-                                                cam_K, np.zeros((5)),rvecs_1,tvecs_1)
-            reprojection_2, _ = cv2.projectPoints(Points_3D, rvecs_2, tvecs_2, cam_K, None)
-            reprojection_2 = reprojection_2.reshape((-1,2))
-            error_2 = np.linalg.norm(reprojection_2 - coord_image_np, axis = 1)
-            inliers_2 = np.where(error_2 < reprojectionError )[0].reshape((-1,1))
-        if success:
-            if inliers_1.shape[0] > inliers_2.shape[0]:rvecs = rvecs_1; tvecs = tvecs_1
-            else:rvecs = rvecs_2; tvecs = tvecs_2
-        else:rvecs = rvecs_1; tvecs = tvecs_1
-        
+        rvecs_2, tvecs_2 = cv2.solvePnPRefineVVS(Points_3D[inliers[:, 0], :].astype(np.float32),
+                                            coord_image_np[inliers[:, 0], :].astype(np.float32),
+                                            cam_K, np.zeros((5)), rvecs_1, tvecs_1)
+        reprojection_2, _ = cv2.projectPoints(Points_3D, rvecs_2, tvecs_2, cam_K, None)
+        reprojection_2 = reprojection_2.reshape((-1,2))
+        error_2 = np.linalg.norm(reprojection_2 - coord_image_np, axis = 1)
+        inliers_2 = np.where(error_2 < reprojectionError)[0].reshape((-1,1))
+        if inliers_1.shape[0] > inliers_2.shape[0]:
+            rvecs, tvecs = rvecs_1, tvecs_1
+        else:
+            rvecs, tvecs = rvecs_2, tvecs_2
         reprojection, _ = cv2.projectPoints(pred_front, rvecs, tvecs, cam_K, None)
         reprojection = reprojection.reshape((-1,2))
         error = np.linalg.norm(reprojection - coord_image_np, axis = 1)
@@ -151,6 +150,8 @@ def solve_PnP(pred_m_f_c_np, pnp_op = 2, reprojectionError = 1.5, bfu = None, it
                                                     coord_image_np.astype(np.float32), cam_K, distCoeffs=None,
                                                     reprojectionError=reprojectionError, 
                                                     iterationsCount=iterationsCount, flags=cv2.SOLVEPNP_EPNP)
+        if not success:
+            return return_info
         rot, _ = cv2.Rodrigues(rvecs, jacobian=None)
         return_info['success'] = success
         return_info['rot'] = rot
@@ -164,8 +165,10 @@ def solve_PnP(pred_m_f_c_np, pnp_op = 2, reprojectionError = 1.5, bfu = None, it
         
     if np.isnan(rot).any() or np.isinf(rot).any():
         return_info['rot'] = np.eye(3)
+        return_info['success'] = False
     if np.isnan(tvecs).any() or np.isinf(tvecs).any():
         return_info['tvecs'] = np.zeros((3, 1))
+        return_info['success'] = False
     return return_info
 
 

@@ -27,13 +27,10 @@ def _try_import(name):
 
 def prefer_large_disk_cache():
     '''
-    If a common data disk exists (e.g. AutoDL), default TMPDIR / pip cache there
-    to avoid filling the root overlay during conda/pip.
+    Use an explicitly selected cache disk; otherwise keep system defaults.
+    只使用显式选择的缓存目录，否则保留系统默认值。
     '''
     base = os.environ.get('HCCEPOSE_DATA_DISK')
-    if not base:
-        if Path('/root/autodl-tmp').is_dir():
-            base = '/root/autodl-tmp'
     if not base or not Path(base).is_dir():
         return
     tmp = Path(base) / 'tmp'
@@ -146,15 +143,6 @@ def reconcile_polyscope_for_kasal_on_py39():
     _pip_install(['polyscope==2.2.0'])
 
 
-def ensure_nvdiffrast_for_refinement():
-    try:
-        import nvdiffrast.torch  # noqa: F401
-        return
-    except ImportError:
-        pass
-    _pip_install(['ninja', 'diffrp-nvdiffrast'])
-
-
 def ensure_megapose_stack(cuda_device='0'):
     from Refinement.refinement_group import Refinement_MP
 
@@ -199,19 +187,10 @@ def ensure_onnxruntime_for_hccepose():
 _ACCELERATION_ENV_STATE = {'ort_base': False, 'tensorrt_verified': False}
 
 
-def ensure_acceleration_backend_environment(project_root, hccepose_acceleration, foundationpose_acceleration):
-    '''
-    Called from `Tester.__init__` when either backend may use ONNX Runtime.
-
-    - `onnx` / `tensorrt` for HccePose or FoundationPose: bop_toolkit, torch 2.x, pip extras, onnxruntime.
-    - `tensorrt` for either: TensorRT pip best-effort, lib preload, and EP + libnvinfer checks (once per process).
-    '''
-    global _ACCELERATION_ENV_STATE
-    h = str(hccepose_acceleration).lower()
-    f = str(foundationpose_acceleration).lower()
-    needs_ort = h in ('onnx', 'tensorrt') or f in ('onnx', 'tensorrt')
-    needs_tensorrt = h == 'tensorrt' or f == 'tensorrt'
-    if not needs_ort:
+def ensure_acceleration_backend_environment(project_root, hccepose_acceleration):
+    """Prepare ONNX Runtime and, when selected, its TensorRT execution provider."""
+    backend = str(hccepose_acceleration).lower()
+    if backend not in ('onnx', 'tensorrt'):
         return
     pr = project_root or os.getcwd()
     if not _ACCELERATION_ENV_STATE['ort_base']:
@@ -222,7 +201,7 @@ def ensure_acceleration_backend_environment(project_root, hccepose_acceleration,
         ensure_demo_pip_extras()
         ensure_onnxruntime_for_hccepose()
         _ACCELERATION_ENV_STATE['ort_base'] = True
-    if needs_tensorrt and not _ACCELERATION_ENV_STATE['tensorrt_verified']:
+    if backend == 'tensorrt' and not _ACCELERATION_ENV_STATE['tensorrt_verified']:
         ensure_tensorrt_pip_if_no_libnvinfer()
         verify_tensorrt_execution_provider_or_exit()
         _ACCELERATION_ENV_STATE['tensorrt_verified'] = True
@@ -233,7 +212,7 @@ def _prepare_bin_picking_acceleration_common(project_root=None):
     Standalone ONNX prep (e.g. tooling). Prefer `ensure_acceleration_backend_environment` via `Tester`.
     '''
     pr = project_root or os.getcwd()
-    ensure_acceleration_backend_environment(pr, 'onnx', 'pytorch')
+    ensure_acceleration_backend_environment(pr, 'onnx')
     return pr
 
 
@@ -295,11 +274,11 @@ def verify_tensorrt_execution_provider_or_exit():
 def prepare_onnx_bin_picking_demo_environment(project_root=None):
     '''
     Optional manual preflight (ORT stack only). `Tester` already calls
-    `ensure_acceleration_backend_environment` when `hccepose_acceleration` / `foundationpose_acceleration`
+    `ensure_acceleration_backend_environment` when `hccepose_acceleration`
     is `onnx` or `tensorrt`.
     '''
     pr = project_root or os.getcwd()
-    ensure_acceleration_backend_environment(pr, 'onnx', 'pytorch')
+    ensure_acceleration_backend_environment(pr, 'onnx')
     print('HccePose: ONNX acceleration environment ready.', flush=True)
 
 
@@ -308,17 +287,8 @@ def prepare_tensorrt_bin_picking_demo_environment(project_root=None):
     Optional manual preflight (ORT + TensorRT verify). `Tester` runs the same when tensorrt is selected.
     '''
     pr = project_root or os.getcwd()
-    ensure_acceleration_backend_environment(pr, 'tensorrt', 'pytorch')
+    ensure_acceleration_backend_environment(pr, 'tensorrt')
     print('HccePose: TensorRT acceleration environment ready.', flush=True)
-
-
-def prepare_rgbd_fp_vs_mp_demo_environment(cuda_device='0', project_root=None):
-    '''
-    `s4_p3_test_mi10_bin_picking_RGBD_FP_vs_MP.py`: MegaPose + nvdiffrast only.
-    ONNX/TensorRT for FoundationPose is handled when constructing `Tester`.
-    '''
-    project_root = project_root or os.getcwd()
-    prepare_rgbd_megapose_demo_environment(cuda_device=cuda_device, project_root=project_root)
 
 
 def prepare_rgbd_megapose_demo_environment(cuda_device='0', project_root=None):
@@ -327,7 +297,6 @@ def prepare_rgbd_megapose_demo_environment(cuda_device='0', project_root=None):
 
     - Large-disk TMPDIR / PIP_CACHE_DIR when available
     - Requires torch (manual per README); pip-installs common missing wheels
-    - nvdiffrast (Refinement imports)
     - bop_toolkit layout
     - Full MegaPose: conda prefix under .envs/megapose, weights via rclone
     '''
@@ -337,5 +306,4 @@ def prepare_rgbd_megapose_demo_environment(cuda_device='0', project_root=None):
     ensure_torch_or_exit()
     ensure_torch_supports_hccepose_tester()
     ensure_demo_pip_extras()
-    ensure_nvdiffrast_for_refinement()
     ensure_megapose_stack(cuda_device=cuda_device)

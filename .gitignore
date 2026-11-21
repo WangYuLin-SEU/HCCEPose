@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+bop_toolkit/
+data/
+outputs/
+.env
+.venv/
+pages/
+
+# Local resources and optional runtime caches / 本地资源与可选运行缓存
+.envs/
+.cache/
+demo-bin-picking/
+demo-tex-objs/
+*.pt
+*.pth
+*.onnx
+*.engine
+*.plan
+/test_imgs/
+/test_imgs_RGBD/
+/test_videos/

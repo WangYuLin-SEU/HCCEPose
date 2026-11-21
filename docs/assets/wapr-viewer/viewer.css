@@ -1,0 +1,91 @@
+/* Match the parent blue/purple studio palette; scores also use explicit pass/fail words.
+   延续父页面青蓝紫配色，接收状态同时使用文字和绿/红色，不只依赖颜色。 */
+:root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif; --bg: #f6f8fc; --panel: #fff; --text: #183149; --muted: #60738b; --line: #dbe5f0; --active: #e8f3fb; }
+:root[data-theme="dark"] { color-scheme: dark; --bg: #111d2c; --panel: #172638; --text: #ecf5ff; --muted: #b0c0d5; --line: #31455e; --active: #21435d; }
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--text); background: var(--bg); font-size: 16px; line-height: 1.6; }
+html[data-lang="zh"] .en, html[data-lang="en"] .zh { display: none; }
+.studio { padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: radial-gradient(ellipse at 90% 0, #9b87ed14, transparent 55%), var(--bg); }
+.studio-heading { display: flex; flex-wrap: wrap; gap: 10px 20px; justify-content: space-between; align-items: center; }
+.eyebrow { color: var(--muted); letter-spacing: .08em; font-size: 16px; }
+h1 { margin: 8px 0 16px; font-size: 24px; line-height: 1.5; }
+.frame { color: var(--muted); font-variant-numeric: tabular-nums; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 6px 0 18px; }
+button, label { font: inherit; }
+button { min-height: 44px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); color: var(--text); cursor: pointer; }
+button:hover, button[aria-pressed="true"] { border-color: #569bcc; background: var(--active); }
+button:disabled { opacity: .45; cursor: not-allowed; border-color: var(--line); background: var(--panel); }
+.align-button { border-color: #569bcc; background: var(--active); font-weight: 650; }
+button:focus-visible, canvas:focus-visible, input:focus-visible { outline: 3px solid #6fa6d8; outline-offset: 3px; }
+.mode-switch { display: flex; flex-wrap: wrap; gap: 6px; }
+.toolbar label { display: inline-flex; gap: 7px; align-items: center; min-height: 44px; cursor: pointer; }
+input { width: 18px; height: 18px; accent-color: #287fb1; }
+/* Share the natural header row across both panes, including wrapped translations.
+   双栏共用自然高度的标题行；翻译换行时一起增高，保持两张画布的起点一致。 */
+.views { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto auto; gap: 0 14px; }
+.view { display: grid; grid-template-rows: subgrid; grid-row: span 2; overflow: hidden; min-width: 0; border: 1px solid var(--line); border-radius: 12px; background: #081423; }
+h2 { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; min-height: 72px; margin: 0; padding: 12px; font-size: 16px; line-height: 1.5; color: #eaf4ff; background: #10253b; }
+/* Wrap the reset button before a narrow pane squeezes its translated title into a column.
+   窄画框先让复位按钮换行，避免英文标题被挤成细长的一列。 */
+h2 > .zh, h2 > .en { flex: 1 1 150px; }
+.view-align { flex-shrink: 0; min-height: 40px; padding: 5px 8px; font-size: 16px; color: #eaf4ff; border-color: #5287a9; background: #1a3b53; }
+.view-align:hover { color: #fff; background: #24516e; }
+.view-tag { color: #91c3df; font-size: 14px; white-space: nowrap; }
+canvas { display: block; width: 100%; aspect-ratio: 8 / 5; touch-action: none; }
+.cloud-stage { position: relative; }
+/* Keep tools and instructions outside the image, even when one pane is only 248px wide.
+   控件与提示放在画布外；单个画框仅248px宽时，也不遮住坐标轴或工件。 */
+.view-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-bottom: 14px; padding: 8px 10px; border: 1px solid #5287a9; border-radius: 10px; background: #10253b; }
+.view-tools { display: flex; gap: 3px; }
+.view-tools button { min-height: 34px; padding: 5px 10px; font-size: 13px; border: 1px solid transparent; border-radius: 6px; color: #c0d5e6; background: transparent; }
+.view-tools button:hover, .view-tools button[aria-pressed="true"] { color: #fff; border-color: #79bde280; background: #24516e; }
+.view-tools button:disabled { opacity: .55; background: transparent; border-color: transparent; }
+#view-help { flex-basis: 100%; margin: 0; color: #d2e5f2; font-size: 13px; line-height: 1.5; }
+#view-feedback { flex: 1; min-width: 130px; min-height: 20px; line-height: 20px; color: #fff1b3; font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; }
+/* Reserve feedback space so starting a drag cannot move the canvas underneath the pointer.
+   反馈区始终占位，避免开始拖拽时画布移动到指针下方而发生跳变。 */
+#view-feedback:empty { visibility: hidden; }
+@media (pointer: coarse) { .view-tools button { min-height: 40px; } }
+#loading { position: absolute; inset: 0; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 16px; color: #eef6ff; background: #081423dd; }
+#loading[hidden] { display: none; }
+.spinner { width: 24px; height: 24px; flex-shrink: 0; border: 2px solid #91c3df40; border-top-color: #91d7ff; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.selection { min-height: 46px; margin: 16px 0 12px; padding: 10px 13px; border-left: 3px solid #569bcc; border-radius: 0 8px 8px 0; background: var(--active); font-variant-numeric: tabular-nums; }
+.geometry-legend { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 14px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); font-size: 16px; }
+.geometry-legend > span { display: inline-flex; align-items: center; gap: 8px; }
+.geometry-legend i { display: inline-block; flex-shrink: 0; width: 22px; height: 18px; border-radius: 3px; background-color: #102235; }
+.legend-points { background-image: radial-gradient(circle, #fff2df 1.5px, transparent 1.8px); background-size: 6px 6px; }
+.geometry-legend .legend-pass { background: #53dfb1; border: 1px solid #2d795e; }
+.geometry-legend .legend-fail { background: #ff8997; border: 1px solid #9d4356; }
+.geometry-legend .legend-duplicate { background: #f0bd69; border: 1px solid #9d7537; }
+.geometry-legend .legend-selected { border: 2px solid #ffdc91; }
+.instances { display: grid; grid-template-columns: repeat(auto-fit, minmax(136px, 1fr)); gap: 8px; }
+.instances button { display: flex; justify-content: space-between; gap: 8px; align-items: center; border-left: 3px solid #278b68; font-variant-numeric: tabular-nums; font-size: 16px; }
+.instances button[data-pass="false"] { border-left-color: #c14d68; }
+.instances button[data-status="suppressed"] { border-left-color: #b68131; }
+.instances button[aria-pressed="true"] { box-shadow: inset 0 0 0 1px #569bcc; }
+.instances .score { font-weight: 650; }
+.hint, .note { color: var(--muted); font-size: 16px; margin: 14px 0 0; }
+.license { display: inline-block; margin-top: 12px; color: var(--muted); font-size: 14px; }
+@media (max-width: 620px) { .studio { padding: 12px; } .views { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; gap: 14px; } .view { display: block; grid-row: auto; } .view > .view-navigation { margin: 0; border-radius: 0; border-width: 1px 0; } h1 { font-size: 22px; } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+/* Keep homepage previews inside the same media frame as images and videos.
+   首页紧凑预览沿用图片/视频的固定画框，完整查看器仍保留双栏和全部控件。 */
+html[data-compact="true"], html[data-compact="true"] body { height: 100%; overflow: hidden; background: #091729; }
+html[data-compact="true"] .studio { padding: 0; border: 0; border-radius: 0; background: #091729; }
+html[data-compact="true"] .studio-heading,
+html[data-compact="true"] .toolbar,
+html[data-compact="true"] .view-navigation,
+html[data-compact="true"] .view:first-child,
+html[data-compact="true"] .view > h2,
+html[data-compact="true"] .geometry-legend,
+html[data-compact="true"] .selection,
+html[data-compact="true"] .instances,
+html[data-compact="true"] .hint,
+html[data-compact="true"] .note,
+html[data-compact="true"] .license { display: none; }
+html[data-compact="true"] .view-tools { display: none; }
+html[data-compact="true"] .views, html[data-compact="true"] .view { display: block; border: 0; border-radius: 0; }
+html[data-compact="true"] .cloud-stage { height: 100vh; display: flex; justify-content: center; align-items: center; }
+html[data-compact="true"] #cloud { width: auto; height: auto; max-width: 100%; max-height: 100%; }

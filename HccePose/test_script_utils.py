@@ -102,7 +102,7 @@ def print_stage_time_breakdown(results_dict, enabled=False, prefix=''):
     title = '%s stage timing' % prefix if prefix else 'stage timing'
     print(title)
     print('  total: %.4f s' % total_time)
-    for key in ['yolo', 'hccepose', 'foundationpose', 'megapose', 'visualization', 'other']:
+    for key in ['yolo', 'hccepose', 'megapose', 'visualization', 'other']:
         value = float(time_dict.get(key, 0.0))
         ratio = 0.0 if total_time <= 1e-8 else value / total_time * 100.0
         print('  %s: %.4f s (%.1f%%)' % (key, value, ratio))

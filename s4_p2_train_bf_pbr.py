@@ -122,10 +122,10 @@ if __name__ == '__main__':
 
     DDP Training:  
     screen -S train_ddp
-    nohup python -u -m torch.distributed.launch --nproc_per_node 6 /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
+    nohup python -u -m torch.distributed.launch --nproc_per_node 6 s4_p2_train_bf_pbr.py > log4.file 2>&1 &
     
     Single-GPU Training:  
-    nohup python -u /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
+    nohup python -u s4_p2_train_bf_pbr.py > log4.file 2>&1 &
     
     ------------------------------------------------------    
     
@@ -134,17 +134,17 @@ if __name__ == '__main__':
 
     DDP 训练：  
     screen -S train_ddp
-    nohup python -u -m torch.distributed.launch --nproc_per_node 6 /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
+    nohup python -u -m torch.distributed.launch --nproc_per_node 6 s4_p2_train_bf_pbr.py > log4.file 2>&1 &
     
     单卡训练：
-    nohup python -u /root/xxxxxx/s4_p2_train_bf_pbr.py > log4.file 2>&1 &
+    nohup python -u s4_p2_train_bf_pbr.py > log4.file 2>&1 &
     '''
     
     ide_debug = True
     
     # Specify the path to the dataset folder.
     # 指定数据集文件夹的路径。
-    dataset_path = '/root/xxxxxx/demo-tex-objs'
+    dataset_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'demo-tex-objs')
     
     # Specify the name of the subfolder in the dataset used for loading training data.
     # 指定数据集中用于加载训练数据的子文件夹名称。

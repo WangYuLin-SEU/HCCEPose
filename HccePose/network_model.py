@@ -1392,6 +1392,8 @@ def get_checkpoint(path):
         - 被选中的 checkpoint 文件的完整路径。
     '''
     saved_ckpt = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+    if not saved_ckpt:
+        raise FileNotFoundError(f'No checkpoint files in {path}')
     saved_ckpt_s = [float(i.split('step')[0].replace('_', '.')) for i in saved_ckpt]
     saved_ckpt_id = np.argmax(saved_ckpt_s)
     return os.path.join(path, saved_ckpt[saved_ckpt_id])
@@ -1490,7 +1492,8 @@ def save_best_checkpoint(best_score_path, net, optimizer, best_score, iteration_
 
     print("best check point saved in ", os.path.join(best_score_path, best_score_file_name))
 
-def load_checkpoint(check_point_path, net : HccePose_BF_Net, optimizer=None, local_rank=0, CUDA_DEVICE='0'):
+def load_checkpoint(check_point_path, net: HccePose_BF_Net, optimizer=None, local_rank=0, CUDA_DEVICE='0',
+                    *, inference_object_id=None):
     '''
     ---
     ---
@@ -1498,7 +1501,7 @@ def load_checkpoint(check_point_path, net : HccePose_BF_Net, optimizer=None, loc
     ---
     ---
     Uses `get_checkpoint`, loads onto `cuda:CUDA_DEVICE`, restores optional
-    optimizer state, and returns metadata dict. Prints a notice when loading fails.
+    optimizer state, and returns metadata. For inference, report the object and file on failure.
 
     Args:
         - check_point_path: Directory searched by `get_checkpoint`.
@@ -1530,19 +1533,28 @@ def load_checkpoint(check_point_path, net : HccePose_BF_Net, optimizer=None, loc
     best_score = 0
     iteration_step = 0
     keypoints_ = []
+    checkpoint_path = check_point_path
     try:
-        checkpoint = torch.load( get_checkpoint(check_point_path), map_location='cuda:'+CUDA_DEVICE, weights_only=False)
+        checkpoint_path = get_checkpoint(check_point_path)
+        checkpoint = torch.load(checkpoint_path, map_location='cuda:' + CUDA_DEVICE, weights_only=False)
         net.load_state_dict(checkpoint['model_state_dict'])
         if optimizer is not None:
             optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         best_score = checkpoint['best_score']
         iteration_step = checkpoint['iteration_step']
-        keypoints_ = checkpoint['keypoints_']
-    except:
+        if inference_object_id is None:
+            keypoints_ = checkpoint['keypoints_']
+        else:
+            # Older checkpoints without a prior still support single-solver PnP.
+            keypoints_ = checkpoint.get('keypoints_', [])
+    except Exception as exc:
+        if inference_object_id is not None:
+            raise RuntimeError(
+                f'Cannot load pose checkpoint for object {inference_object_id} at {checkpoint_path}: {exc}'
+            ) from exc
         if local_rank == 0:
             print('no checkpoint !')
-    return {
-        'best_score' : best_score,
-        'iteration_step' : iteration_step,
-        'keypoints_' : keypoints_,
-    }
+    info = {'best_score': best_score, 'iteration_step': iteration_step, 'keypoints_': keypoints_}
+    if inference_object_id is not None:
+        info['checkpoint_path'] = checkpoint_path
+    return info

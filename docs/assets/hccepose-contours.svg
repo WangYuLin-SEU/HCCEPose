@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2172" height="724" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="sky" cx="80%" cy="48%" r="84%">
+      <stop stop-color="#213559"/>
+      <stop offset=".54" stop-color="#12223c"/>
+      <stop offset="1" stop-color="#071325"/>
+    </radialGradient>
+    <linearGradient id="back" x2="1" y2=".35" gradientUnits="objectBoundingBox">
+      <stop stop-color="#153351"/>
+      <stop offset=".45" stop-color="#28719c"/>
+      <stop offset=".76" stop-color="#756cb8"/>
+      <stop offset="1" stop-color="#34365e"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="0" y1="1" x2=".86" y2="0">
+      <stop stop-color="#101f3c"/>
+      <stop offset=".31" stop-color="#254572"/>
+      <stop offset=".54" stop-color="#478db2"/>
+      <stop offset=".64" stop-color="#6d9aba"/>
+      <stop offset=".76" stop-color="#626ba8"/>
+      <stop offset="1" stop-color="#28274d"/>
+    </linearGradient>
+    <linearGradient id="edge" x2="1" y2=".2">
+      <stop stop-color="#37618a" stop-opacity="0"/>
+      <stop offset=".42" stop-color="#72cada" stop-opacity=".75"/>
+      <stop offset=".76" stop-color="#a49ad7"/>
+      <stop offset="1" stop-color="#70669b" stop-opacity=".4"/>
+    </linearGradient>
+    <path id="contour" d="M 345,431 C 528,355 552,124 728,114 S 938,316 1058,221 S 1152,123 1242,142"/>
+  </defs>
+  <path fill="url(#sky)" d="M0 0h1200v400H0z"/>
+  <path fill="url(#back)" opacity=".62" d="M350 409C542 331 627 12 809 16c146 3 187 220 303 154 39-22 69-59 115-80v35c-82 39-94 112-171 112-98 0-145-157-245-167-174-17-238 280-396 339z"/>
+  <path fill="url(#fold)" d="M315 430C511 397 562 151 736 121c142-25 179 160 280 140 106-20 131-161 214-130v49c-73-28-93 106-208 137-125 33-174-163-299-134-152 35-213 256-365 269z"/>
+  <path fill="none" stroke="url(#edge)" stroke-width="1.7" d="M315 430C511 397 562 151 736 121c142-25 179 160 280 140 106-20 131-161 214-130"/>
+  <g fill="none" stroke="url(#edge)" stroke-width=".9">
+    <use href="#contour" opacity=".62"/>
+    <use href="#contour" transform="translate(0 7)" opacity=".46"/>
+    <use href="#contour" transform="translate(0 14)" opacity=".30"/>
+    <use href="#contour" transform="translate(0 21)" opacity=".18"/>
+  </g>
+</svg>

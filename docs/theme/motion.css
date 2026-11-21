@@ -1,0 +1,171 @@
+/* A continuous silk surface fills the hero; its layout and controls stay fixed.
+   连续变形的彩色薄膜铺满横幅；页面版心和操作入口不随画面移动。 */
+.pose-motion { isolation: isolate; }
+.pose-motion .pose-motion-art { z-index: 0; pointer-events: none; }
+.pose-flow-canvas { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; opacity: 0; pointer-events: none; }
+.pose-motion[data-flow-ready="true"] .pose-flow-canvas { opacity: 1; }
+.pose-motion .lp-hero-shade, .pose-motion.docs-banner::after { z-index: 2; pointer-events: none; }
+.pose-motion .lp-hero-content, .pose-motion .docs-banner-copy { z-index: 3; }
+/* A cropped phone view brings luminous folds behind the copy; keep a steady dark veil.
+   手机裁切后高光更靠近文案，用固定深色遮罩维持文字对比度。 */
+@media (max-width: 760px) {
+  .pose-motion.docs-banner::after { background: linear-gradient(110deg, #030f22b3, #030f2233); }
+}
+
+/* The intact word reserves native typography; eight overlays only color the glyphs.
+   完整原词保留原生字形与字距，八个叠层仅改变字内颜色，不推动页面布局。 */
+.pose-motion-title { position: relative; isolation: isolate; display: inline-block; white-space: nowrap; color: #f3fbff; text-shadow: 0 0 24px #a8eaff1c; }
+.pose-title-word { position: relative; z-index: 2; display: inline-block; }
+.pose-title-tails { position: absolute; left: 0; z-index: 0; overflow: visible; pointer-events: none; user-select: none; }
+/* Broad halos support bright ribbons and fine luminous threads without bleaching them.
+   宽柔光托住明亮丝带与细亮丝，保留各层颜色，不叠成一团白光。 */
+.pose-tail-glow { opacity: .64; }
+.pose-tail-core { opacity: .94; }
+.pose-tail-filaments { opacity: .9; mix-blend-mode: screen; }
+/* Fine arcs pass behind each glyph; the separate front plane only carries faint glints.
+   细弧从每个字后缠绕，独立前景层仅承载极淡的掠光；两层均不占据排版空间。
+   Front opacity is bounded by the motion clock rather than amplified by CSS.
+   前景透明度由动态时钟限制，CSS 不放大它，保证彩丝穿行时仍能读清文字。 */
+.pose-glyph-orbits { fill: none; stroke-linecap: round; stroke-linejoin: round; mix-blend-mode: screen; }
+.pose-title-front-orbits { position: absolute; left: 0; z-index: 3; overflow: visible; pointer-events: none; user-select: none; }
+.pose-title-front-orbits path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.docs-banner-copy > .banner-kicker { position: relative; z-index: 4; }
+.pose-title-filter { position: absolute; width: 0; height: 0; overflow: hidden; }
+.pose-title-aura { display: none; position: absolute; inset: 0; z-index: 1; pointer-events: none; user-select: none; text-shadow: none; }
+.pose-code-letters { display: none; position: absolute; inset: 0; z-index: 2; pointer-events: none; user-select: none; text-shadow: none; filter: var(--title-fluid-filter); }
+.pose-code-letter { position: absolute; top: 0; display: block; }
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .pose-motion-title { background-image: linear-gradient(90deg, #f3fbff, #bdf9ef 24%, #afe5ff 48%, #d7c6ff 72%, #ffd2ec); background-clip: text; -webkit-background-clip: text; color: transparent; }
+  .pose-motion-title[data-code-ready="true"] { background: none; }
+  .pose-motion-title[data-code-ready="true"] .pose-title-word { color: transparent; text-shadow: none; }
+  .pose-motion-title[data-code-ready="true"] .pose-code-letters { display: block; }
+  /* Current and parent codes coexist: fine regions grow within broad chromatic folds.
+     RGB axes drift separately through one gently warped field, with fixed layer numbers.
+     当前层与父层叠加：细区域在宽色域内生长；三轴在同一柔性场中流动，字母层号固定。
+     The colors and aura are artistic mappings, not raw predicted coordinate labels.
+     配色及外侧光晕是艺术映射，不是网络预测的原始坐标标签。 */
+  .pose-code-letter {
+    --code-period: calc(var(--code-field-size) / var(--code-frequency));
+    --code-parent-period: calc(var(--code-field-size) / var(--code-parent-frequency));
+    --code-origin-z: calc(var(--code-origin-x) + var(--code-field-size) * .31);
+    background-color: #334867;
+    background-image:
+      linear-gradient(90deg, #ff205000, #ff246f 50%, #ff205000),
+      linear-gradient(0deg, #00ffbb00, #00efae 50%, #00ffbb00),
+      linear-gradient(135deg, #647aff00, #6274ff 25%, #647aff00 50%, #6274ff 75%, #647aff00),
+      linear-gradient(90deg, #ff9a3d00, #ffae5d33 50%, #ff9a3d00),
+      linear-gradient(0deg, #38baff00, #45dbff33 50%, #38baff00),
+      linear-gradient(135deg, #db5bff00, #df76ff22 25%, #db5bff00 50%, #df76ff22 75%, #db5bff00);
+    background-size: var(--code-period) var(--code-period), var(--code-period) var(--code-period), var(--code-period) var(--code-period), var(--code-parent-period) var(--code-parent-period), var(--code-parent-period) var(--code-parent-period), var(--code-parent-period) var(--code-parent-period);
+    background-repeat: repeat;
+    background-blend-mode: screen;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: pose-code-drift 7s linear infinite;
+  }
+  .pose-code-letter[data-code-level="1"] {
+    background-image: linear-gradient(105deg, #55eaff 0%, #a4fff0 22%, #92abff 44%, #ff8bc8 66%, #ffe4a1 84%, #55eaff 100%);
+    background-size: 320% 180%;
+    animation: pose-coordinate-drift 5s linear infinite;
+  }
+  .pose-motion-title[data-phase-ready="true"] .pose-code-letters {
+    animation: none;
+  }
+  .pose-motion-title[data-phase-ready="true"] .pose-code-letter:not([data-code-level="1"]) {
+    animation: none;
+    background-position:
+      calc(var(--code-origin-x) + .45em * var(--code-flow-x)) calc(-.38em * var(--code-flow-y)),
+      calc(var(--code-origin-x) - .45em * var(--code-flow-y)) calc(-.38em * var(--code-flow-x)),
+      calc(var(--code-origin-z) - .3em * var(--code-flow-x)) calc(.24em * var(--code-flow-y)),
+      calc(var(--code-origin-x) + .3em * var(--code-flow-y)) calc(.24em * var(--code-flow-x)),
+      calc(var(--code-origin-x) - .3em * var(--code-flow-x)) calc(-.24em * var(--code-flow-y)),
+      calc(var(--code-origin-z) + .2em * var(--code-flow-y)) calc(-.24em * var(--code-flow-x));
+  }
+  /* A moving colored edge follows the actual glyph; a broad halo extends beyond it.
+     流动彩边沿实际字形勾勒，宽柔光晕延伸至字外；都不改变字形的布局占位。 */
+  .pose-code-letter::after {
+    content: attr(data-character);
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, #6ceeff, #6ceeff00 24%, #ffabea 40%, #fff3c0 52%, #60ffce 68%, #809aff00 82%, #6ceeff);
+    background-size: 260% 100%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-stroke: .45px #c5f5ff88;
+    opacity: .22;
+    animation: pose-coordinate-drift 4.6s linear infinite;
+  }
+  .pose-motion-title[data-code-ready="true"] .pose-title-aura {
+    display: block;
+    background: linear-gradient(110deg, #38e8ff, #6187ff 20%, #ff5fc3 40%, #ffca81 56%, #5dffd5 76%, #38e8ff);
+    background-size: 260% 160%;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    filter: blur(.13em) saturate(1.65);
+    opacity: .6;
+    transform: scale(1.025, 1.06);
+    animation: pose-coordinate-drift 6s linear infinite;
+  }
+  /* Fill, contour and halo share the tail's continuous active clock. Circular phases
+     remove the abrupt direction changes of a four-corner gradient animation.
+     字内、轮廓及光晕共用尾焰的连续可见时间；圆周相位消除四角渐变的突然转向。 */
+  .pose-motion-title[data-phase-ready="true"] .pose-code-letter[data-code-level="1"] {
+    animation: none;
+    background-position: calc(50% + 50% * var(--code-flow-x)) calc(50% + 50% * var(--code-flow-y));
+  }
+  .pose-motion-title[data-phase-ready="true"] .pose-code-letter::after {
+    animation: none;
+    background-position: calc(50% + 50% * var(--code-flow-y)) 50%;
+  }
+  .pose-motion-title[data-phase-ready="true"] .pose-title-aura {
+    animation: none;
+    background-position: calc(50% - 50% * var(--code-flow-x)) calc(50% + 50% * var(--code-flow-y));
+  }
+}
+/* Unregistered-property fallback: the SVG field still bends these ordinary gradients.
+   不支持属性注册时的回退：SVG 场仍会连续弯曲这些普通渐变。 */
+@keyframes pose-code-drift {
+  0%, 100% { background-position: calc(var(--code-origin-x) + .45em) 0, var(--code-origin-x) -.38em, calc(var(--code-origin-z) - .3em) .24em, var(--code-origin-x) .24em, calc(var(--code-origin-x) - .3em) 0, calc(var(--code-origin-z) + .2em) -.24em; animation-timing-function: cubic-bezier(.37, 0, .63, 1); }
+  25% { background-position: var(--code-origin-x) -.38em, calc(var(--code-origin-x) - .45em) 0, var(--code-origin-z) -.24em, calc(var(--code-origin-x) + .3em) 0, var(--code-origin-x) -.24em, calc(var(--code-origin-z) - .2em) 0; animation-timing-function: cubic-bezier(.37, 0, .63, 1); }
+  50% { background-position: calc(var(--code-origin-x) - .45em) 0, var(--code-origin-x) .38em, calc(var(--code-origin-z) + .3em) .24em, var(--code-origin-x) -.24em, calc(var(--code-origin-x) + .3em) 0, calc(var(--code-origin-z) - .2em) .24em; animation-timing-function: cubic-bezier(.37, 0, .63, 1); }
+  75% { background-position: var(--code-origin-x) .38em, calc(var(--code-origin-x) + .45em) 0, var(--code-origin-z) .24em, calc(var(--code-origin-x) - .3em) 0, var(--code-origin-x) .24em, calc(var(--code-origin-z) + .2em) 0; animation-timing-function: cubic-bezier(.37, 0, .63, 1); }
+}
+@keyframes pose-coordinate-drift {
+  0%, 100% { background-position: 0% 20%; }
+  25% { background-position: 50% 0%; }
+  50% { background-position: 100% 60%; }
+  75% { background-position: 50% 100%; }
+}
+
+/* Interaction adds a single sweep; nothing changes a button's hit area.
+   悬停或键盘聚焦时扫过一道高光，按钮点击区域始终稳定。 */
+.pose-motion .lp-button { position: relative; overflow: hidden; }
+.pose-motion .lp-button::after { content: ""; position: absolute; inset: -50% -30%; pointer-events: none; background: linear-gradient(110deg, transparent 36%, #b5eaff40 48%, #ffffff70 50%, transparent 64%); transform: translateX(-110%); }
+.pose-motion[data-motion="running"] .lp-button:is(:hover, :focus-visible)::after { animation: pose-button-sheen .85s ease-out; }
+@keyframes pose-button-sheen { to { transform: translateX(110%); } }
+
+/* No page-level pause control or saved toggle; system motion preferences still apply.
+   不设置页面暂停按钮或保存开关；仍遵循系统的减少动态效果偏好。 */
+.pose-motion[data-title-motion] .pose-code-letters, .pose-motion[data-title-motion] .pose-code-letter, .pose-motion[data-title-motion] .pose-code-letter::after, .pose-motion[data-title-motion] .pose-title-aura { animation-play-state: paused; }
+.pose-motion[data-title-motion="running"] .pose-code-letters, .pose-motion[data-title-motion="running"] .pose-code-letter, .pose-motion[data-title-motion="running"] .pose-code-letter::after, .pose-motion[data-title-motion="running"] .pose-title-aura { animation-play-state: running; }
+@media (prefers-reduced-motion: reduce) {
+  .pose-title-tails { display: none; }
+  .pose-title-front-orbits { display: none; }
+  .pose-motion .pose-code-letters, .pose-motion .pose-code-letter, .pose-motion .pose-code-letter::after, .pose-motion .pose-title-aura, .pose-motion .lp-button::after { animation: none !important; }
+  .pose-code-letters { filter: none; }
+  .pose-flow-canvas { display: none; }
+}
+@media (forced-colors: active) {
+  .pose-motion .pose-motion-title, .pose-motion-title[data-code-ready="true"] .pose-title-word { background: none; color: CanvasText; text-shadow: none; }
+  .pose-code-letters, .pose-title-aura, .pose-title-tails, .pose-title-front-orbits { display: none !important; }
+  .pose-flow-canvas { display: none; }
+}
+@media print {
+  .pose-flow-canvas { display: none; }
+  .pose-motion .pose-motion-title, .pose-motion-title[data-code-ready="true"] .pose-title-word { background: none; color: inherit; text-shadow: none; }
+  .pose-code-letters, .pose-title-aura, .pose-title-tails, .pose-title-front-orbits { display: none !important; }
+}
+@media (max-width: 760px) { .pose-title-tails { opacity: .82; } }

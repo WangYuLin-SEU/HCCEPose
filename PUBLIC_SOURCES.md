@@ -1,0 +1,15 @@
+# Public sources
+
+The paths below refer to the HCCEPose source project.
+
+- **HCCEPose runtime:** [revision f75cc4d5db2fc298fc7b853f8c75273757872382](https://github.com/WangYuLin-SEU/HCCEPose/tree/f75cc4d5db2fc298fc7b853f8c75273757872382). Local changes cover toolkit lookup, cache paths, image padding, checkpoint errors and per-instance PnP status.
+- **WAPR integration:** the adapter uses the multi-instance mask API in [revision 4e591be318a828c91980c58ef8bbdc34e6599881](https://github.com/WangYuLin-SEU/WAPR/blob/4e591be318a828c91980c58ef8bbdc34e6599881/wapr/estimator.py). Optional score filtering and rendered-mask NMS use the same revision’s [public suppression module](https://github.com/WangYuLin-SEU/WAPR/blob/4e591be318a828c91980c58ef8bbdc34e6599881/wapr/suppression.py). Install the WAPR backend separately.
+- **Paper, preparation, label, RGB/MegaPose and historical BOP figures:** the files in `show_vis/` are from the HCCEPose revision above. Tutorial images illustrate their published examples; historical leaderboard screenshots retain their original context.
+- **Videos:** `media/public-result.mp4`, `public-bin-input.mp4`, `public-textured-input.mp4`, `public-textured-result.mp4` and their posters are converted from that revision’s `show_vis/VID_20251009_141247{,_vis}.gif` and `VID_20251009_141731{,_vis}.gif`. Full frames and aspect ratios are preserved.
+- **Brand artwork:** `docs/assets/hccepose-contours.svg` uses vector paths and gradients. The animated wordmark and `docs/assets/hccepose-readme-banner.webp` are presentation artwork.
+- **RGB-D viewer and example outputs:** `docs/assets/wapr-viewer/`, `docs/assets/wapr-wbps-filtered-bin-picking.jpg`, and `docs/assets/wapr-region-crops/` contain the triangular-part demonstration and its saved pose/score visualizations. The input frame and calibration are based on `test_imgs_RGBD/000003_*` in the HCCEPose revision above; the object mesh corresponds to the public [Bin-Picking model](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/4e482e540314622981ccd4fce5beddac7f9d3e1d/demo-bin-picking/models). Browser code displays saved outputs rather than running inference. [Three.js r160, OrbitControls and TransformControls](https://github.com/mrdoob/three.js/tree/r160) use the MIT license; their notices are included in the viewer directory.
+- **BOP toolkit:** `bop_toolkit.zip` contains the complete public toolkit from the HCCEPose revision above. Its `SOURCE.md` documents the source and project-relative configuration and evaluation-script import paths. Toolkit and font licenses are included in the archive.
+
+See [LICENSE](LICENSE) for the project license. Third-party components retain their own licenses and author notices.
+
+- **Training and evaluation tutorials:** public stage scripts and their published settings from the HCCEPose revision above. The tutorials distinguish that upstream checkout from local application entry points.

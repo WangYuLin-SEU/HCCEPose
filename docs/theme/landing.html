@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+
+<!-- HCCEPose project entry, with a shared language/theme preference.
+     HCCEPose 项目入口，与文档共用语言和主题偏好。 -->
+<html data-lang="en" data-theme="light" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="light dark" name="color-scheme"/>
+<meta content="HccePose(BF) estimates 6D poses of known objects from RGB images using correspondences on their front and back surfaces." name="description"/>
+<title>HCCEPose · 6D pose estimation for known objects</title>
+<script>
+    // Resolve display choices before paint. / 首次绘制前确定语言与主题。
+    (function () {
+      var requested = new URLSearchParams(location.search).get('lang');
+      var saved = null;
+      var theme = null;
+      try { saved = localStorage.getItem('hccepose-language'); theme = localStorage.getItem('hccepose-theme'); } catch (error) {}
+      var lang = requested === 'en' || requested === 'zh' ? requested : saved === 'zh' ? 'zh' : 'en';
+      document.documentElement.dataset.lang = lang;
+      document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+      document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+    }());
+  </script>
+<link href="assets/docs/style.css?v=1" rel="stylesheet"/>
+<link href="assets/docs/landing.css?v=view-feedback-cache-20261117" rel="stylesheet"/>
+<link href="assets/docs/motion.css?v=1" rel="stylesheet"/>
+<link rel="canonical" href="https://wangyulin-seu.github.io/hccepose/">
+</head>
+<body class="landing-page" id="top">
+<a class="skip-link" href="#main-content"><span class="language-pair"><span class="zh" lang="zh-CN">跳到正文</span><span class="en" lang="en">Skip to content</span></span></a>
+<header class="lp-header">
+<div class="lp-header-inner">
+<a aria-label="HCCEPose" class="brand lp-brand" data-local-link="" href="index.html"><span aria-hidden="true" class="brand-mark">H</span><span>HCCEPose</span></a>
+<nav aria-label="主导航" class="lp-nav" data-label-en="Main navigation" data-label-zh="主导航" id="landing-nav">
+<a aria-current="page" data-local-link="" href="index.html"><span class="language-pair"><span class="zh" lang="zh-CN">主页</span><span class="en" lang="en">Home</span></span></a>
+<a data-local-link="" href="docs/index.html"><span class="language-pair"><span class="zh" lang="zh-CN">文档</span><span class="en" lang="en">Docs</span></span></a>
+<a href="https://arxiv.org/abs/2510.10177" rel="noopener noreferrer" target="_blank"><span class="language-pair"><span class="zh" lang="zh-CN">论文</span><span class="en" lang="en">Paper</span></span><span aria-hidden="true" class="lp-external">↗</span></a>
+<a href="https://github.com/WangYuLin-SEU/HCCEPose" rel="noopener noreferrer" target="_blank"><span class="language-pair"><span class="zh" lang="zh-CN">源码</span><span class="en" lang="en">Source code</span></span><span aria-hidden="true" class="lp-external">↗</span></a>
+</nav>
+<div class="lp-header-actions">
+<div aria-label="Language" class="language-switch" data-label-en="Language" data-label-zh="语言" role="group"><button aria-pressed="true" data-language="en" type="button">EN</button><button aria-pressed="false" data-language="zh" type="button">中文</button></div>
+<button aria-label="切换深浅主题" aria-pressed="false" class="lp-icon-button" data-label-en="Toggle color theme" data-label-zh="切换深浅主题" id="landing-theme-toggle" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 4a8 8 0 0 1 0 16Z"></path></svg></button>
+<button aria-controls="landing-nav" aria-expanded="false" aria-label="打开导航" class="lp-icon-button lp-menu-toggle" data-label-en="Open navigation" data-label-zh="打开导航" id="landing-menu-toggle" type="button"><svg aria-hidden="true" viewbox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></button>
+</div>
+</div>
+</header>
+<main id="main-content" tabindex="-1">
+<section aria-labelledby="hero-title" class="lp-hero lp-container pose-motion">
+<img alt="" class="lp-hero-art pose-motion-art" fetchpriority="high" height="724" src="assets/docs/assets/hccepose-contours.svg" width="2172"/>
+<canvas aria-hidden="true" class="pose-flow-canvas"></canvas>
+<div class="lp-hero-shade"></div>
+<div class="lp-hero-content">
+<a class="lp-paper-label" href="https://arxiv.org/abs/2510.10177" rel="noopener noreferrer" target="_blank"><span class="lp-paper-meta"><span aria-hidden="true" class="lp-status-dot"></span>ICCV 2025</span><span aria-hidden="true">·</span><span class="lp-paper-method">HccePose(BF)<span aria-hidden="true">↗</span></span></a>
+<h1 id="hero-title"><span class="pose-motion-title">HCCEPose</span></h1>
+<p class="lp-hero-title"><span class="language-pair"><span class="zh" lang="zh-CN">从一张 RGB 图像<br/>估计已知物体的 6D 位姿</span><span class="en" lang="en">6D pose estimation<br/>from a single RGB image</span></span></p>
+<p class="lp-hero-description"><span class="language-pair"><span class="zh" lang="zh-CN">HccePose(BF) 同时预测物体前、后表面的坐标，再通过 2D–3D 对应求出物体相对于相机的旋转和平移。</span><span class="en" lang="en">HccePose(BF) predicts coordinates on the front and back surfaces of a known object. These 2D–3D correspondences give the rotation and translation of the object relative to the camera.</span></span></p>
+<div class="lp-hero-actions"><a class="lp-button lp-button-white" data-local-link="" href="docs/quickstart.html"><span aria-hidden="true" class="lp-button-icon">→</span><span class="language-pair"><span class="zh" lang="zh-CN">开始使用</span><span class="en" lang="en">Get started</span></span><span aria-hidden="true" class="lp-button-icon">→</span></a><a class="lp-button lp-button-glass" href="#examples"><span aria-hidden="true" class="lp-button-icon">↓</span><span class="language-pair"><span class="zh" lang="zh-CN">查看示例</span><span class="en" lang="en">View examples</span></span><span aria-hidden="true" class="lp-button-icon">↓</span></a></div>
+</div>
+</section>
+<div aria-label="方法概览" class="lp-facts lp-container" data-label-en="Method at a glance" data-label-zh="方法概览">
+<p><span aria-hidden="true" class="lp-fact-symbol">RGB</span><span class="language-pair"><span class="zh" lang="zh-CN">图像输入</span><span class="en" lang="en">Image input</span></span></p>
+<p><span aria-hidden="true" class="lp-fact-symbol">BF</span><span class="language-pair"><span class="zh" lang="zh-CN">前后表面联合预测</span><span class="en" lang="en">Front and back surfaces</span></span></p>
+<p><span aria-hidden="true" class="lp-fact-symbol">2D ↔ 3D</span><span class="language-pair"><span class="zh" lang="zh-CN">超密集对应</span><span class="en" lang="en">Ultra-dense correspondences</span></span></p>
+<p><span aria-hidden="true" class="lp-fact-symbol">6D</span><span class="language-pair"><span class="zh" lang="zh-CN">旋转与平移</span><span class="en" lang="en">Rotation &amp; translation</span></span></p>
+</div>
+<section aria-labelledby="method-title" class="lp-section lp-container lp-method-section" id="method">
+<!-- Decorative contours echo layered encoding; the paper figure below is the actual method.
+           装饰轮廓呼应层次编码；真实方法仍以下方论文图为准。 -->
+<div class="lp-method-panel lp-ambient-panel" data-ambient-panel="">
+<svg aria-hidden="true" class="lp-method-contours" fill="none" focusable="false" preserveaspectratio="xMidYMid slice" viewbox="0 0 900 370">
+<defs><lineargradient gradientunits="userSpaceOnUse" id="method-contour-color" x1="80" x2="850" y1="360" y2="20"><stop stop-color="#159da7"></stop><stop offset=".5" stop-color="#6c74d9"></stop><stop offset="1" stop-color="#c77dba"></stop></lineargradient></defs>
+<g stroke="url(#method-contour-color)">
+<path d="M-70 330C170 160 270 460 530 250S800 150 1000-60"></path>
+<path d="M-60 345C170 175 285 440 540 260S830 145 1000-40"></path>
+<path d="M-50 360C170 190 300 420 550 270S850 140 1000-20"></path>
+<path d="M-40 375C170 205 315 400 560 280S870 135 1000 0"></path>
+<path d="M-30 390C170 220 330 380 570 290S890 130 1000 20"></path>
+<path d="M-20 405C170 235 345 360 580 300S910 125 1000 40"></path>
+<path d="M-10 420C170 250 360 340 590 310S930 120 1000 60"></path>
+<path d="M0 435C170 265 375 320 600 320S950 115 1000 80"></path>
+</g>
+</svg>
+<div class="lp-section-heading">
+<div class="lp-method-title-group">
+<p class="lp-eyebrow"><span aria-hidden="true" class="lp-section-index">01</span><span class="language-pair"><span class="zh" lang="zh-CN">方法</span><span class="en" lang="en">METHOD</span></span></p>
+<h2 id="method-title"><span class="language-pair"><span class="zh" lang="zh-CN">一个像素，<br/><span class="lp-gradient-ink">两个表面点</span></span><span class="en" lang="en">One pixel,<br/><span class="lp-gradient-ink">two surface points</span></span></span></h2>
+<div aria-hidden="true" class="lp-encoding-motif"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span>C₁ → C₈</span></div>
+</div>
+<div class="lp-section-intro">
+<p class="lp-intro-lead"><span class="language-pair"><span class="zh" lang="zh-CN">同一条相机射线<br/>与物体前、后表面相交。</span><span class="en" lang="en">Where a camera ray meets<br/>the object surface</span></span></p>
+<p><span class="language-pair"><span class="zh" lang="zh-CN">沿这条射线，最近的表面交点对应前表面，最远的交点对应后表面。网络分别预测两个交点的层次化连续坐标编码。解码后，同一个图像像素就能对应物体坐标系中的两个三维点。</span><span class="en" lang="en">The nearest intersection lies on the front surface and the farthest on the back surface. The network predicts a hierarchical continuous coordinate code for each. Decoding both gives two 3D points in the object coordinate frame for the same pixel.</span></span></p>
+<a class="lp-text-link lp-method-link" data-local-link="" href="docs/method.html"><span class="language-pair language-pair-inline"><span class="zh" lang="zh-CN">查看方法详解<span aria-hidden="true">↗</span></span><span class="en" lang="en">Read about the method<span aria-hidden="true">↗</span></span></span></a>
+</div>
+</div>
+</div>
+<figure class="lp-method-figure"><a aria-label="查看论文方法图原图" data-label-en="Open full method figure" data-label-zh="查看论文方法图原图" href="assets/show_vis/fig2.jpg" rel="noopener noreferrer" target="_blank"><img alt="HccePose(BF) 预测掩码与前后表面坐标编码，建立 2D–3D 对应后用 RANSAC-PnP 求解位姿。" data-alt-en="HccePose(BF) predicts masks and surface coordinate codes, builds 2D–3D correspondences, and estimates the pose with RANSAC-PnP." data-alt-zh="HccePose(BF) 预测掩码与前后表面坐标编码，建立 2D–3D 对应后用 RANSAC-PnP 求解位姿。" height="915" loading="lazy" src="assets/show_vis/fig2.jpg" width="2592"/></a><figcaption><span class="language-pair"><span class="zh" lang="zh-CN">HccePose(BF) 网络结构与位姿求解流程</span><span class="en" lang="en">HccePose(BF) architecture and pose estimation pipeline</span></span></figcaption></figure>
+<ol class="lp-method-steps">
+<li><span class="lp-step-number">01</span><div><h3><span class="language-pair"><span class="zh" lang="zh-CN">检测与表面预测</span><span class="en" lang="en">Detect &amp; predict surfaces</span></span></h3><p><span class="language-pair"><span class="zh" lang="zh-CN">YOLO 检出物体后，HccePose 在裁剪区域内预测掩码和前、后表面的坐标编码。</span><span class="en" lang="en">YOLO detects the object. HccePose predicts a mask and coordinate codes for both surfaces in the cropped image.</span></span></p></div></li>
+<li><span class="lp-step-number">02</span><div><h3><span class="language-pair"><span class="zh" lang="zh-CN">构建 2D–3D 对应</span><span class="en" lang="en">Match pixels to 3D points</span></span></h3><p><span class="language-pair"><span class="zh" lang="zh-CN">解码前、后表面坐标，将掩码内的像素与对应的三维点配对。</span><span class="en" lang="en">Decode the surface coordinates and pair each pixel inside the mask with its 3D points.</span></span></p></div></li>
+<li><span class="lp-step-number">03</span><div><h3><span class="language-pair"><span class="zh" lang="zh-CN">求解 6D 位姿</span><span class="en" lang="en">Estimate the 6D pose</span></span></h3><p><span class="language-pair"><span class="zh" lang="zh-CN">结合相机内参，用 PnP 求解物体到相机的旋转和平移。</span><span class="en" lang="en">Solve PnP with the camera intrinsics to recover object-to-camera rotation and translation.</span></span></p></div></li>
+</ol>
+<p class="lp-method-note"><span class="language-pair"><span class="zh" lang="zh-CN">检测器可以识别多个类别，位姿权重按物体加载。准备匹配的模型与相机内参，即可接入自己的图像。</span><span class="en" lang="en">The detector can identify multiple categories; pose weights are loaded per object. Supply matching models and camera intrinsics to work with your images.</span></span></p>
+</section>
+<section aria-labelledby="examples-title" class="lp-examples-section" id="examples">
+<div class="lp-container lp-section">
+<div class="lp-section-heading lp-examples-heading"><div><p class="lp-eyebrow"><span aria-hidden="true" class="lp-section-index">02</span><span class="language-pair"><span class="zh" lang="zh-CN">示例</span><span class="en" lang="en">EXAMPLES</span></span></p><h2 id="examples-title"><span class="language-pair"><span class="zh" lang="zh-CN">料箱中的<br/><span class="lp-gradient-ink">物体位姿</span></span><span class="en" lang="en">Object poses<br/><span class="lp-gradient-ink">in a bin</span></span></span></h2></div><div class="lp-section-intro"><p class="lp-intro-lead"><span class="language-pair"><span class="zh" lang="zh-CN">公开图像、视频，<br/>以及三角块 RGB-D 交互。</span><span class="en" lang="en">Published images, video,<br/>and triangular-part RGB-D interaction.</span></span></p><p><span class="language-pair"><span class="zh" lang="zh-CN">查看公开图像与视频示例，再通过公开 WAPR 接口接入配准深度与实例掩码。</span><span class="en" lang="en">Explore published image and video examples, then connect registered depth and instance masks through the published WAPR API.</span></span></p></div></div>
+<div aria-label="选择使用案例" class="lp-case-tabs" data-label-en="Choose an example" data-label-zh="选择使用案例" role="tablist" style="--case-index: 0">
+<span aria-hidden="true" class="lp-case-tab-glider"></span>
+<button aria-controls="case-rgb" aria-selected="true" id="tab-rgb" role="tab" tabindex="0" type="button"><span class="lp-tab-number">01</span><span class="language-pair"><span class="zh" lang="zh-CN">RGB 图片</span><span class="en" lang="en">RGB images</span></span></button>
+<button aria-controls="case-video" aria-selected="false" id="tab-video" role="tab" tabindex="-1" type="button"><span class="lp-tab-number">02</span><span class="language-pair"><span class="zh" lang="zh-CN">视频逐帧</span><span class="en" lang="en">Video frames</span></span></button>
+<button aria-controls="case-rgbd" aria-selected="false" id="tab-rgbd" role="tab" tabindex="-1" type="button"><span class="lp-tab-number">03</span><span class="language-pair"><span class="zh" lang="zh-CN">RGB-D + WAPR</span><span class="en" lang="en">RGB-D + WAPR</span></span></button>
+</div>
+<!-- Shared grid tracks reserve the largest bilingual content across all examples.
+             共用网格按三个案例和双语内容共同占位，换页或视频就绪不改变尺寸。 -->
+<div class="lp-case-deck">
+<section aria-hidden="false" aria-labelledby="tab-rgb" class="lp-case" id="case-rgb" role="tabpanel" tabindex="0">
+<figure class="lp-case-visual">
+<a aria-label="查看 RGB 推理结果原图" class="lp-case-media" data-label-en="Open full RGB inference result" data-label-zh="查看 RGB 推理结果原图" href="assets/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" rel="noopener noreferrer" target="_blank"><img alt="碗中白色零件的三维包围盒投影、预测掩码、前后表面坐标和分层编码。" data-alt-en="Projected 3D bounding boxes, predicted masks, front and back surface coordinates, and hierarchical codes for the white parts in the bowl." data-alt-zh="碗中白色零件的三维包围盒投影、预测掩码、前后表面坐标和分层编码。" height="1920" loading="lazy" src="assets/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" width="3840"/></a>
+<figcaption><span class="language-pair"><span class="zh" lang="zh-CN">碗中白色 3D 打印零件的位姿预测</span><span class="en" lang="en">Predicted poses of white 3D-printed parts in a bowl</span></span><a aria-label="在新标签页打开完整图片" class="lp-media-open" data-label-en="Open full image in a new tab" data-label-zh="在新标签页打开完整图片" href="assets/show_vis/IMG_20251007_165718_show_6d_vis1.jpg" rel="noopener noreferrer" target="_blank"><span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<div class="lp-case-copy">
+<p class="lp-case-kicker"><span class="language-pair"><span class="zh" lang="zh-CN">彩色图像 → 物体位姿</span><span class="en" lang="en">RGB → 6D POSE</span></span></p>
+<h3><span class="language-pair"><span class="zh" lang="zh-CN">单张 RGB 图像中的<br/>多个物体实例</span><span class="en" lang="en">Multiple instances<br/>in one RGB image</span></span></h3>
+<p class="lp-case-description"><span class="language-pair"><span class="zh" lang="zh-CN">示例并排显示各个实例的预测掩码、前后表面坐标，以及按估计位姿投影到图像上的三维包围盒。</span><span class="en" lang="en">For each instance, the panels show the predicted mask, front and back surface coordinates, and the 3D bounding box projected at the estimated pose.</span></span></p>
+<p class="lp-case-detail"><span class="language-pair"><span class="zh" lang="zh-CN">输入：BGR 图像、相机内参、物体模型及对应权重</span><span class="en" lang="en">Inputs: BGR image, camera intrinsics, object models and matching weights</span></span></p>
+<a class="lp-button lp-case-action" data-local-link="" href="docs/rgb-inference.html"><span aria-hidden="true" class="lp-button-icon">→</span><span class="language-pair"><span class="zh" lang="zh-CN">运行 RGB 示例</span><span class="en" lang="en">Run the RGB example</span></span><span aria-hidden="true" class="lp-button-icon">→</span></a>
+</div>
+</section>
+<section aria-hidden="true" aria-labelledby="tab-video" class="lp-case" hidden="" id="case-video" inert="" role="tabpanel" tabindex="0">
+<figure class="lp-case-visual">
+<div class="lp-video-stage lp-case-media"><video aria-label="完整逐帧位姿与正背面编码演示" autoplay="" class="hd-input-video" controls="" data-label-en="Complete per-frame poses and front/back codes" data-label-zh="完整逐帧位姿与正背面编码演示" height="240" id="landing-video" loop="" muted="" playsinline="" poster="assets/media/public-poster.jpg" preload="none" width="600"><source src="assets/media/public-result.mp4" type="video/mp4"/></video></div>
+<figcaption><span class="language-pair"><span class="zh" lang="zh-CN">逐帧位姿与前、后表面编码</span><span class="en" lang="en">Per-frame poses and front/back surface codes</span></span><a aria-label="在新标签页打开完整视频" class="lp-media-open" data-label-en="Open full video in a new tab" data-label-zh="在新标签页打开完整视频" href="assets/media/public-result.mp4" rel="noopener noreferrer" target="_blank"><span aria-hidden="true">↗</span></a></figcaption>
+</figure>
+<div class="lp-case-copy">
+<p class="lp-case-kicker"><span class="language-pair"><span class="zh" lang="zh-CN">视频 → 逐帧位姿</span><span class="en" lang="en">VIDEO → FRAME POSES</span></span></p>
+<h3><span class="language-pair"><span class="zh" lang="zh-CN">逐帧估计<br/>视频中的位姿</span><span class="en" lang="en">Estimate poses<br/>frame by frame</span></span></h3>
+<p class="lp-case-description"><span class="language-pair"><span class="zh" lang="zh-CN">对视频逐帧调用同一个 Tester，即可复用模型，为每帧独立估计位姿。</span><span class="en" lang="en">Reuse one Tester across video frames to detect objects and estimate each frame’s poses independently.</span></span></p>
+<p class="lp-case-detail"><span class="language-pair"><span class="zh" lang="zh-CN">输入：视频、匹配分辨率的相机内参、物体权重</span><span class="en" lang="en">Inputs: video, intrinsics matching its resolution, object weights</span></span></p>
+<a class="lp-button lp-case-action" data-local-link="" href="docs/video.html"><span aria-hidden="true" class="lp-button-icon">→</span><span class="language-pair"><span class="zh" lang="zh-CN">查看视频示例</span><span class="en" lang="en">View video example</span></span><span aria-hidden="true" class="lp-button-icon">→</span></a>
+</div>
+</section>
+<section aria-hidden="true" aria-labelledby="tab-rgbd" class="lp-case" hidden="" id="case-rgbd" inert="" role="tabpanel" tabindex="0">
+<figure class="lp-case-visual"><div class="lp-case-media"><iframe allow="fullscreen" allowfullscreen="" data-label-en="Interactive triangular-part RGB-D preview" data-label-zh="三角块 RGB-D 三维交互预览" data-scene-viewer="" loading="lazy" src="assets/docs/assets/wapr-viewer/index.html?lang=en&amp;compact=1&amp;v=english-default-20261118" style="position:absolute;inset:0;width:100%;height:100%;border:0" title="三角块 RGB-D 三维交互预览"></iframe></div><figcaption><a class="lp-scene-open" data-scene-open="" data-local-link="" href="assets/docs/assets/wapr-viewer/index.html?v=english-default-20261118" target="_blank" rel="noopener" data-label-zh="打开完整三维查看器" data-label-en="Open the full 3D viewer"><span class="language-pair"><span class="zh" lang="zh-CN">三角块 RGB-D · 拖动旋转，滚轮或双指缩放</span><span class="en" lang="en">Triangular-part RGB-D · Drag to rotate; scroll or pinch to zoom</span></span></a><button class="lp-media-open" data-scene-align="" type="button" disabled="" aria-label="对齐原图" data-label-zh="对齐原图" data-label-en="Align with RGB"><span aria-hidden="true">↺</span></button></figcaption></figure>
+<div class="lp-case-copy">
+<p class="lp-case-kicker"><span class="language-pair"><span class="zh" lang="zh-CN">推荐扩展 · WAPR</span><span class="en" lang="en">RECOMMENDED · WAPR</span></span></p>
+<h3><span class="language-pair"><span class="zh" lang="zh-CN">由表面观察，<br/>走向三维位姿</span><span class="en" lang="en">From surface observations<br/>to poses in 3D</span></span></h3>
+<p class="lp-case-description"><span class="language-pair"><span class="zh" lang="zh-CN">在同一 RGB-D 场景中，对照实测深度点云与 CAD 位姿，旋转查看三角块，或进入完整页面检查逐区域评分。</span><span class="en" lang="en">Compare measured depth points with CAD poses in one RGB-D scene, rotate the triangular parts, or open the full page to inspect per-region scores.</span></span></p>
+<p class="lp-case-detail"><span class="language-pair"><span class="zh" lang="zh-CN">输入：彩色图、配准深度、内参，以及每个实例的掩码、米制网格和直径</span><span class="en" lang="en">Inputs: color image, registered depth, intrinsics, and a mask, metric mesh and diameter per instance</span></span></p>
+<a class="lp-button lp-case-action" data-local-link="" href="docs/rgbd-wapr.html"><span aria-hidden="true" class="lp-button-icon">→</span><span class="language-pair"><span class="language-pair"><span class="zh" lang="zh-CN">查看 WAPR 接入</span><span class="en" lang="en">Explore WAPR integration</span></span></span><span aria-hidden="true" class="lp-button-icon">→</span></a>
+</div>
+</section>
+</div>
+</div>
+</section>
+<section aria-labelledby="start-title" class="lp-section lp-container lp-start" id="start">
+<div class="lp-start-heading lp-ambient-panel" data-ambient-panel="">
+<p class="lp-eyebrow"><span aria-hidden="true" class="lp-section-index">03</span><span class="language-pair"><span class="zh" lang="zh-CN">使用文档</span><span class="en" lang="en">DOCUMENTATION</span></span></p>
+<h2 id="start-title"><span class="language-pair"><span class="zh" lang="zh-CN">从示例到<br/>自己的物体</span><span class="en" lang="en">From the demo<br/>to your own objects</span></span></h2>
+<p><span class="language-pair"><span class="zh" lang="zh-CN">准备配套资源，运行公开接口，<br/>把物体位姿接入你的应用。</span><span class="en" lang="en">Prepare matching resources, run the published interfaces,<br/>and bring object poses into your application.</span></span></p>
+<a class="lp-button lp-button-white" data-local-link="" href="docs/index.html"><span aria-hidden="true" class="lp-button-icon">→</span><span class="language-pair"><span class="zh" lang="zh-CN">进入完整文档</span><span class="en" lang="en">Browse all docs</span></span><span aria-hidden="true" class="lp-button-icon">→</span></a>
+</div>
+<div class="lp-entry-list">
+<a class="lp-entry" data-local-link="" href="docs/quickstart.html"><span class="lp-entry-number">01</span><div><h3><span class="language-pair"><span class="zh" lang="zh-CN">运行第一个示例</span><span class="en" lang="en">Run your first prediction</span></span></h3><p><span class="language-pair"><span class="zh" lang="zh-CN">准备模型和权重，在自己的 RGB 图像上运行推理。</span><span class="en" lang="en">Prepare matching models and weights, then run inference on your own RGB image.</span></span></p><span class="lp-entry-meta"><span class="language-pair"><span class="zh" lang="zh-CN">安装 → 数据与权重 → 第一次预测</span><span class="en" lang="en">Install → Data &amp; weights → First prediction</span></span></span></div><span aria-hidden="true" class="lp-entry-arrow">↗</span></a>
+<a class="lp-entry" data-local-link="" href="docs/tester-api.html"><span class="lp-entry-number">02</span><div><h3><span class="language-pair"><span class="zh" lang="zh-CN">接入自己的应用</span><span class="en" lang="en">Use HccePose in your application</span></span></h3><p><span class="language-pair"><span class="zh" lang="zh-CN">用 Tester 传入图像和内参，按约定的坐标系和单位读取位姿。</span><span class="en" lang="en">Pass an image and camera intrinsics to Tester, then read the poses in the documented coordinate frame and units.</span></span></p><span class="lp-entry-meta"><span class="language-pair"><span class="zh" lang="zh-CN">Tester API · 结果字段 · 位姿精修</span><span class="en" lang="en">Tester API · Results · Refinement</span></span></span></div><span aria-hidden="true" class="lp-entry-arrow">↗</span></a>
+<a class="lp-entry" data-local-link="" href="docs/rgbd-wapr.html"><span class="lp-entry-number">03</span><div><h3><span class="language-pair"><span class="zh" lang="zh-CN">接入 WAPR</span><span class="en" lang="en">Connect WAPR</span></span></h3><p><span class="language-pair"><span class="zh" lang="zh-CN">传入实例掩码、配准深度与模型，读取米制位姿和评分。</span><span class="en" lang="en">Supply instance masks, registered depth and models to receive meter poses and scores.</span></span></p><span class="lp-entry-meta"><span class="language-pair"><span class="zh" lang="zh-CN">掩码 → 配准深度 → 位姿与评分</span><span class="en" lang="en">Masks → Registered depth → Poses and scores</span></span></span></div><span aria-hidden="true" class="lp-entry-arrow">↗</span></a>
+</div>
+</section>
+</main>
+<footer class="lp-footer lp-container">
+<div><a class="lp-footer-brand" href="#top">HCCEPose<span aria-hidden="true">↑</span></a><p><span class="language-pair"><span class="zh" lang="zh-CN">分层连续坐标编码 · 已知物体 6D 位姿估计</span><span class="en" lang="en">Hierarchical continuous coordinate encoding for known-object 6D pose estimation</span></span></p></div>
+<nav aria-label="页脚导航" data-label-en="Footer navigation" data-label-zh="页脚导航"><a data-local-link="" href="https://wangyulin-seu.github.io/?lang=en"><span class="language-pair"><span class="zh" lang="zh-CN">全部项目</span><span class="en" lang="en">All projects</span></span></a><a data-local-link="" href="docs/installation.html"><span class="language-pair"><span class="zh" lang="zh-CN">环境安装</span><span class="en" lang="en">Installation</span></span></a><a data-local-link="" href="docs/citation.html"><span class="language-pair"><span class="zh" lang="zh-CN">引用与致谢</span><span class="en" lang="en">Citation</span></span></a><a href="https://github.com/WangYuLin-SEU/HCCEPose/issues" rel="noopener noreferrer" target="_blank"><span class="language-pair language-pair-inline"><span class="zh" lang="zh-CN">反馈问题<span aria-hidden="true">↗</span></span><span class="en" lang="en">Report an issue<span aria-hidden="true">↗</span></span></span></a></nav>
+</footer>
+<script defer="" src="assets/docs/landing.js?v=view-feedback-cache-20261117"></script>
+<script defer="" src="assets/docs/video.js?v=1"></script>
+<script defer="" src="assets/docs/motion.js?v=1"></script>
+</body>
+</html>
