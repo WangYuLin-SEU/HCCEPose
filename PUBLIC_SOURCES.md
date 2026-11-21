@@ -13,3 +13,5 @@ The paths below refer to the HCCEPose source project.
 See [LICENSE](LICENSE) for the project license. Third-party components retain their own licenses and author notices.
 
 - **Training and evaluation tutorials:** public stage scripts and their published settings from the HCCEPose revision above. The tutorials distinguish that upstream checkout from local application entry points.
+
+- **Native README 3D preview:** `docs/assets/readme-3d/` derives from the same saved RGB-D viewer scene above. The STL display copy simplifies CAD surfaces and represents nearby measured depth samples with small markers. Its wire cage is a spatial reference aid, not a measured boundary. A rigid display rotation compensates for GitHub's initial camera tilt; GitHub still fits the native STL framing automatically. Saved poses, scores and original scene files are unchanged. GitHub supplies the native STL viewing controls; the full linked website retains calibrated RGB/3D alignment, selection, status colors and layer controls.
