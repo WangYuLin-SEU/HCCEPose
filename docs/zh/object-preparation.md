@@ -1,6 +1,6 @@
 # 准备网格、旋转对称信息和模型元数据
 
-本页使用[公开上游源码](https://github.com/WangYuLin-SEU/HCCEPose/tree/f75cc4d5db2fc298fc7b853f8c75273757872382)中的准备、训练或评测脚本。请先按[安装说明](installation.md#公开训练与渲染源码)获取该版本，并在上游源码根目录执行本页命令；当前项目中的 `examples/inference/` 用于应用推理。
+本页使用本仓库根目录中的准备、训练或评测脚本。请按[安装说明](installation.md#公开训练与渲染源码)准备对应依赖，再从仓库根目录执行命令。`examples/inference/` 中的脚本用于应用推理。
 
 从 CAD 模型到训练数据，先要定好物体的坐标系、尺度和编号。下面用 [Bin-Picking 示例物体](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/4e482e540314622981ccd4fce5beddac7f9d3e1d/demo-bin-picking)走一遍。后续脚本共用数据集的 `models/` 目录，并以毫米为模型坐标单位。
 

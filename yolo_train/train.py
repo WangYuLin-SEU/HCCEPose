@@ -100,7 +100,7 @@ def train_yolo11(task, data_path, gpu_num, epochs, imgsz, batch):
     save_dir = os.path.join(os.path.dirname(os.path.dirname(data_path)), task_suffix, f"obj_s")
     os.makedirs(save_dir, exist_ok=True)
     model_name = f"yolo11-{task_suffix}-obj_s.pt"
-    final_model_path = os.path.join(os.path.dirname(os.path.dirname(data_path)), save_dir, model_name)
+    final_model_path = os.path.join(save_dir, model_name)
     model.save(final_model_path)
     print(f"Model saved as: {final_model_path}")
     return final_model_path

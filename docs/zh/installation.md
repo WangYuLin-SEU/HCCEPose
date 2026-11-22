@@ -46,18 +46,15 @@ WAPR 默认将资源放在用户缓存目录中的 `wapr/`，可选的 `WAPR_CAC
 
 ## 公开训练与渲染源码
 
-物体准备、PBR 渲染、标签生成、检测器训练、位姿训练和 BOP 评测脚本已保留在项目根目录。教程源码链接标明原始公开设置；如需使用该历史版本，可另建独立副本：
+物体准备、PBR 渲染、标签生成、检测器训练、位姿训练和 BOP 评测脚本位于项目根目录。使用与本文档配套的当前脚本，并先解压随附工具包：
 
 ```bash
-git clone https://github.com/WangYuLin-SEU/HCCEPose.git HCCEPose-upstream
-cd HCCEPose-upstream
-git checkout --detach f75cc4d5db2fc298fc7b853f8c75273757872382
 python -m zipfile -e bop_toolkit.zip .
 ```
 
-这些脚本位于该目录根部，如 `s1_p1_obj_rename_center.py`、`s4_p2_train_bf_pbr.py`；它们不在当前项目的 `examples/inference/` 中。教程链接均指向公开固定版本。阅读各脚本顶部的输入要求，修改用户数据路径后再运行。
+这些脚本包括 `s1_p1_obj_rename_center.py`、`s4_p2_train_bf_pbr.py`，与 `examples/inference/` 中的应用入口用途不同。阅读各脚本顶部的输入要求，修改用户数据路径后再运行。
 
-训练和渲染的依赖多于纯推理。PyMeshLab 用于网格预处理，KASAL 用于对称信息；BlenderProc 与 `bpy` 用于 PBR 渲染。需要渲染时在上游源码根目录执行：
+训练和渲染的依赖多于纯推理。PyMeshLab 用于网格预处理，KASAL 用于对称信息；BlenderProc 与 `bpy` 用于 PBR 渲染。需要渲染时在仓库根目录执行：
 
 ```bash
 python -m zipfile -e blenderproc.zip .

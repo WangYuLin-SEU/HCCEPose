@@ -1,12 +1,12 @@
 # Train the 2D detector
 
-This page uses preparation, training or evaluation scripts from the [public upstream source](https://github.com/WangYuLin-SEU/HCCEPose/tree/f75cc4d5db2fc298fc7b853f8c75273757872382). Obtain that revision as described in [Installation](installation.md#public-training-and-rendering-source), and run these commands from its root. The current project’s `examples/inference/` provides application inference.
+This page uses preparation, training or evaluation scripts in this repository’s root. Prepare the dependencies described in [Installation](installation.md#public-training-and-rendering-source), then run the commands from the repository root. Application inference examples are in `examples/inference/`.
 
 HccePose(BF) uses YOLOv11 to locate objects and estimates a 6D pose from each detected crop. To train a detector for your objects, convert the images and BOP annotations from your [PBR scenes](rendering.md) to YOLO format.
 
 ## Prepare images and bounding-box labels
 
-The public `s3_p1_prepare_yolo_label.py` illustrates conversion, but that fixed revision repeats the dataset root during path assembly. Merely replacing its placeholder can select nonexistent paths. Save this recipe in the upstream root, keeping dataset, PBR and output paths separate; set `dataset_root` to your data.
+Set the dataset root in `s3_p1_prepare_yolo_label.py` to run conversion. Alternatively, save this recipe in the repository root, keeping dataset, PBR and output paths separate; set `dataset_root` to your data.
 
 ```python
 import json
@@ -53,7 +53,7 @@ The example trains for 100 epochs on eight GPUs. Set `gpu_num` in `s3_p2_train_y
 python s3_p2_train_yolo.py
 ```
 
-Inference loads `yolo11/train_obj_s/detection/obj_s/yolo11-detection-obj_s.pt`. The training script skips training if `detection/obj_s/` already exists, even when the final weights are missing. Inspect that directory before retrying an interrupted run. If the outer script starts training, `yolo_train/train.py` checks for `yolo11/train_obj_s/train/weights/last.pt` and requests `resume=True` when it finds that checkpoint.
+Inference loads `yolo11/train_obj_s/detection/obj_s/yolo11-detection-obj_s.pt`. The wrapper skips training only when this final file is nonempty; an empty directory or zero-byte weight does not count as completion. A failed subprocess or missing final output raises an error. When training starts, `yolo_train/train.py` checks for `yolo11/train_obj_s/train/weights/last.pt` and requests `resume=True` when it finds that checkpoint.
 
 ```
 demo-bin-picking
@@ -74,4 +74,4 @@ demo-bin-picking
 
 Next, [generate the front and back coordinate labels](coordinate-labels.md) for the pose network.
 
-Also inspect the public training wrapper’s output path: `save_dir` is already derived from `data_objs_path`, so the final checkpoint should use `os.path.join(save_dir, model_name)`. Do not append relative dataset roots twice. Confirm the final file exists before inference.
+Relative paths resolve from the repository root as required above. Dataset, PBR, configuration and weight paths are constructed separately without repeating the root. A final weight file still needs an actual inference check.

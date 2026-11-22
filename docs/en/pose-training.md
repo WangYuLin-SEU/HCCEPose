@@ -1,12 +1,12 @@
 # Train HccePose(BF) for each object
 
-This page uses preparation, training or evaluation scripts from the [public upstream source](https://github.com/WangYuLin-SEU/HCCEPose/tree/f75cc4d5db2fc298fc7b853f8c75273757872382). Obtain that revision as described in [Installation](installation.md#public-training-and-rendering-source), and run these commands from its root. The current project’s `examples/inference/` provides application inference.
+This page uses preparation, training or evaluation scripts in this repository’s root. Prepare the dependencies described in [Installation](installation.md#public-training-and-rendering-source), then run the commands from the repository root. Application inference examples are in `examples/inference/`.
 
 HccePose(BF) learns a separate set of weights for each object. The script `s4_p2_train_bf_pbr.py` trains objects in sequence and can use one or more GPUs for each object.
 
 ## Configure the training script
 
-Prepare the [meshes and metadata](object-preparation.md), [PBR scenes](rendering.md) and [front and back coordinate labels](coordinate-labels.md). Open the [training script](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/s4_p2_train_bf_pbr.py) and edit the variables in `__main__`. Replace the placeholder `dataset_path` and set the object ID range.
+Prepare the [meshes and metadata](object-preparation.md), [PBR scenes](rendering.md) and [front and back coordinate labels](coordinate-labels.md). Open the [training script](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/s4_p2_train_bf_pbr.py) and edit the variables in `__main__`. Replace the placeholder `dataset_path` and set the object ID range.
 
 | Parameter | Example setting | Purpose |
 | --- | --- | --- |
@@ -53,3 +53,7 @@ demo-tex-objs
 ```
 
 During training, `test()` samples 1% of the same `train_pbr` split to monitor progress. For benchmark scores, run [BOP evaluation](bop-evaluation.md) on the corresponding test split.
+
+Local monitoring uses ADD-S for objects with a nontrivial symmetry transform and ADD otherwise; empty symmetry lists or identity-only transforms keep ADD. The pass threshold remains 10% of the object diameter. This monitoring metric does not replace official BOP scoring.
+
+An existing checkpoint that cannot be restored stops training with its path and cause instead of silently resetting the step. Only a missing or empty checkpoint directory starts a new run.

@@ -1501,12 +1501,13 @@ def load_checkpoint(check_point_path, net: HccePose_BF_Net, optimizer=None, loca
     ---
     ---
     Uses `get_checkpoint`, loads onto `cuda:CUDA_DEVICE`, restores optional
-    optimizer state, and returns metadata. For inference, report the object and file on failure.
+    optimizer state, and returns metadata. Missing checkpoints start a new training
+    run only when an optimizer is supplied; invalid existing checkpoints raise.
 
     Args:
         - check_point_path: Directory searched by `get_checkpoint`.
         - net: Target `HccePose_BF_Net` instance.
-        - optimizer: If not None, load `optimizer_state_dict` when present.
+        - optimizer: If not None, require and restore `optimizer_state_dict`.
         - local_rank: Rank used to gate print on failure.
         - CUDA_DEVICE: CUDA device index string.
 
@@ -1518,7 +1519,8 @@ def load_checkpoint(check_point_path, net: HccePose_BF_Net, optimizer=None, loca
     ---
     ---
     通过 `get_checkpoint` 解析路径，在 `cuda:CUDA_DEVICE` 上加载，可选恢复
-    优化器状态，并返回元信息字典；失败时在指定 rank 打印提示。
+    优化器状态，并返回元信息字典。传入优化器时，无 checkpoint 可开始新训练；
+    已有 checkpoint 无效时明确报错，不能降级成新训练。
 
     参数:
         - check_point_path: `get_checkpoint` 所搜索的目录。
@@ -1534,26 +1536,36 @@ def load_checkpoint(check_point_path, net: HccePose_BF_Net, optimizer=None, loca
     iteration_step = 0
     keypoints_ = []
     checkpoint_path = check_point_path
+    # An absent/empty training directory is distinct from a failed restoration.
+    # 训练目录不存在或为空，与已有 checkpoint 恢复失败是两种不同情况。
+    if optimizer is not None and inference_object_id is None:
+        directory_missing = not os.path.exists(check_point_path)
+        directory_empty = os.path.isdir(check_point_path) and not any(
+            os.path.isfile(os.path.join(check_point_path, name)) for name in os.listdir(check_point_path)
+        )
+        if directory_missing or directory_empty:
+            if local_rank == 0:
+                print('No checkpoint found; starting a new training run.')
+            return {'best_score': best_score, 'iteration_step': iteration_step, 'keypoints_': keypoints_}
     try:
         checkpoint_path = get_checkpoint(check_point_path)
         checkpoint = torch.load(checkpoint_path, map_location='cuda:' + CUDA_DEVICE, weights_only=False)
-        net.load_state_dict(checkpoint['model_state_dict'])
-        if optimizer is not None:
-            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        # Check required metadata before mutating model or optimizer state.
+        # 修改模型或优化器状态前，先读取所有必需元数据。
         best_score = checkpoint['best_score']
         iteration_step = checkpoint['iteration_step']
-        if inference_object_id is None:
-            keypoints_ = checkpoint['keypoints_']
-        else:
-            # Older checkpoints without a prior still support single-solver PnP.
-            keypoints_ = checkpoint.get('keypoints_', [])
+        keypoints_ = checkpoint.get('keypoints_', [])
+        model_state = checkpoint['model_state_dict']
+        optimizer_state = checkpoint['optimizer_state_dict'] if optimizer is not None else None
+        net.load_state_dict(model_state)
+        if optimizer is not None:
+            optimizer.load_state_dict(optimizer_state)
     except Exception as exc:
         if inference_object_id is not None:
             raise RuntimeError(
                 f'Cannot load pose checkpoint for object {inference_object_id} at {checkpoint_path}: {exc}'
             ) from exc
-        if local_rank == 0:
-            print('no checkpoint !')
+        raise RuntimeError(f'Cannot restore checkpoint at {checkpoint_path}: {exc}') from exc
     info = {'best_score': best_score, 'iteration_step': iteration_step, 'keypoints_': keypoints_}
     if inference_object_id is not None:
         info['checkpoint_path'] = checkpoint_path

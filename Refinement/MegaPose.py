@@ -868,9 +868,13 @@ def _run_megapose_job(input_json_path, input_npz_path, output_npz_path):
             **model_info['inference_parameters']
         )
 
-    infos = predictions.infos.sort_values('instance_id').reset_index(drop=True)
+    # Derive one permutation before sorting so poses and scores keep their instance identity.
+    # 排序前只计算一次排列，使位姿和分数始终对应同一实例。
+    order = predictions.infos['instance_id'].to_numpy(dtype=np.int64)
+    pose_order = np.argsort(order, kind='stable')
+    infos = predictions.infos.iloc[pose_order].reset_index(drop=True)
     poses = predictions.poses.cpu().numpy().astype(np.float32)
-    order = infos['instance_id'].to_numpy(dtype=np.int64)
+    poses = poses[pose_order]
     if has_initial_poses:
         scores = np.zeros((poses.shape[0],), dtype=np.float32)
     elif 'pose_score' in infos:
@@ -879,10 +883,7 @@ def _run_megapose_job(input_json_path, input_npz_path, output_npz_path):
         scores = infos['pose_logit'].to_numpy(dtype=np.float32)
     else:
         scores = np.zeros((poses.shape[0],), dtype=np.float32)
-    pose_order = np.argsort(order)
-    poses = poses[pose_order]
-    scores = scores[pose_order]
-    valid_ids = np.sort(order).astype(np.int64)
+    valid_ids = order[pose_order]
     save_dict = {
         'poses': poses,
         'scores': scores,

@@ -1,8 +1,8 @@
 # BOP evaluation
 
-This page uses preparation, training or evaluation scripts from the [public upstream source](https://github.com/WangYuLin-SEU/HCCEPose/tree/f75cc4d5db2fc298fc7b853f8c75273757872382). Obtain that revision as described in [Installation](installation.md#public-training-and-rendering-source), and run these commands from its root. The current project’s `examples/inference/` provides application inference.
+This page uses preparation, training or evaluation scripts in this repository’s root. Prepare the dependencies described in [Installation](installation.md#public-training-and-rendering-source), then run the commands from the repository root. Application inference examples are in `examples/inference/`.
 
-The [evaluation script](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/s4_p2_test_bf_pbr_bop_challenge.py) generates segmentation and pose predictions for the seven core BOP datasets. The supplied configuration uses LM-O, object IDs `[1, 5, 6, 8, 9, 10, 11, 12]` and `efficientnet_key=1`. It reads the [GDRNPP detections](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip) supplied for BOP 2023. To run on another dataset, update the dataset path, detection JSON and weights, and check the backbone setting.
+The [evaluation script](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/s4_p2_test_bf_pbr_bop_challenge.py) generates segmentation and pose predictions for the seven core BOP datasets. The supplied configuration uses LM-O, object IDs `[1, 5, 6, 8, 9, 10, 11, 12]` and `efficientnet_key=1`. It reads the [GDRNPP detections](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip) supplied for BOP 2023. To run on another dataset, update the dataset path, detection JSON and weights, and check the backbone setting.
 
 ```bash
 python s4_p2_test_bf_pbr_bop_challenge.py

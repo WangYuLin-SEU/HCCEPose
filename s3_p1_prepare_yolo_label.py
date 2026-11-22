@@ -52,23 +52,23 @@ if __name__ == '__main__':
     # 指定数据集文件夹的路径。
     dataset_path = 'xxx/xxx/demo-bin-picking'
     
-    # Extract the dataset name, the path to the `train_pbr` folder, and the output path for YOLO labels based on the given dataset path.
-    # 根据给定的数据集路径，提取数据集名称、`train_pbr` 文件夹路径以及 YOLO 标签的输出路径。
-    dataset_name = os.path.join(dataset_path)
-    dataset_path = os.path.join(dataset_path, '%s/train_pbr'%dataset_name)
-    output_path  = os.path.join(dataset_path, '%s/yolo11/train_obj_s'%dataset_name)
+    # Keep one dataset root and derive PBR inputs and YOLO outputs separately.
+    # 保留一个数据根目录，分别构造 PBR 输入与 YOLO 输出路径。
+    dataset_root = dataset_path
+    train_pbr_path = os.path.join(dataset_root, 'train_pbr')
+    output_path = os.path.join(dataset_root, 'yolo11', 'train_obj_s')
     
     # Extract all object IDs from the models_info.json file.
     # 根据 models_info.json 文件提取所有物体 ID。
     obj_id_list = []
-    with open(os.path.join(dataset_path, '%s/models/models_info.json'%dataset_name), "r") as f:
+    with open(os.path.join(dataset_root, 'models', 'models_info.json'), "r") as f:
         scene_gt_data = json.load(f)
     for key_ in scene_gt_data:
         obj_id_list.append(key_)
         
     # Convert the BOP-format `train_pbr` dataset into a YOLO-format dataset.
     # 将 BOP 格式的 `train_pbr` 数据集转换为 YOLO 格式的数据集。
-    convert_train_pbr_2_yolo(dataset_path, output_path, obj_id_list)
+    convert_train_pbr_2_yolo(train_pbr_path, output_path, obj_id_list)
     generate_yaml(output_path, obj_id_list)
     print("[INFO] Dataset preparation complete!")
     pass

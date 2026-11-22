@@ -55,6 +55,15 @@ from HccePose.PnP_solver import solve_PnP, solve_PnP_comb
 from HccePose.metric import add_s
 from kasal.bop_toolkit_lib.inout import load_ply
 
+
+def _reset_batch_norm_running_stats(net):
+    """Reset regular and synchronized BatchNorm state through an optional DDP wrapper.
+    穿过可选 DDP 包装，重置普通及同步 BatchNorm 的运行统计。
+    """
+    for module in net.modules():
+        if isinstance(module, (torch.nn.BatchNorm2d, torch.nn.SyncBatchNorm)):
+            module.reset_running_stats()
+
 def test(obj_ply, obj_info, net: HccePose_BF_Net, test_loader: torch.utils.data.DataLoader):
     net.eval()
     add_list_l = []
@@ -260,12 +269,9 @@ if __name__ == '__main__':
         # 尝试加载中断训练时保存的权重。
         best_score = 0
         iteration_step = 0
-        try:
-            checkpoint_info = load_checkpoint(save_path, net, optimizer, local_rank=local_rank, CUDA_DEVICE=CUDA_DEVICE)
-            best_score = checkpoint_info['best_score']
-            iteration_step = checkpoint_info['iteration_step']
-        except:
-            print('no checkpoint')
+        checkpoint_info = load_checkpoint(save_path, net, optimizer, local_rank=local_rank, CUDA_DEVICE=CUDA_DEVICE)
+        best_score = checkpoint_info['best_score']
+        iteration_step = checkpoint_info['iteration_step']
         
         if not ide_debug:
             net = torch.nn.SyncBatchNorm.convert_sync_batchnorm(net)
@@ -338,9 +344,7 @@ if __name__ == '__main__':
                     nan_flag = torch.tensor([int(torch.isnan(loss).any())], device=loss.device)
                     dist.all_reduce(nan_flag, op=dist.ReduceOp.SUM)
                     if nan_flag.item() > 0:
-                        for m in net.model.modules():
-                            if isinstance(m, torch.nn.BatchNorm2d):
-                                m.reset_running_stats()
+                        _reset_batch_norm_running_stats(net)
                         continue
                 scaler.scale(loss).backward()
                 scaler.step(optimizer)
@@ -366,4 +370,4 @@ if __name__ == '__main__':
                 if args.local_rank == 0:
                     print('end the training in iteration_step:', iteration_step)
                 break
-             
+

@@ -5,6 +5,32 @@ import os, shutil
 import pymeshlab as ml # pymeshlab==2023.12.post1
 import numpy as np
 
+
+def _copy_ply_texture(input_file, output_file):
+    """Copy the single texture declared in the PLY header, preserving its suffix.
+    复制 PLY 头声明的单张纹理，保留其文件后缀。
+    """
+    texture_names = []
+    with open(input_file, 'rb') as source:
+        for raw_line in source:
+            line = raw_line.decode('utf-8').strip()
+            if line.startswith('comment TextureFile '):
+                texture_names.append(line[len('comment TextureFile '):].strip())
+            if line == 'end_header':
+                break
+        else:
+            raise ValueError(f'Missing PLY end_header: {input_file}')
+    if len(texture_names) != 1 or not texture_names[0]:
+        raise ValueError(f'Expected one TextureFile declaration: {input_file}')
+    texture_source = os.path.join(os.path.dirname(input_file), texture_names[0])
+    if not os.path.isfile(texture_source):
+        raise FileNotFoundError(texture_source)
+    texture_suffix = os.path.splitext(texture_source)[1]
+    texture_output = os.path.splitext(output_file)[0] + texture_suffix
+    if os.path.realpath(texture_source) != os.path.realpath(texture_output):
+        shutil.copy2(texture_source, texture_output)
+    return texture_output
+
 def modify_ply_texture_filename(input_file, output_file, new_texture_name):
     ''' 
     ---
@@ -100,8 +126,7 @@ if __name__ == '__main__':
 
         # If a texture map exists, copy and rename the texture file
         # 若存在纹理图，则拷贝纹理图并重命名
-        if not os.path.exists(input_ply.replace('.ply', '.png')):
-            shutil.copy2(input_ply.replace('.ply', '.png'), output_ply.replace('.ply', '.png'))
+        texture_output = _copy_ply_texture(input_ply, output_ply)
         
         # Convert wedge UVs to vertex UVs
         # 将 wedge UV 转换为 vertex UV
@@ -128,6 +153,6 @@ if __name__ == '__main__':
     # MeshLab 无法设置 PLY 文件中的纹理图名称
     # 需要使用 `modify_ply_texture_filename` 来修正 PLY 文件中的纹理图名称
     if mesh_c.texture_number() > 0:
-        modify_ply_texture_filename(output_ply, output_ply, os.path.basename(output_ply.replace('.ply', '.png')))
+        modify_ply_texture_filename(output_ply, output_ply, os.path.basename(texture_output))
 
     pass

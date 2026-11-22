@@ -1,6 +1,6 @@
 # Render PBR training data
 
-This page uses preparation, training or evaluation scripts from the [public upstream source](https://github.com/WangYuLin-SEU/HCCEPose/tree/f75cc4d5db2fc298fc7b853f8c75273757872382). Obtain that revision as described in [Installation](installation.md#public-training-and-rendering-source), and run these commands from its root. The current project’s `examples/inference/` provides application inference.
+This page uses preparation, training or evaluation scripts in this repository’s root. Prepare the dependencies described in [Installation](installation.md#public-training-and-rendering-source), then run the commands from the repository root. Application inference examples are in `examples/inference/`.
 
 Once you have [prepared the meshes and symmetry metadata](object-preparation.md) and [installed BlenderProc](installation.md), you can render training scenes for your objects. The example uses `s2_p1_gen_pbr_data.py`, our adaptation of [BlenderProc2](https://github.com/DLR-RM/BlenderProc), to render scenes with different viewpoints, materials and object placements.
 

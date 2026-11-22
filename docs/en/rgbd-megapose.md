@@ -61,6 +61,8 @@ if __name__ == '__main__':
 
 The millimeter-to-meter conversion applies to this public frame. Check your own sensor units and register depth to color before use. For RGB only, pass `depth=None` without creating dummy depth.
 
+When using `Refinement.refinement_test_utils.load_capture_frame(capture_dir, name, depth_scale_to_m=1e-3)`, keep raw depth units explicit. The default `1e-3` converts the public millimeter frames to meters; use `1` for meters or `1e-4` for tenths of a millimeter. The reader does not infer units from the depth median.
+
 ## Outputs and instance alignment
 
 `Rts_hccepose` retains the initial millimeter poses. Successful refinements update rows in `Rts`. `megapose_valid_pose_ids` contains original instance indices, and scores align with that array. Unchanged rows retain the initial pose, so a returned pose alone does not demonstrate successful refinement. `conf` remains the detection score; `pnp_success` describes initial PnP.

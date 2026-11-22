@@ -61,6 +61,8 @@ if __name__ == '__main__':
 
 毫米深度到米的系数仅适用于这个公开帧。自己的传感器应明确单位并完成彩色/深度配准。只用 RGB 时直接传 `depth=None`，不需要虚构深度图。
 
+使用 `Refinement.refinement_test_utils.load_capture_frame(capture_dir, name, depth_scale_to_m=1e-3)` 读取公开采集帧时，也需显式保持单位约定。默认系数 `1e-3` 把毫米转换为米；米制输入用 `1`，十分之一毫米输入用 `1e-4`，不再根据深度中位数猜单位。
+
 ## 输出与实例对应
 
 精修前的毫米位姿保存在 `Rts_hccepose`；`Rts` 中成功的实例更新为 MegaPose 结果。`megapose_valid_pose_ids` 是原实例行号，分数与该数组对齐。没有更新的行保留初值，因此不能把“有返回位姿”直接解释为“精修成功”。`conf` 仍是检测分数，`pnp_success` 仍记录初始 PnP。

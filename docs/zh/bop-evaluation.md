@@ -1,8 +1,8 @@
 # BOP 评测
 
-本页使用[公开上游源码](https://github.com/WangYuLin-SEU/HCCEPose/tree/f75cc4d5db2fc298fc7b853f8c75273757872382)中的准备、训练或评测脚本。请先按[安装说明](installation.md#公开训练与渲染源码)获取该版本，并在上游源码根目录执行本页命令；当前项目中的 `examples/inference/` 用于应用推理。
+本页使用本仓库根目录中的准备、训练或评测脚本。请按[安装说明](installation.md#公开训练与渲染源码)准备对应依赖，再从仓库根目录执行命令。`examples/inference/` 中的脚本用于应用推理。
 
-[评测脚本](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/s4_p2_test_bf_pbr_bop_challenge.py)为 BOP 的七个核心数据集生成分割和位姿预测。随仓库提供的配置使用 LM-O，物体 ID 为 `[1, 5, 6, 8, 9, 10, 11, 12]`，骨干网络设置为 `efficientnet_key=1`。检测框来自 BOP 2023 提供的 [GDRNPP 检测结果](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip)。如果换用其他数据集，请同时替换数据集路径、检测 JSON 和模型权重，并检查骨干网络配置。
+[评测脚本](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/s4_p2_test_bf_pbr_bop_challenge.py)为 BOP 的七个核心数据集生成分割和位姿预测。随仓库提供的配置使用 LM-O，物体 ID 为 `[1, 5, 6, 8, 9, 10, 11, 12]`，骨干网络设置为 `efficientnet_key=1`。检测框来自 BOP 2023 提供的 [GDRNPP 检测结果](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip)。如果换用其他数据集，请同时替换数据集路径、检测 JSON 和模型权重，并检查骨干网络配置。
 
 ```bash
 python s4_p2_test_bf_pbr_bop_challenge.py

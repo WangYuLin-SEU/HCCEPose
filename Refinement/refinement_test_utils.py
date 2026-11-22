@@ -12,19 +12,19 @@ import cv2
 import numpy as np
 
 
-def convert_depth_to_meter(depth_raw):
+def convert_depth_to_meter(depth_raw, depth_scale_to_m=1e-3):
     '''
     ---
     ---
     Convert a raw saved depth map to meter units.
     ---
     ---
-    The helper infers a practical scale from the depth magnitude so the same
-    utility can handle depth saved in meters, millimeters, or millimeters times
-    ten.
+    Set the scale explicitly: 1 for meters, 1e-3 for millimeters (the public
+    capture default), or 1e-4 for tenths of a millimeter. Distance is not a unit.
 
     Args:
         - depth_raw: Raw depth image read from disk.
+        - depth_scale_to_m: Positive conversion factor from raw values to meters.
 
     Returns:
         - depth_m: Depth image converted to meters.
@@ -33,28 +33,22 @@ def convert_depth_to_meter(depth_raw):
     将原始保存的深度图转换到米单位。
     ---
     ---
-    该函数会根据深度数值量级推断一个实用缩放比例，因此同一套工具既可处理
-    以米保存的深度图，也可处理以毫米或毫米乘十保存的深度图。
+    显式指定换算系数：米为 1，毫米为 1e-3（公开采集样例默认值），
+    十分之一毫米为 1e-4。不能根据场景距离推断深度单位。
 
     参数:
         - depth_raw: 从磁盘读取的原始深度图。
+        - depth_scale_to_m: 原始数值换算到米的正系数。
 
     返回:
         - depth_m: 已转换为米单位的深度图。
     '''
-    depth_m = depth_raw.astype(np.float32).copy()
-    valid_mask = depth_m > 0
-    if not np.any(valid_mask):
-        return depth_m
-    valid_depth = depth_m[valid_mask]
-    depth_median = float(np.median(valid_depth))
-    if depth_median > 2000.0:
-        depth_scale_to_meter = 1e-4
-    elif depth_median > 10.0:
-        depth_scale_to_meter = 1e-3
-    else:
-        depth_scale_to_meter = 1.0
-    depth_m *= depth_scale_to_meter
+    if not np.isfinite(depth_scale_to_m) or depth_scale_to_m <= 0:
+        raise ValueError('depth_scale_to_m must be finite and positive')
+    depth_m = np.asarray(depth_raw, dtype=np.float32).copy()
+    if not np.isfinite(depth_m).all() or np.any(depth_m < 0):
+        raise ValueError('Raw depth must be finite and nonnegative')
+    depth_m *= depth_scale_to_m
     return depth_m
 
 def list_capture_frame_names(capture_dir):
@@ -96,7 +90,7 @@ def list_capture_frame_names(capture_dir):
         if file_name.endswith('_rgb.png')
     ])
 
-def load_capture_frame(capture_dir, name):
+def load_capture_frame(capture_dir, name, depth_scale_to_m=1e-3):
     '''
     ---
     ---
@@ -112,6 +106,7 @@ def load_capture_frame(capture_dir, name):
     Args:
         - capture_dir: Capture directory path.
         - name: Shared frame stem.
+        - depth_scale_to_m: Raw-depth-to-meter factor; public frames use millimeters.
 
     Returns:
         - image: BGR uint8 image (``cv2.imread`` layout; pass unchanged to ``Tester.predict``).
@@ -129,6 +124,7 @@ def load_capture_frame(capture_dir, name):
     参数:
         - capture_dir: 采集目录路径。
         - name: 共享帧名前缀。
+        - depth_scale_to_m: 原始深度到米的系数；公开帧使用毫米。
 
     返回:
         - image: BGR uint8（与 ``cv2.imread`` 一致，可直接传入 ``Tester.predict``）。
@@ -155,5 +151,5 @@ def load_capture_frame(capture_dir, name):
     if depth is None:
         raise FileNotFoundError(f'Failed to load depth image: {depth_path}')
 
-    depth_m = convert_depth_to_meter(depth)
+    depth_m = convert_depth_to_meter(depth, depth_scale_to_m)
     return image, depth, depth_m, cam_K

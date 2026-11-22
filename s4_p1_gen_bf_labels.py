@@ -25,6 +25,7 @@ demo-bin-picking
 ```
 '''
 
+import os
 import torch
 from HccePose.bop_loader import bop_dataset, rendering_bop_dataset_back_front
 

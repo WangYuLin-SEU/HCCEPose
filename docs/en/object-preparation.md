@@ -1,6 +1,6 @@
 # Prepare meshes, symmetry annotations and model metadata
 
-This page uses preparation, training or evaluation scripts from the [public upstream source](https://github.com/WangYuLin-SEU/HCCEPose/tree/f75cc4d5db2fc298fc7b853f8c75273757872382). Obtain that revision as described in [Installation](installation.md#public-training-and-rendering-source), and run these commands from its root. The current project’s `examples/inference/` provides application inference.
+This page uses preparation, training or evaluation scripts in this repository’s root. Prepare the dependencies described in [Installation](installation.md#public-training-and-rendering-source), then run the commands from the repository root. Application inference examples are in `examples/inference/`.
 
 Start by choosing a coordinate frame, scale and ID for each object. This example follows the [Bin-Picking part](https://huggingface.co/datasets/SEU-WYL/HccePose/tree/4e482e540314622981ccd4fce5beddac7f9d3e1d/demo-bin-picking) from CAD to a training mesh. The rest of the pipeline reads meshes from the dataset’s `models/` directory and uses millimeters for model coordinates.
 

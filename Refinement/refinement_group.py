@@ -221,7 +221,19 @@ class Refinement_MP:
         env['TMPDIR'] = str(self.tmp_dir)
         env['CONDA_PKGS_DIRS'] = str(self.conda_pkgs_dir)
         if self.device.startswith('cuda:'):
-            env['CUDA_VISIBLE_DEVICES'] = self.device.split(':', 1)[1]
+            # Resolve the parent's logical CUDA index through its inherited visibility list.
+            # 通过父进程继承的可见设备列表，把逻辑 CUDA 编号映射到实际设备 token。
+            device_index = int(self.device.split(':', 1)[1])
+            inherited_devices = env.get('CUDA_VISIBLE_DEVICES')
+            if inherited_devices is None:
+                if device_index < 0:
+                    raise ValueError(f'Invalid CUDA device: {self.device}')
+                env['CUDA_VISIBLE_DEVICES'] = str(device_index)
+            else:
+                device_tokens = [token.strip() for token in inherited_devices.split(',')]
+                if device_index < 0 or device_index >= len(device_tokens) or not device_tokens[device_index] or device_tokens[device_index] == '-1':
+                    raise ValueError(f'{self.device} is outside CUDA_VISIBLE_DEVICES={inherited_devices!r}')
+                env['CUDA_VISIBLE_DEVICES'] = device_tokens[device_index]
         return env
 
     def _run_env_python(self, args, cwd=None, capture_output=True):

@@ -1,6 +1,6 @@
 # 渲染 PBR 训练数据
 
-本页使用[公开上游源码](https://github.com/WangYuLin-SEU/HCCEPose/tree/f75cc4d5db2fc298fc7b853f8c75273757872382)中的准备、训练或评测脚本。请先按[安装说明](installation.md#公开训练与渲染源码)获取该版本，并在上游源码根目录执行本页命令；当前项目中的 `examples/inference/` 用于应用推理。
+本页使用本仓库根目录中的准备、训练或评测脚本。请按[安装说明](installation.md#公开训练与渲染源码)准备对应依赖，再从仓库根目录执行命令。`examples/inference/` 中的脚本用于应用推理。
 
 准备好[物体模型和对称信息](object-preparation.md)，按[环境安装](installation.md)配置 BlenderProc 后，就可以为新物体渲染训练场景。示例使用我们基于 [BlenderProc2](https://github.com/DLR-RM/BlenderProc) 修改的 `s2_p1_gen_pbr_data.py`，从不同视角拍摄带有随机材质和物体摆放的场景。
 

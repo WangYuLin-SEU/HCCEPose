@@ -464,7 +464,10 @@ class Tester:
             
             t_stage = time.time()
             scaled_img_torch = kornia.geometry.transform.resize(img_torch.permute(0,3,1,2), (int(img_torch.shape[1] * 1.0), int(img_torch.shape[2] * 1.0)), interpolation='bilinear')
-            det_yolo = self.model_yolo(scaled_img_torch.clamp(0,255)/255, 
+            # Tensor inputs bypass Ultralytics' BGR-to-RGB conversion; keep HCCE crops in BGR.
+            # Tensor 输入不会经过 Ultralytics 的 BGR→RGB 转换；HCCE 裁剪仍保持 BGR。
+            detector_rgb = scaled_img_torch[:, [2, 1, 0]].contiguous()
+            det_yolo = self.model_yolo(detector_rgb.clamp(0,255)/255,
                                        conf=conf, iou=iou, max_det=max_det, 
                                     #    imgsz=640 * 1
                                        )

@@ -650,7 +650,9 @@ class rendering_bop_dataset_back_front(Dataset):
         
         # Render the back depth map and generate the back label map.
         # 渲染背面的深度图并生成背面标签图。
-        self.renderer_vispy.render_object(0, R, t, fx, fy, cx, cy, draw_back = True)
+        # Render and invert the same canonical pose, including symmetry offsets.
+        # 渲染与反变换使用同一套标准化位姿，包括对称变换的平移。
+        self.renderer_vispy.render_object(0, RT[0], RT[1], fx, fy, cx, cy, draw_back = True)
         depth = self.renderer_vispy.depth
         grid_row, grid_column = np.nonzero(mask_n.astype(np.int64)>0)
         p2dxy = np.empty((len(grid_row), 2))
@@ -880,9 +882,15 @@ class rendering_bop_dataset_back_front(Dataset):
 
         trans_disc = [{'R': np.eye(3), 't': np.array([[0, 0, 0]]).T}]  # Identity.
         for sym in model_info['symmetries_discrete']:
-            sym_4x4 = np.reshape(sym, (4, 4))
-            R = sym_4x4[:3, :3]
-            t = sym_4x4[:3, 3].reshape((3, 1))
+            # BOP discretization returns R/t records; source JSON stores flat matrices.
+            # BOP 离散化返回 R/t 记录；原始 JSON 则保存平铺矩阵。
+            if isinstance(sym, dict):
+                R = np.asarray(sym['R']).reshape((3, 3))
+                t = np.asarray(sym['t']).reshape((3, 1))
+            else:
+                sym_4x4 = np.reshape(sym, (4, 4))
+                R = sym_4x4[:3, :3]
+                t = sym_4x4[:3, 3].reshape((3, 1))
             trans_disc.append({'R': R, 't': t})
         best_R = None
         best_t = None
@@ -1052,8 +1060,14 @@ class train_bop_dataset_back_front(Dataset):
         back_label_image_path = os.path.join(self.target_dir_back, info_['scene'], label_image_name + '.png')
         GT_Front = cv2.imread(front_label_image_path)
         GT_Back = cv2.imread(back_label_image_path)
-        if GT_Front is None: GT_Front = np.zeros((self.crop_size_gt, self.crop_size_gt, 3))
-        if GT_Back is None: GT_Back = np.zeros((self.crop_size_gt, self.crop_size_gt, 3))
+        # Missing BF supervision is an input error, not a zero-coordinate target.
+        # BF 监督缺失是输入错误，不能当作零坐标目标继续训练。
+        for label_path, label in ((front_label_image_path, GT_Front),
+                                  (back_label_image_path, GT_Back)):
+            if label is None:
+                raise FileNotFoundError(f'Cannot read training coordinate label: {label_path}')
+            if rgb is None or label.shape != rgb.shape:
+                raise ValueError(f'Training coordinate label must match RGB shape: {label_path}; RGB: {info_["rgb"]}')
         if self.aug_op == 'imgaug': rgb = self.apply_augmentation(rgb)
         Bbox = aug_square_fp32(np.array(info_['bbox_visib']), padding_ratio=self.padding_ratio)
         rgb_c = crop_square_resize(rgb, Bbox, self.crop_size_img, interpolation=cv2.INTER_LINEAR)

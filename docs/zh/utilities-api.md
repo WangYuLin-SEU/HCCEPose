@@ -24,7 +24,7 @@ saved_paths = save_visual_artifacts([
 
 函数允许覆盖同名文件，并会记录每个尝试写入的路径。它不检查 `cv2.imwrite()` 的返回值；需要确认写入成功时，请检查目标文件。
 
-源码：[`save_visual_artifacts`](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/HccePose/test_script_utils.py)。
+源码：[`save_visual_artifacts`](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/HccePose/test_script_utils.py)。
 
 ## 打印阶段耗时
 
@@ -36,7 +36,7 @@ print_stage_time_breakdown(results_dict, enabled=False, prefix='')
 
 设置 `enabled=True` 后打印 `time`、各阶段秒数和占比，返回 `None`。耗时字典缺失或格式不符时打印 unavailable 提示。百分比以 `results_dict['time']` 为分母，但可视化可能位于这一计时区间之外，所以不保证加总为 100%。见[计时定义](results-api.md)。
 
-源码：[`print_stage_time_breakdown`](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/HccePose/test_script_utils.py)。
+源码：[`print_stage_time_breakdown`](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/HccePose/test_script_utils.py)。
 
 ## 底层可视化
 
@@ -55,7 +55,7 @@ vis_rgb_mask_Coord_origin(
 
 `vis_rgb_mask_Coord` 返回可视化图像，传入 `img_path` 时还会把图像保存到该路径。`vis_rgb_mask_Coord_origin` 返回两幅图像，保留了 `img_path` 参数，但不使用它写文件。常规推理可让 `Tester` 准备输入，再用上面的工具保存 `show_*` 图像。
 
-源码：[裁剪图可视化](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/HccePose/visualization.py)、[完整画布可视化](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/HccePose/visualization.py)。
+源码：[裁剪图可视化](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/HccePose/visualization.py)、[完整画布可视化](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/HccePose/visualization.py)。
 
 ## 网络与 checkpoint
 
@@ -85,13 +85,13 @@ load_checkpoint(
 )
 ```
 
-两处路径都指向 checkpoint **目录**。`get_checkpoint()` 解析文件名 `step` 前面的分数，返回最高分文件路径。`load_checkpoint()` 加载 CUDA 权重及可选优化器状态，返回 `best_score`、`iteration_step`、`keypoints_`。当前加载器对无法加载的权重抛出明确异常，并提供物体编号、文件及原因。使用架构兼容的 checkpoint；不要将说明文件或旧权重混放在 `best_score/` 中。
+两处路径都指向 checkpoint **目录**。`get_checkpoint()` 解析文件名 `step` 前面的分数，返回最高分文件路径。`load_checkpoint()` 加载 CUDA 权重及可选优化器状态，返回 `best_score`、`iteration_step`、`keypoints_`。传入优化器时必须同时恢复其状态；只有目录不存在或为空才从零开始新训练。已有 checkpoint 损坏或不兼容会停止并报告文件和原因。旧权重可缺少 keypoints_，但空先验只能用于不依赖先验的 PnP 模式。使用架构兼容的 checkpoint；不要将说明文件或旧权重混放在 `best_score/` 中。
 
-源码：[网络构造](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/HccePose/network_model.py)、[批推理](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/HccePose/network_model.py)、[checkpoint 选择](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/HccePose/network_model.py)、[checkpoint 加载](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/HccePose/network_model.py)。
+源码：[网络构造](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/HccePose/network_model.py)、[批推理](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/HccePose/network_model.py)、[checkpoint 选择](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/HccePose/network_model.py)、[checkpoint 加载](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/HccePose/network_model.py)。
 
 ## 训练与评测边界
 
-训练和评测各有独立的 Python 脚本，参数在脚本内设置。仓库没有统一的 `train()` 或 `evaluate()` 接口。下表脚本位于[公开上游源码](installation.md#公开训练与渲染源码)根目录，并非当前项目的本地入口。
+训练和评测各有独立的 Python 脚本，参数在脚本内设置。仓库没有统一的 `train()` 或 `evaluate()` 接口。下表脚本位于[仓库根目录](installation.md#公开训练与渲染源码)。
 
 | 脚本 | 用途 |
 | --- | --- |
@@ -103,4 +103,4 @@ load_checkpoint(
 
 BOP 脚本使用 `efficientnet_key=1`、脚本列出的 LM-O 物体 ID 及该数据集的检测 JSON。它输出 `seg2d_<dataset>.json` 和 `det6d_<dataset>.csv` 供后续评分。两份文件的 `time=-1` 均为占位值；运行耗时需单独测量。
 
-源码：[训练设置](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/s4_p2_train_bf_pbr.py)、[PBR 验证](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/s4_p2_test_bf_pbr.py)、[挑战设置](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/s4_p2_test_bf_pbr_bop_challenge.py)、[挑战输出](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/s4_p2_test_bf_pbr_bop_challenge.py)。
+源码：[训练设置](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/s4_p2_train_bf_pbr.py)、[PBR 验证](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/s4_p2_test_bf_pbr.py)、[挑战设置](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/s4_p2_test_bf_pbr_bop_challenge.py)、[挑战输出](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/s4_p2_test_bf_pbr_bop_challenge.py)。

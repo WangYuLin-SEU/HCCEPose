@@ -70,6 +70,8 @@ results = tester.predict(
 | `use_megapose` | Requests refinement; registers MegaPose on first use if needed. |
 | `megapose_vis`, `megapose_vis_stages` | Request MegaPose debug images and select stages. |
 
+The public trainer’s 15-entry prior enumerates candidate combinations in `F, B, BF, BFU` order. `BF` alternates front/back points; `BFU` also uses points interpolated along the ray. Both combined solvers use this order, so enabling VVS does not change prior index meanings. Custom priors must follow the same order; do not reuse priors with unknown ordering.
+
 Combined PnP modes require `keypoints_` in the checkpoint. Missing priors raise before detection rather than silently changing the solver. Inspect `pnp_success` for each instance’s initial PnP status.
 
 Inputs whose longest side exceeds 640 pixels are resized and then padded to the detector’s 32-pixel stride. Intrinsics and optional depth are adjusted together. Pixel-valued result fields use this processed canvas. Use the [mask restoration helper](results-api.md) to return to input resolution.

@@ -1,12 +1,12 @@
 # 为每个物体训练 HccePose(BF)
 
-本页使用[公开上游源码](https://github.com/WangYuLin-SEU/HCCEPose/tree/f75cc4d5db2fc298fc7b853f8c75273757872382)中的准备、训练或评测脚本。请先按[安装说明](installation.md#公开训练与渲染源码)获取该版本，并在上游源码根目录执行本页命令；当前项目中的 `examples/inference/` 用于应用推理。
+本页使用本仓库根目录中的准备、训练或评测脚本。请按[安装说明](installation.md#公开训练与渲染源码)准备对应依赖，再从仓库根目录执行命令。`examples/inference/` 中的脚本用于应用推理。
 
 HccePose(BF) 为每个物体单独训练一套权重。`s4_p2_train_bf_pbr.py` 可以依次训练多个物体，每个物体的训练可以使用一张或多张 GPU。
 
 ## 配置训练脚本
 
-先准备[物体模型与元数据](object-preparation.md)、[PBR 场景](rendering.md)和[正背面坐标标签](coordinate-labels.md)。打开[训练脚本](https://github.com/WangYuLin-SEU/HCCEPose/blob/f75cc4d5db2fc298fc7b853f8c75273757872382/s4_p2_train_bf_pbr.py)，在 `__main__` 中将 `dataset_path` 换成自己的数据集路径，并设置物体 ID 范围。
+先准备[物体模型与元数据](object-preparation.md)、[PBR 场景](rendering.md)和[正背面坐标标签](coordinate-labels.md)。打开[训练脚本](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/s4_p2_train_bf_pbr.py)，在 `__main__` 中将 `dataset_path` 换成自己的数据集路径，并设置物体 ID 范围。
 
 | 参数 | 示例设置 | 用途 |
 | --- | --- | --- |
@@ -53,3 +53,7 @@ demo-tex-objs
 ```
 
 训练过程中的 `test()` 从同一个 `train_pbr` 划分中抽取 1% 的样本，可以用来观察训练进度。要报告基准成绩，请在对应的测试集上进行 [BOP 评测](bop-evaluation.md)。
+
+本地监控指标对存在非平凡对称变换的物体使用 ADD-S，其余使用 ADD；空对称列表或仅单位变换仍使用 ADD。通过阈值保持物体直径的 10%。该指标不代替官方 BOP 评分。
+
+续训时，已有 checkpoint 无法恢复会停止并报告文件和原因，不会静默重置训练步数。只有 checkpoint 目录不存在或为空才开始新训练。

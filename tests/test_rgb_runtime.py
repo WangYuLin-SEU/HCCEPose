@@ -92,7 +92,8 @@ def test_invalid_checkpoint_reports_object_file_and_cause(tmp_path):
         load_checkpoint(tmp_path, torch.nn.Linear(1, 1), inference_object_id=7)
     assert str(checkpoint) in str(failure.value)
     assert failure.value.__cause__ is not None
-    assert load_checkpoint(tmp_path, torch.nn.Linear(1, 1))['keypoints_'] == []
+    with pytest.raises(RuntimeError, match='Cannot restore checkpoint'):
+        load_checkpoint(tmp_path, torch.nn.Linear(1, 1))
 
 
 def test_combined_pnp_rejects_missing_prior_before_detector(runtime):

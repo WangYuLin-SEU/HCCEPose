@@ -150,7 +150,7 @@ if __name__ == '__main__':
                 for id_, pred_m_f_c_np_i in enumerate(pred_m_f_c_np):
                     result_i = solve_PnP(pred_m_f_c_np_i, pnp_op=pnp_op_l[1][pnp_op_l[0].index(pnp_op)], reprojectionError=reprojectionError)
                     results.append(result_i)
-                    mask_rle = pycoco_utils.binary_mask_to_rle(gen_mask(rgb_np, pred_m_bf_c_np_i[0], Bbox[id_].detach().clone().cpu().numpy(), interpolation=cv2.INTER_NEAREST))
+                    mask_rle = pycoco_utils.binary_mask_to_rle(gen_mask(rgb_np, pred_m_f_c_np_i[0], Bbox[id_].detach().clone().cpu().numpy(), interpolation=cv2.INTER_NEAREST))
                     pred_list.append([result_i['rot'], result_i['tvecs'], mask_rle, 
                                         int(scene_id[id_].cpu().numpy()), 
                                         int(image_id[id_].numpy()), 

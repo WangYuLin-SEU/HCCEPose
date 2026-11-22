@@ -237,24 +237,16 @@ def solve_PnP_comb(pred_m_bf_c_np, keypoints_=None, pnp_op = 2, reprojectionErro
         info_list.append({'rot' : results_b['rot'], 'tvecs' : results_b['tvecs'], 'success' : results_b['success'], 'num' : results_b['inliers'].shape[0],})
     else:
         info_list.append({'rot' : results_b['rot'], 'tvecs' : results_b['tvecs'], 'success' : results_b['success'], 'num' : 0,})
-    if pnp_op == 1:
-        if results_bfu['success']:
-            info_list.append({'rot' : results_bfu['rot'], 'tvecs' : results_bfu['tvecs'], 'success' : results_bfu['success'], 'num' : results_bfu['inliers'].shape[0],})
-        else:
-            info_list.append({'rot' : results_bfu['rot'], 'tvecs' : results_bfu['tvecs'], 'success' : results_bfu['success'], 'num' : 0,})
-        if results_bf['success']:
-            info_list.append({'rot' : results_bf['rot'], 'tvecs' : results_bf['tvecs'], 'success' : results_bf['success'], 'num' : results_bf['inliers'].shape[0],})
-        else:
-            info_list.append({'rot' : results_bf['rot'], 'tvecs' : results_bf['tvecs'], 'success' : results_bf['success'], 'num' : 0,})
+    # Saved 15-way priors enumerate combinations of F, B, BF, BFU in this order.
+    # 保存的 15 维先验按 F、B、BF、BFU 的顺序枚举组合；求解器切换不能改变索引含义。
+    if results_bf['success']:
+        info_list.append({'rot' : results_bf['rot'], 'tvecs' : results_bf['tvecs'], 'success' : results_bf['success'], 'num' : results_bf['inliers'].shape[0],})
     else:
-        if results_bf['success']:
-            info_list.append({'rot' : results_bf['rot'], 'tvecs' : results_bf['tvecs'], 'success' : results_bf['success'], 'num' : results_bf['inliers'].shape[0],})
-        else:
-            info_list.append({'rot' : results_bf['rot'], 'tvecs' : results_bf['tvecs'], 'success' : results_bf['success'], 'num' : 0,})
-        if results_bfu['success']:
-            info_list.append({'rot' : results_bfu['rot'], 'tvecs' : results_bfu['tvecs'], 'success' : results_bfu['success'], 'num' : results_bfu['inliers'].shape[0],})
-        else:
-            info_list.append({'rot' : results_bfu['rot'], 'tvecs' : results_bfu['tvecs'], 'success' : results_bfu['success'], 'num' : 0,})
+        info_list.append({'rot' : results_bf['rot'], 'tvecs' : results_bf['tvecs'], 'success' : results_bf['success'], 'num' : 0,})
+    if results_bfu['success']:
+        info_list.append({'rot' : results_bfu['rot'], 'tvecs' : results_bfu['tvecs'], 'success' : results_bfu['success'], 'num' : results_bfu['inliers'].shape[0],})
+    else:
+        info_list.append({'rot' : results_bfu['rot'], 'tvecs' : results_bfu['tvecs'], 'success' : results_bfu['success'], 'num' : 0,})
             
     if train is False and keypoints_ is not None:
         keypoints_max_id = np.argmax(keypoints_)

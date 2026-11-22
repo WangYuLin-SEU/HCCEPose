@@ -54,9 +54,29 @@ def add_s(obj_ply, obj_info, gt_list, pred_list):
         - e_list: 原始 ADD / ADD-S 位姿误差列表。
     '''
     pts = obj_ply['pts']
+    # Empty fields and identity-only transforms do not make an object symmetric.
+    # 空字段或仅含单位变换，不表示物体存在非平凡对称。
+    has_symmetry = False
+    for symmetry in obj_info.get('symmetries_discrete', []):
+        if isinstance(symmetry, dict):
+            transform = np.eye(4)
+            transform[:3, :3] = np.asarray(symmetry['R']).reshape(3, 3)
+            transform[:3, 3] = np.asarray(symmetry['t']).reshape(3)
+        else:
+            transform = np.asarray(symmetry).reshape(4, 4)
+        if not np.isfinite(transform).all():
+            raise ValueError('Discrete symmetry must contain finite R/t values')
+        if not np.allclose(transform, np.eye(4)):
+            has_symmetry = True
+    for symmetry in obj_info.get('symmetries_continuous', []):
+        axis = np.asarray(symmetry['axis'], dtype=np.float64)
+        offset = np.asarray(symmetry['offset'], dtype=np.float64)
+        if axis.shape != (3,) or offset.shape != (3,) or not np.isfinite(axis).all() or not np.isfinite(offset).all() or np.linalg.norm(axis) == 0:
+            raise ValueError('Continuous symmetry needs a finite nonzero axis and finite offset')
+        has_symmetry = True
     e_list = []
     for (gt_Rt, pred_Rt) in zip(gt_list, pred_list):
-        if 'symmetries_discrete' in obj_info or 'symmetries_continuous' in obj_info:
+        if has_symmetry:
             e = pose_error.adi(pred_Rt[0], pred_Rt[1], gt_Rt[0], gt_Rt[1], pts)
         else:
             e = pose_error.add(pred_Rt[0], pred_Rt[1], gt_Rt[0], gt_Rt[1], pts)

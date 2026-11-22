@@ -43,6 +43,8 @@ demo-bin-picking
 '''
 
 import os
+import subprocess
+import sys
 if __name__ == '__main__':
 
     # Specify the path to the dataset folder.
@@ -65,12 +67,16 @@ if __name__ == '__main__':
     data_objs_path = os.path.join(os.path.dirname(dataset_pbr_path), 'yolo11', 'train_obj_s', 'yolo_configs', 'data_objs.yaml')
     save_dir = os.path.join(os.path.dirname(os.path.dirname(data_objs_path)), task_suffix, f"obj_s")
     model_name = f"yolo11-{task_suffix}-obj_s.pt"
-    final_model_path = os.path.join(os.path.dirname(os.path.dirname(data_objs_path)), save_dir, model_name)
-    obj_s_path = os.path.dirname(final_model_path)
+    final_model_path = os.path.join(save_dir, model_name)
     batch_size = 12*gpu_num
-    while 1:
-        if not os.path.exists('%s'%obj_s_path):
-            os.system("python %s --data_path '%s' --epochs %s --imgsz 640 --batch %s --gpu_num %s --task %s"%(train_multi_path, data_objs_path, str(epochs), str(batch_size), str(gpu_num), task_suffix))
-        if os.path.exists('%s'%obj_s_path):
-            break
+    # A directory can survive a failed save; only a nonempty final weight completes this step.
+    # 保存失败也可能留下目录；只有非空最终权重文件才表示本步骤完成。
+    if not os.path.isfile(final_model_path) or os.path.getsize(final_model_path) == 0:
+        subprocess.run([
+            sys.executable, train_multi_path, '--data_path', data_objs_path,
+            '--epochs', str(epochs), '--imgsz', '640', '--batch', str(batch_size),
+            '--gpu_num', str(gpu_num), '--task', task_suffix,
+        ], check=True)
+        if not os.path.isfile(final_model_path) or os.path.getsize(final_model_path) == 0:
+            raise FileNotFoundError(f'Training finished without the final detector weights: {final_model_path}')
     pass

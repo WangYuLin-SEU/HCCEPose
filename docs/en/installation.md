@@ -46,18 +46,15 @@ The first setup needs network access to fetch the published weights and dependen
 
 ## Public training and rendering source
 
-Object preparation, PBR rendering, labeling, detector training, pose training and BOP evaluation scripts are included in the project root. Tutorial source links identify the original published settings. To work specifically with that historical revision, optionally use a separate checkout:
+Object preparation, PBR rendering, labeling, detector training, pose training and BOP evaluation scripts are included in the project root. Use the current scripts accompanying this documentation and extract the bundled toolkit first:
 
 ```bash
-git clone https://github.com/WangYuLin-SEU/HCCEPose.git HCCEPose-upstream
-cd HCCEPose-upstream
-git checkout --detach f75cc4d5db2fc298fc7b853f8c75273757872382
 python -m zipfile -e bop_toolkit.zip .
 ```
 
-Stage scripts such as `s1_p1_obj_rename_center.py` and `s4_p2_train_bf_pbr.py` live in that root, alongside the current project’s application examples in `examples/inference/`. Tutorial links use the fixed public revision. Read the input requirements and edit user data paths before launching each stage.
+Stage scripts such as `s1_p1_obj_rename_center.py` and `s4_p2_train_bf_pbr.py` serve different purposes from application examples in `examples/inference/`. Read the input requirements and edit user data paths before launching each stage.
 
-Training and rendering require more dependencies than inference. PyMeshLab prepares meshes, KASAL describes symmetries, and BlenderProc with `bpy` renders PBR scenes. For rendering, run in the upstream root:
+Training and rendering require more dependencies than inference. PyMeshLab prepares meshes, KASAL describes symmetries, and BlenderProc with `bpy` renders PBR scenes. For rendering, run in the repository root:
 
 ```bash
 python -m zipfile -e blenderproc.zip .
