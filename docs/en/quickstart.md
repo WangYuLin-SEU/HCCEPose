@@ -26,3 +26,12 @@ results = tester.predict(camera, image, [1])
 ```
 
 This step requires matching weights and a CUDA-capable GPU environment.
+
+## Example result
+
+<figure>
+  <a class="image-original" href="../assets/figures/quickstart-rgb-result.png" target="_blank" rel="noopener"><img src="../assets/figures/quickstart-rgb-result.png" alt="Frame 000003: input RGB image on the left and estimated 3D bounding-box projections on the right" width="1280" height="400" loading="lazy"></a>
+  <figcaption>Frame <code>000003</code>: RGB input on the left; estimated 3D bounding boxes projected onto the same image on the right. Colors distinguish instances.</figcaption>
+</figure>
+
+The preview uses the RGB + PnP prediction above. See [RGB image inference](rgb-inference.md#inspect-the-predictions) for saving visualizations and inspecting masks and surface coordinates.

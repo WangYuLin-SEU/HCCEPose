@@ -26,3 +26,12 @@ results = tester.predict(camera, image, [1])
 ```
 
 这一步需要匹配的权重与支持 CUDA 的 GPU 环境。
+
+## 查看效果
+
+<figure>
+  <a class="image-original" href="../assets/figures/quickstart-rgb-result.png" target="_blank" rel="noopener"><img src="../assets/figures/quickstart-rgb-result.png" alt="000003 帧：左侧为彩色原图，右侧为估计位姿的三维包围盒投影" width="1280" height="400" loading="lazy"></a>
+  <figcaption><code>000003</code> 帧：左侧为彩色原图，右侧为按估计位姿投影到同一图像上的三维包围盒。不同颜色用于区分实例。</figcaption>
+</figure>
+
+图中展示的是上面 RGB + PnP 调用的结果。保存可视化图像及查看掩码、表面坐标的方法，见 [RGB 图片推理](rgb-inference.md#查看预测内容)。
