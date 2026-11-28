@@ -7,6 +7,7 @@ import importlib
 import os
 import subprocess
 import sys
+from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 
@@ -66,6 +67,8 @@ def ensure_torch_supports_hccepose_tester():
     `HccePose.tester` uses `torch.amp.autocast` (PyTorch 2.x). Do not run demo
     scripts with `.envs/megapose/bin/python` (torch 1.11).
     '''
+    # This check runs before optional packages are installed; keep the setup module importable.
+    # 此检查先于可选依赖安装执行，准备模块本身不能提前要求 PyTorch 已可导入。
     import torch
 
     if hasattr(torch, 'amp'):
@@ -85,7 +88,7 @@ _DEMO_PIP = [
     ('scipy', ['scipy']),
     ('tqdm', ['tqdm']),
     ('kornia', ['kornia==0.6.9']),
-    ('ultralytics', ['ultralytics==8.3.233']),
+    ('ultralytics', ['ultralytics==8.3.70']),
     ('imgaug', ['imgaug']),
     ('trimesh', ['trimesh==4.2.2']),
     ('kasal', ['kasal-6d']),
@@ -108,6 +111,8 @@ def reconcile_numpy_for_hccepose_demo():
     `kasal-6d` can pull NumPy 2.x, which breaks PyTorch 1.x (MegaPose env) and
     `imgaug`. After optional pip installs, pin NumPy back when 2.x is present.
     '''
+    # Probe before and after installation; NumPy can be absent when this setup module loads.
+    # 安装前后均需探测；加载本准备模块时 NumPy 可能尚未安装。
     try:
         import numpy as np
 
@@ -133,10 +138,6 @@ def reconcile_polyscope_for_kasal_on_py39():
     if sys.version_info >= (3, 10):
         return
     try:
-        from importlib.metadata import version as _pkg_version
-    except ImportError:
-        from importlib_metadata import version as _pkg_version  # type: ignore
-    try:
         _pkg_version('kasal-6d')
     except Exception:
         return
@@ -144,6 +145,8 @@ def reconcile_polyscope_for_kasal_on_py39():
 
 
 def ensure_megapose_stack(cuda_device='0'):
+    # The recipe installs HccePose dependencies before importing this backend wrapper.
+    # 示例先安装 HccePose 依赖，再导入此后端封装，避免首次准备被缺失依赖打断。
     from Refinement.refinement_group import Refinement_MP
 
     dev = str(cuda_device)
@@ -159,6 +162,8 @@ def ensure_onnxruntime_for_hccepose():
     `HccePose.hccepose_acceleration` needs `onnx` and `onnxruntime`.
     Prefer GPU wheels when CUDA is available in the current torch build.
     '''
+    # Runtime probes must see packages installed earlier in this same setup process.
+    # 运行时探测需要看到本次准备流程刚安装的依赖，不能在模块加载时提前绑定。
     try:
         import onnx  # noqa: F401
         import onnxruntime  # noqa: F401
@@ -221,7 +226,12 @@ def ensure_tensorrt_pip_if_no_libnvinfer():
     Best-effort: NVIDIA `tensorrt` wheels ship shared libs under site-packages.
     If nothing like libnvinfer.so* is visible yet, try pip once.
     '''
-    from HccePose.hccepose_acceleration import tensorrt_libnvinfer_candidates, _prepare_tensorrt_libraries
+    # Load the acceleration helper only after its NumPy/PyTorch dependencies are ready.
+    # NumPy/PyTorch 准备完成后才可加载加速辅助模块，保留首次安装顺序。
+    from HccePose.hccepose_acceleration import (
+        _prepare_tensorrt_libraries,
+        tensorrt_libnvinfer_candidates,
+    )
 
     if tensorrt_libnvinfer_candidates():
         _prepare_tensorrt_libraries()
@@ -238,7 +248,10 @@ def verify_tensorrt_execution_provider_or_exit():
     TensorRT EP can be listed by onnxruntime while libnvinfer.so.10 is still missing
     at runtime (then ORT falls back to CPU). Require discoverable TensorRT libs.
     '''
+    # ONNX Runtime may have just been installed by ensure_onnxruntime_for_hccepose.
+    # ONNX Runtime 可能刚由 ensure_onnxruntime_for_hccepose 安装，需在该阶段后加载。
     import onnxruntime as ort
+
     from HccePose.hccepose_acceleration import (
         _prepare_onnxruntime_cuda,
         _prepare_tensorrt_libraries,

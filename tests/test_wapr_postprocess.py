@@ -5,16 +5,18 @@ import copy
 import json
 import os
 import sys
-import types
 
+import cv2
 import numpy as np
 import pytest
+import trimesh
 
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Import this checkout, independent of the directory that starts pytest.
 # 从当前副本导入，不依赖 pytest 的启动目录。
 sys.path.insert(0, project_dir)
-from examples.inference.postprocess_wapr import filter_records, main
+from HccePose import tester as tester_module
+from HccePose.tester import Tester as PoseTester
 
 
 def record(object_id=1, instance_index=0, score=0.9):
@@ -34,12 +36,7 @@ def nms_backend(monkeypatch):
                       'shape': (height, width), 'iou': iou_max, 'device': device})
         return [pose for pose in poses if keep is None or pose['input_index'] in keep]
 
-    suppression = types.ModuleType('wapr.suppression')
-    suppression.rendered_mask_iou_nms_gpu = nms
-    package = types.ModuleType('wapr')
-    package.__path__ = []
-    monkeypatch.setitem(sys.modules, 'wapr', package)
-    monkeypatch.setitem(sys.modules, 'wapr.suppression', suppression)
+    monkeypatch.setattr(tester_module, 'rendered_mask_iou_nms_gpu', nms)
 
     def select(indices):
         nonlocal keep
@@ -55,7 +52,7 @@ def test_threshold_equality_scores_above_one_and_no_mutation(nms_backend):
     records = [record(1, 0, 0.749), record(1, 1, 0.75), record(1, 2, 1.001935)]
     before = copy.deepcopy(records)
     mesh = object()
-    report = filter_records(records, {1: mesh}, camera(), (16, 24, 3), 0.75, 0.5)
+    report = PoseTester.postprocess_wapr(records, {1: mesh}, camera(), (16, 24, 3), 0.75, 0.5)
     assert records == before
     assert report['raw_records'] == records
     assert report['kept_input_indices'] == [1, 2]
@@ -75,7 +72,7 @@ def test_per_object_meshes_and_original_order(nms_backend):
     records = [record(1, 0, 0.75), record(2, 0, 0.9), record(1, 1, 1.0),
                record(1, 2, 0.7), record(1, 3, 0.8)]
     meshes = {1: object(), 2: object()}
-    report = filter_records(records, meshes, camera(), (16, 24), 0.75, 0.4, 'cuda:2')
+    report = PoseTester.postprocess_wapr(records, meshes, camera(), (16, 24), 0.75, 0.4, 'cuda:2')
     assert report['kept_input_indices'] == [1, 2, 4]
     assert report['retained_records'] == [records[i] for i in [1, 2, 4]]
     assert [c['mesh'] for c in calls] == [meshes[1], meshes[2]]
@@ -87,18 +84,17 @@ def test_per_object_meshes_and_original_order(nms_backend):
 
 @pytest.mark.parametrize('records', [[], [record(score=0.5)]])
 def test_empty_or_low_scores_need_no_backend(records, monkeypatch):
-    monkeypatch.delitem(sys.modules, 'wapr.suppression', raising=False)
-    monkeypatch.delitem(sys.modules, 'wapr', raising=False)
-    report = filter_records(records, {}, camera(), (16, 24), 0.75, 0.5)
+    monkeypatch.setattr(tester_module, 'rendered_mask_iou_nms_gpu', None)
+    report = PoseTester.postprocess_wapr(records, {}, camera(), (16, 24), 0.75, 0.5)
     assert report['retained_records'] == []
     assert len(report['raw_records']) == len(records)
-    assert 'wapr.suppression' not in sys.modules
+    assert tester_module.rendered_mask_iou_nms_gpu is None
 
 
 def test_backend_removal_not_mislabeled_confirmed_duplicate(nms_backend):
     _, select = nms_backend
     select([])
-    report = filter_records([record()], {1: object()}, camera(), (16, 24), 0.75, 0.5)
+    report = PoseTester.postprocess_wapr([record()], {1: object()}, camera(), (16, 24), 0.75, 0.5)
     assert report['decisions'][0]['status'] == 'not_retained_by_mask_nms'
     assert report['raw_records'][0]['score_6d'] == 0.9
 
@@ -113,36 +109,34 @@ def test_bad_records_rejected_before_backend(field, value, nms_backend):
     item = record()
     item[field] = value
     with pytest.raises(ValueError):
-        filter_records([item], {1: object()}, camera(), (16, 24), 0.75, 0.5)
+        PoseTester.postprocess_wapr([item], {1: object()}, camera(), (16, 24), 0.75, 0.5)
     assert not nms_backend[0]
 
 
 def test_duplicate_identity_and_nonhomogeneous_pose_rejected(nms_backend):
     with pytest.raises(ValueError, match='Duplicate instance'):
-        filter_records([record(), record()], {1: object()}, camera(), (16, 24), 0.75, 0.5)
+        PoseTester.postprocess_wapr([record(), record()], {1: object()}, camera(), (16, 24), 0.75, 0.5)
     row = record()
     row['pose_4x4_m'][3][0] = 1
     with pytest.raises(ValueError, match='homogeneous'):
-        filter_records([row], {1: object()}, camera(), (16, 24), 0.75, 0.5)
+        PoseTester.postprocess_wapr([row], {1: object()}, camera(), (16, 24), 0.75, 0.5)
     assert not nms_backend[0]
 
 
 @pytest.mark.parametrize('score,iou', [(float('nan'), 0.5), (0.75, -0.1), (0.75, 1.1), (0.75, float('nan'))])
 def test_invalid_thresholds_rejected(score, iou, nms_backend):
     with pytest.raises(ValueError):
-        filter_records([record()], {1: object()}, camera(), (16, 24), score, iou)
+        PoseTester.postprocess_wapr([record()], {1: object()}, camera(), (16, 24), score, iou)
     assert not nms_backend[0]
 
 
 def test_missing_mesh_is_not_unfiltered_success(nms_backend):
     with pytest.raises(ValueError, match='Missing meter mesh'):
-        filter_records([record()], {}, camera(), (16, 24), 0.75, 0.5)
+        PoseTester.postprocess_wapr([record()], {}, camera(), (16, 24), 0.75, 0.5)
     assert not nms_backend[0]
 
 
 def example_files(tmp_path):
-    import cv2
-    import trimesh
     dataset = tmp_path / 'objects'
     (dataset / 'models').mkdir(parents=True)
     trimesh.creation.box(extents=(100, 60, 40)).export(dataset / 'models/obj_000001.ply')
@@ -159,7 +153,7 @@ def test_file_recipe_units_output_and_raw_preservation(tmp_path, nms_backend):
     dataset, image, intrinsics, raw = example_files(tmp_path)
     original_bytes = raw.read_bytes()
     output = tmp_path / 'output/filtered.json'
-    report = main(str(dataset), str(image), str(intrinsics), str(raw), str(output), 0.75, 0.5)
+    report = PoseTester.postprocess_saved_wapr(str(dataset), str(image), str(intrinsics), str(raw), str(output), 0.75, 0.5)
     assert raw.read_bytes() == original_bytes
     assert json.loads(output.read_text()) == report
     assert len(report['raw_records']) == 2 and len(report['retained_records']) == 1
@@ -178,13 +172,13 @@ def test_raw_file_cannot_be_overwritten(tmp_path, mode, nms_backend):
         os.link(raw, output)
     original = raw.read_bytes()
     with pytest.raises(ValueError, match='separate output'):
-        main(str(dataset), str(image), str(intrinsics), str(raw), str(output), 0.75, 0.5)
+        PoseTester.postprocess_saved_wapr(str(dataset), str(image), str(intrinsics), str(raw), str(output), 0.75, 0.5)
     assert raw.read_bytes() == original and not nms_backend[0]
 
 
 def test_backend_error_is_not_silent_success(nms_backend, monkeypatch):
     def fail(*args):
         raise RuntimeError('renderer unavailable')
-    monkeypatch.setattr(sys.modules['wapr.suppression'], 'rendered_mask_iou_nms_gpu', fail)
+    monkeypatch.setattr(tester_module, 'rendered_mask_iou_nms_gpu', fail)
     with pytest.raises(RuntimeError, match='renderer unavailable'):
-        filter_records([record()], {1: object()}, camera(), (16, 24), 0.75, 0.5)
+        PoseTester.postprocess_wapr([record()], {1: object()}, camera(), (16, 24), 0.75, 0.5)

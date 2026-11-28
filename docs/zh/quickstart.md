@@ -1,23 +1,28 @@
 # 第一次预测
 
-在包含 `examples/inference/` 的项目根目录操作。先完成[环境安装](installation.md)和[资源准备](assets.md)。
+在项目根目录操作。先完成[环境安装](installation.md)和[资源准备](assets.md)。
 
 ## RGB 示例
 
-编辑 `examples/inference/predict_image.py` 末尾的资源路径和物体编号，再执行：
+使用根目录的 RGB 示例 `s4_p3_test_mi10_bin_picking.py`，将 `dataset_path` 指向下载的模型目录，例如 `data/demo-bin-picking`，再执行：
 
 ```bash
-python examples/inference/predict_image.py
+python s4_p3_test_mi10_bin_picking.py
 ```
 
-结果保存于 `outputs/rgb/`，包含检测框和标准位姿可视化。也可在 Python 应用中调用：
+该脚本读取 `sample_data/images/` 中的自带 JPG，并将检测框和位姿图保存在输入旁。脚本内参对应这些 JPG 采集图，不能套用到 640×400 的 RGB-D 帧。若在应用中直接使用下载的 RGB-D 彩色帧：
 
 ```python
-from examples.inference.predict_image import main
+import cv2
+import numpy as np
 
-# 路径指向自己准备的图像、内参及配套模型。
-results = main("data/demo-bin-picking", "data/test_imgs_RGBD/000003_rgb.png",
-               "data/test_imgs_RGBD/000003_camera_matrix.json", [1], "outputs/rgb")
+from HccePose.bop_loader import bop_dataset, inout
+from HccePose.tester import Tester
+
+image = cv2.imread("data/test_imgs_RGBD/000003_rgb.png")
+camera = np.asarray(inout.load_json("data/test_imgs_RGBD/000003_camera_matrix.json"))
+tester = Tester(bop_dataset("data/demo-bin-picking"), hccepose_vis=True)
+results = tester.predict(camera, image, [1])
 ```
 
 这一步需要匹配的权重与支持 CUDA 的 GPU 环境。

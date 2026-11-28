@@ -1,6 +1,6 @@
 # BOP 评测
 
-本页使用本仓库根目录中的准备、训练或评测脚本。请按[安装说明](installation.md#公开训练与渲染源码)准备对应依赖，再从仓库根目录执行命令。`examples/inference/` 中的脚本用于应用推理。
+本页使用本仓库根目录中的准备、训练或评测脚本。请按[安装说明](installation.md#公开训练与渲染源码)准备对应依赖，再从仓库根目录执行命令。应用推理使用根目录的 `s4_p3_*.py` 示例。
 
 [评测脚本](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/s4_p2_test_bf_pbr_bop_challenge.py)为 BOP 的七个核心数据集生成分割和位姿预测。随仓库提供的配置使用 LM-O，物体 ID 为 `[1, 5, 6, 8, 9, 10, 11, 12]`，骨干网络设置为 `efficientnet_key=1`。检测框来自 BOP 2023 提供的 [GDRNPP 检测结果](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip)。如果换用其他数据集，请同时替换数据集路径、检测 JSON 和模型权重，并检查骨干网络配置。
 
@@ -31,9 +31,9 @@ LM-O 的两个输出文件位于数据集目录下。CSV 中的运行时间填�
 - 2D 分割结果：[seg2d_lmo.json](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/4e482e540314622981ccd4fce5beddac7f9d3e1d/lmo/seg2d_lmo.json)
 - 6D 位姿结果：[det6d_lmo.csv](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/4e482e540314622981ccd4fce5beddac7f9d3e1d/lmo/det6d_lmo.csv)
 
-<img src="../../show_vis/BOP-website-lmo.png" width="100%" alt="BOP LM-O 测试结果">
+<img src="../assets/figures/BOP-website-lmo.png" width="100%" alt="BOP LM-O 测试结果">
 
 ## 历史榜单截图
 
-<img src="../../show_vis/bop-6D-loc.png" width=100% alt="历史 BOP 6D 定位榜单">
-<img src="../../show_vis/bop-2D-seg.png" width=100% alt="历史 BOP 2D 分割榜单">
+<img src="../assets/figures/bop-6D-loc.png" width=100% alt="历史 BOP 6D 定位榜单">
+<img src="../assets/figures/bop-2D-seg.png" width=100% alt="历史 BOP 2D 分割榜单">

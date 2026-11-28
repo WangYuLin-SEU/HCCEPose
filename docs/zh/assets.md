@@ -2,7 +2,7 @@
 
 ## 配套资源
 
-物体网格、模型信息、检测器类别顺序和逐物体位姿权重必须配套。公开资源见 [HCCEPose 资源页](https://huggingface.co/datasets/SEU-WYL/HccePose)。本包不附应用场景数据或权重。
+物体网格、模型信息、检测器类别顺序和逐物体位姿权重必须配套。公开资源见 [HCCEPose 资源页](https://huggingface.co/datasets/SEU-WYL/HccePose)。仓库在 `sample_data/` 中附带少量输入样例；模型权重和训练数据需单独下载。
 
 `dataset_root` 保留公开加载器使用的目录结构：
 
@@ -20,7 +20,25 @@ objects/
 
 ## 下载一个 RGB-D 示例
 
-完成[环境安装](installation.md)后，将下面代码保存为项目根目录的 Python 脚本并运行。资源保存于 `data/`，保留 Hugging Face 的目录结构；其中 `data/demo-bin-picking/` 是 `dataset_root`，无需改名为 `objects/`。
+仓库自带输入统一存放在 `sample_data/images/`、`sample_data/rgbd/` 和 `sample_data/videos/`；`tests/` 是代码测试。根目录的 `s4_p3_*.py` 示例读取这些自带目录。Hugging Face 下载仍保留上游名称（`test_imgs/`、`test_imgs_RGBD/`、`test_videos/`），使用额外下载的文件时，将入口中的输入路径指向实际下载目录。下方代码明确将资源下载至 `data/`。
+
+完成[环境安装](installation.md)后，在项目根目录运行最小下载命令：
+
+```bash
+python scripts/download_hf_assets.py --preset demo --dest data --endpoint hf
+```
+
+命令下载并校验下面的七个文件，另外保存相机矩阵。官方地址无法访问时，可将参数改为 `--endpoint mirror`；两条路径请求同一固定版本，均保留完整性校验。若服务返回错误，保留已有文件，恢复连接后重试。
+
+若已在联网机器准备好全部七个文件，可按原层级复制 `data/`，再在目标机器离线校验：
+
+```bash
+HF_HUB_OFFLINE=1 python scripts/download_hf_assets.py --preset demo --dest data --endpoint hf
+```
+
+离线模式仍检查文件大小、权重目录和权重摘要；缺件或损坏文件仍会使命令停止。
+
+下面是等价的显式写法，可保存为项目根目录的 Python 脚本。资源保存于 `data/`，保留 Hugging Face 的目录结构；其中 `data/demo-bin-picking/` 是 `dataset_root`，无需改名为 `objects/`。
 
 ```python
 import hashlib

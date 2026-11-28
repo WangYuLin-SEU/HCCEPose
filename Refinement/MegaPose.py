@@ -1,7 +1,6 @@
 # Author: Yulin Wang (yulinwang@seu.edu.cn)
 # School of Mechanical Engineering, Southeast University, China
 
-import cv2
 import json
 import os
 import shutil
@@ -10,6 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import cv2
 import numpy as np
 
 
@@ -699,6 +699,8 @@ def _run_megapose_job(input_json_path, input_npz_path, output_npz_path):
     if not os.environ.get('MEGAPOSE_DATA_DIR'):
         os.environ['MEGAPOSE_DATA_DIR'] = os.fspath(_megapose_resolved_local_data(project_root))
 
+    # Only the isolated MegaPose worker has these dependencies and its configured data paths.
+    # 这些依赖仅在隔离的 MegaPose worker 环境可用，且必须先完成其数据路径设置。
     import pandas as pd
     import torch
     import trimesh

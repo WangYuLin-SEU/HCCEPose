@@ -12,7 +12,9 @@ if __name__ == '__main__':
     sys.path.insert(0, os.getcwd())
     current_dir = os.path.dirname(sys.argv[0])
     dataset_path = os.path.join(current_dir, 'demo-tex-objs')
-    test_video_path = os.path.join(current_dir, 'test_videos')
+    # Bundled input videos live separately from code tests.
+    # 仓库自带输入视频与代码测试分开存放。
+    test_video_path = os.path.join(current_dir, 'sample_data', 'videos')
     bop_dataset_item = bop_dataset(dataset_path)
     obj_ids = bop_dataset_item.obj_id_list
     CUDA_DEVICE = '0'

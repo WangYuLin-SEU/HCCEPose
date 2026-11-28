@@ -5,15 +5,19 @@ This project contains application inference, the public WAPR adapter and bilingu
 ```text
 HccePose/                 RGB inference, networks, BOP loader
 s1_*.py ... s4_*.py       Public preparation, training and evaluation stages
-Refinement/              WAPR adapter and optional MegaPose interface
-examples/inference/      predict_image.py, predict_wapr.py, postprocess_wapr.py
+Refinement/              Shared WAPR/MegaPose interfaces and RGB-D readers
+s4_p3_*RGBD_wapr.py      WAPR prediction with automatic score filtering and NMS
+scripts/                 HF downloads and resource validation
 docs/zh/                 Chinese documentation
 docs/en/                 English documentation
 docs/theme/              Shared visual theme
 docs/assets/             Figures and presentation assets
+docs/assets/figures/     Paper, tutorial and result figures
 pages/                   Generated static website
-show_vis/                Public example figures
 media/                   Public video preview
+sample_data/images/      Bundled RGB input images
+sample_data/rgbd/        Bundled RGB-D frames and calibration
+sample_data/videos/      Bundled input videos
 tests/                   API and documentation checks
 ```
 

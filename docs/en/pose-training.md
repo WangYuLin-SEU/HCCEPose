@@ -1,6 +1,6 @@
 # Train HccePose(BF) for each object
 
-This page uses preparation, training or evaluation scripts in this repository’s root. Prepare the dependencies described in [Installation](installation.md#public-training-and-rendering-source), then run the commands from the repository root. Application inference examples are in `examples/inference/`.
+This page uses preparation, training or evaluation scripts in this repository’s root. Prepare the dependencies described in [Installation](installation.md#public-training-and-rendering-source), then run the commands from the repository root. Application inference examples use the root `s4_p3_*.py` scripts.
 
 HccePose(BF) learns a separate set of weights for each object. The script `s4_p2_train_bf_pbr.py` trains objects in sequence and can use one or more GPUs for each object.
 

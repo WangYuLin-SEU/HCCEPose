@@ -1,6 +1,6 @@
 # Render PBR training data
 
-This page uses preparation, training or evaluation scripts in this repository’s root. Prepare the dependencies described in [Installation](installation.md#public-training-and-rendering-source), then run the commands from the repository root. Application inference examples are in `examples/inference/`.
+This page uses preparation, training or evaluation scripts in this repository’s root. Prepare the dependencies described in [Installation](installation.md#public-training-and-rendering-source), then run the commands from the repository root. Application inference examples use the root `s4_p3_*.py` scripts.
 
 Once you have [prepared the meshes and symmetry metadata](object-preparation.md) and [installed BlenderProc](installation.md), you can render training scenes for your objects. The example uses `s2_p1_gen_pbr_data.py`, our adaptation of [BlenderProc2](https://github.com/DLR-RM/BlenderProc), to render scenes with different viewpoints, materials and object placements.
 

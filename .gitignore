@@ -21,3 +21,6 @@ demo-tex-objs/
 /test_imgs/
 /test_imgs_RGBD/
 /test_videos/
+
+# Visualizations written beside bundled inputs / 自带样例旁生成的可视化输出
+/sample_data/**/*_show_*

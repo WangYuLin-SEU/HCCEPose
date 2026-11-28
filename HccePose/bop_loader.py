@@ -1,16 +1,22 @@
 # Author: Yulin Wang (yulinwang@seu.edu.cn)
 # School of Mechanical Engineering, Southeast University, China
 
-import os, cv2, sys, json, copy, torch
-import numpy as np
-from tqdm import tqdm
-import torchvision.transforms as transforms
+import copy
+import json
+import os
+import platform
+import sys
+
+import cv2
 import imgaug.augmenters as iaa
+import numpy as np
+import torch
+import torchvision.transforms as transforms
 from torch.utils.data import Dataset
+from tqdm import tqdm
 
 # Configure the EGL renderer.
 # 设置 EGL 渲染器。
-import platform
 sys0 = platform.system()
 if sys0 == "Linux":
     os.environ["PYOPENGL_PLATFORM"] = "egl"
@@ -28,6 +34,25 @@ from kasal.utils import load_json2dict
 # ImageNet mean/std permuted for OpenCV BGR order (C0=B, C1=G, C2=R).
 IMAGENET_MEAN_BGR = (0.406, 0.456, 0.485)
 IMAGENET_STD_BGR = (0.225, 0.224, 0.229)
+
+
+def inference_image_geometry(height, width):
+    """Return resize, padded dimensions and top/left offsets used by inference.
+    返回推理使用的缩放比例、补边尺寸及上侧和左侧偏移。
+    """
+    if height <= 0 or width <= 0:
+        raise ValueError('Image height and width must be positive')
+    ratio = max(height, width) / 640
+    if ratio > 1:
+        scaled_h = max(1, int(height / ratio))
+        scaled_w = max(1, int(width / ratio))
+    else:
+        scaled_h, scaled_w = height, width
+    padded_h = ((scaled_h + 31) // 32) * 32
+    padded_w = ((scaled_w + 31) // 32) * 32
+    top = (padded_h - scaled_h) // 2
+    left = (padded_w - scaled_w) // 2
+    return ratio, scaled_h, scaled_w, padded_h, padded_w, top, left
 
 
 def aug_square_fp32(GT_Bbox, padding_ratio):

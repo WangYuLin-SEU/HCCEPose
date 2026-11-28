@@ -6,6 +6,7 @@ Use the Python environment prepared in [installation](../docs/en/installation.md
 
 ```bash
 python -m pip install -r tests/requirements.txt -r docs/requirements.txt
+python -m zipfile -e bop_toolkit.zip .
 python -m pytest -q tests
 python docs/build.py
 ```
@@ -20,6 +21,7 @@ These checks cover interface and geometry behavior. To evaluate model accuracy, 
 
 ```bash
 python -m pip install -r tests/requirements.txt -r docs/requirements.txt
+python -m zipfile -e bop_toolkit.zip .
 python -m pytest -q tests
 python docs/build.py
 ```

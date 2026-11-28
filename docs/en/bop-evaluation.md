@@ -1,6 +1,6 @@
 # BOP evaluation
 
-This page uses preparation, training or evaluation scripts in this repository’s root. Prepare the dependencies described in [Installation](installation.md#public-training-and-rendering-source), then run the commands from the repository root. Application inference examples are in `examples/inference/`.
+This page uses preparation, training or evaluation scripts in this repository’s root. Prepare the dependencies described in [Installation](installation.md#public-training-and-rendering-source), then run the commands from the repository root. Application inference examples use the root `s4_p3_*.py` scripts.
 
 The [evaluation script](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/s4_p2_test_bf_pbr_bop_challenge.py) generates segmentation and pose predictions for the seven core BOP datasets. The supplied configuration uses LM-O, object IDs `[1, 5, 6, 8, 9, 10, 11, 12]` and `efficientnet_key=1`. It reads the [GDRNPP detections](https://bop.felk.cvut.cz/media/data/bop_datasets_extra/bop23_default_detections_for_task1.zip) supplied for BOP 2023. To run on another dataset, update the dataset path, detection JSON and weights, and check the backbone setting.
 
@@ -31,9 +31,9 @@ We submitted the following two files on October 20, 2025. The 6D localization sc
 - 2D segmentation results: [seg2d_lmo.json](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/4e482e540314622981ccd4fce5beddac7f9d3e1d/lmo/seg2d_lmo.json)
 - 6D pose results: [det6d_lmo.csv](https://huggingface.co/datasets/SEU-WYL/HccePose/blob/4e482e540314622981ccd4fce5beddac7f9d3e1d/lmo/det6d_lmo.csv)
 
-<img src="../../show_vis/BOP-website-lmo.png" width="100%" alt="BOP LM-O results">
+<img src="../assets/figures/BOP-website-lmo.png" width="100%" alt="BOP LM-O results">
 
 ## Historical leaderboard screenshots
 
-<img src="../../show_vis/bop-6D-loc.png" width="100%" alt="BOP 6D localization leaderboard">
-<img src="../../show_vis/bop-2D-seg.png" width="100%" alt="BOP 2D segmentation leaderboard">
+<img src="../assets/figures/bop-6D-loc.png" width="100%" alt="BOP 6D localization leaderboard">
+<img src="../assets/figures/bop-2D-seg.png" width="100%" alt="BOP 2D segmentation leaderboard">

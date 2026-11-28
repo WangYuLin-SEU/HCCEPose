@@ -4,7 +4,7 @@
 
 沿相机射线，最近和最远的表面交点分别对应前、后表面。HccePose(BF) 预测两个表面的层次化连续坐标编码，并将解码后的三维点与图像像素配对。
 
-![HccePose(BF) 论文原图：表面预测、对应构建和位姿求解](../../show_vis/fig2.jpg)
+![HccePose(BF) 论文原图：表面预测、对应构建和位姿求解](../assets/figures/fig2.jpg)
 
 论文中的 HccePose(BF) 网络结构与位姿求解流程。
 
@@ -29,6 +29,6 @@ HCCE 分别编码物体坐标的三个分量。网络同时预测掩码和前后
 
 ## 深度与可选后端
 
-MegaPose 从 HccePose 位姿继续精修，支持纯 RGB 或配准 RGB-D。WAPR 的当前公开接入从原图掩码、配准深度和米制网格估计位姿并评分，不依赖 HccePose 初值。它们不是同一个调用模式，输入与单位对照见[精修接口](refinement-api.md)。
+MegaPose 从 HccePose 位姿继续精修，支持纯 RGB 或配准 RGB-D。WAPR 使用配准 RGB-D 和米制网格：`estimate` 只用掩码、不运行 PnP；`hybrid` 将 PnP 与 WAPR 候选统一评分；`refine` 只精修 PnP 初值、不生成全局旋转候选。三种模式均执行 WBPS 筛选与同类渲染掩码 NMS。输入、单位和模式选择见[精修接口](refinement-api.md)。
 
 本文解释已公开方法。论文图保留原貌，数组形状和实际调用以[Tester](tester-api.md)、[结果字典](results-api.md)为准。

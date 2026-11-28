@@ -1,19 +1,52 @@
 # Author: Yulin Wang (yulinwang@seu.edu.cn)
 # School of Mechanical Engineering, Southeast University, China
 
-"""HccePose RGB inference and optional MegaPose refinement."""
+"""HccePose inference with optional MegaPose or three-mode WAPR integration.
+HccePose 推理，可选 MegaPose 精修或三模式 WAPR 接入。
+"""
 
-import os, torch, kornia, time, cv2, random
+import json
+import os
+import random
+import time
+from numbers import Integral, Real
 from pathlib import Path
-import numpy as np 
-from ultralytics import YOLO
-from HccePose.bop_loader import bop_dataset, IMAGENET_MEAN_BGR, IMAGENET_STD_BGR
-from HccePose.network_model import HccePose_BF_Net
-from HccePose.network_model import load_checkpoint
-from HccePose.image_geometry import inference_image_geometry
+
+import cv2
+import kornia
+import numpy as np
+import torch
 import torchvision.transforms as transforms
-from HccePose.visualization import vis_rgb_mask_Coord, vis_rgb_mask_Coord_origin
+import trimesh
+from ultralytics import YOLO
+
+# Postprocessing belongs to Tester; RGB users do not need the optional renderer.
+# 后处理由 Tester 统一负责；RGB 用户无需安装可选的 WAPR 渲染器。
+try:
+    from wapr.suppression import rendered_mask_iou_nms_gpu
+except ModuleNotFoundError as exc:
+    if exc.name != 'wapr':
+        raise
+    rendered_mask_iou_nms_gpu = None
+
+from HccePose.bop_loader import (
+    IMAGENET_MEAN_BGR,
+    IMAGENET_STD_BGR,
+    bop_dataset,
+    inference_image_geometry,
+    inout,
+)
+from HccePose.network_model import HccePose_BF_Net, load_checkpoint
+from HccePose.ensure_rgbd_megapose_demo import ensure_acceleration_backend_environment
+from HccePose.hccepose_acceleration import HccePoseOnnxRunner
 from HccePose.PnP_solver import solve_PnP, solve_PnP_comb
+from HccePose.visualization import vis_rgb_mask_Coord, vis_rgb_mask_Coord_origin
+from Refinement.MegaPose import _megapose_add_title, _megapose_vstack_images
+from Refinement.refinement_group import (
+    Refinement_MP,
+    Refinement_WAPR,
+    restore_full_frame_masks,
+)
 
 composed_transforms_img = transforms.Compose([
             transforms.Normalize(IMAGENET_MEAN_BGR, IMAGENET_STD_BGR),
@@ -168,7 +201,138 @@ def crop_trans_batch_hccepose(xywh, out_size = [128, 128], padding_ratio = 1.2):
     return tfs, boxes
 
 class Tester:
-    """Detect known objects, estimate their poses with PnP and optionally run MegaPose."""
+    """Detect objects and handle PnP, MegaPose or WAPR inference and postprocessing.
+    统一执行物体检测、PnP、MegaPose 或 WAPR 推理及后处理。
+    """
+
+    @staticmethod
+    def _check_wapr_records(records):
+        """Validate instance identities, meter poses and scores without mutating input.
+        校验实例标识、米制位姿及评分，不修改原始输入。
+        """
+        if not isinstance(records, list):
+            raise ValueError('Expected a list of raw WAPR records')
+        checked = []
+        seen = set()
+        for index, record in enumerate(records):
+            if not isinstance(record, dict):
+                raise ValueError(f'Record {index} must be a dictionary')
+            object_id = record.get('object_id')
+            instance_index = record.get('instance_index')
+            score = record.get('score_6d')
+            if isinstance(object_id, bool) or not isinstance(object_id, Integral) or object_id <= 0:
+                raise ValueError(f'Record {index} needs a positive integer object_id')
+            if isinstance(instance_index, bool) or not isinstance(instance_index, Integral) or instance_index < 0:
+                raise ValueError(f'Record {index} needs a nonnegative integer instance_index')
+            if isinstance(score, bool) or not isinstance(score, Real) or not np.isfinite(score):
+                raise ValueError(f'Record {index} needs a finite numeric score_6d')
+            identity = (int(object_id), int(instance_index))
+            if identity in seen:
+                raise ValueError(f'Duplicate instance identity {identity}')
+            seen.add(identity)
+            pose = np.asarray(record.get('pose_4x4_m'), dtype=np.float64)
+            if pose.shape != (4, 4) or not np.isfinite(pose).all():
+                raise ValueError(f'Record {index} needs a finite pose_4x4_m of shape [4,4]')
+            if not np.array_equal(pose[3], [0, 0, 0, 1]):
+                raise ValueError(f'Record {index} needs an object-to-camera homogeneous pose')
+            row = dict(record)
+            row.update(object_id=identity[0], instance_index=identity[1],
+                       score_6d=float(score), pose_4x4_m=pose.tolist())
+            checked.append(row)
+        return checked
+
+    @staticmethod
+    def postprocess_wapr(records, meshes_by_id, cam_K, image_shape, wbps_threshold=0.75,
+                         nms_iou_threshold=0.5, device='cuda:0'):
+        """Apply WBPS filtering and same-category CAD mask NMS inside Tester.
+        在 Tester 内统一执行 WBPS 筛选和同类 CAD 掩码 NMS，保持原实例顺序。
+        predict calls this automatically; static access does not load pose weights.
+        predict 自动调用本方法；静态调用不会加载位姿权重。
+        """
+        if not np.isfinite(wbps_threshold):
+            raise ValueError('wbps_threshold must be finite; scores need not lie in [0,1]')
+        if not np.isfinite(nms_iou_threshold) or not 0 <= nms_iou_threshold <= 1:
+            raise ValueError('nms_iou_threshold must be between zero and one')
+        if len(image_shape) < 2 or any(isinstance(x, bool) or not isinstance(x, Integral) or x <= 0 for x in image_shape[:2]):
+            raise ValueError('image_shape must start with positive integer height and width')
+        height, width = map(int, image_shape[:2])
+        cam_K = np.asarray(cam_K, dtype=np.float32)
+        if cam_K.shape != (3, 3) or not np.isfinite(cam_K).all() or cam_K[0, 0] <= 0 or cam_K[1, 1] <= 0:
+            raise ValueError('cam_K must contain finite 3 x 3 original-image pixel intrinsics')
+        rows = Tester._check_wapr_records(records)
+        groups = {}
+        statuses = ['below_score_threshold'] * len(rows)
+        for index, row in enumerate(rows):
+            if row['score_6d'] >= wbps_threshold:
+                groups.setdefault(row['object_id'], []).append(index)
+                statuses[index] = 'not_retained_by_mask_nms'
+        for object_id in groups:
+            if object_id not in meshes_by_id:
+                raise ValueError(f'Missing meter mesh for object {object_id}')
+        if groups:
+            if rendered_mask_iou_nms_gpu is None:
+                raise ImportError('Install the documented public WAPR version before rendered-mask NMS')
+            for object_id, indices in groups.items():
+                poses = [{'obj_id': object_id, 'score_6d': rows[index]['score_6d'],
+                          'pose_4x4': rows[index]['pose_4x4_m'], 'input_index': index}
+                         for index in indices]
+                kept = rendered_mask_iou_nms_gpu(
+                    poses, meshes_by_id[object_id], cam_K, height, width, nms_iou_threshold, device)
+                for pose in kept:
+                    statuses[pose['input_index']] = 'kept'
+        kept_indices = [index for index, status in enumerate(statuses) if status == 'kept']
+        decisions = [{'input_index': index, 'object_id': row['object_id'],
+                      'instance_index': row['instance_index'], 'score_6d': row['score_6d'],
+                      'status': statuses[index]} for index, row in enumerate(rows)]
+        return {'score_threshold': float(wbps_threshold), 'nms_iou_threshold': float(nms_iou_threshold),
+                'nms_method': 'same_object_id_rendered_mask_iou', 'raw_records': rows,
+                'decisions': decisions, 'kept_input_indices': kept_indices,
+                'retained_records': [rows[index] for index in kept_indices]}
+
+    @staticmethod
+    def postprocess_saved_wapr(dataset_root, image_path, intrinsics_path, input_path, output_path,
+                               wbps_threshold=0.75, nms_iou_threshold=0.5,
+                               device='cuda:0', mesh_scale_to_m=1e-3):
+        """Recheck saved WAPR records through Tester without loading inference models.
+        通过 Tester 重新筛选已保存的 WAPR 记录，不加载推理模型，不覆盖原始 JSON。
+        """
+        same_file = os.path.realpath(input_path) == os.path.realpath(output_path)
+        if os.path.exists(input_path) and os.path.exists(output_path):
+            same_file = same_file or os.path.samefile(input_path, output_path)
+        if same_file:
+            raise ValueError('Choose a separate output file; raw input must not be overwritten')
+        if not np.isfinite(wbps_threshold) or not np.isfinite(nms_iou_threshold) or not 0 <= nms_iou_threshold <= 1:
+            raise ValueError('Use a finite score threshold and an IoU threshold in [0,1]')
+        if not np.isfinite(mesh_scale_to_m) or mesh_scale_to_m <= 0:
+            raise ValueError('mesh_scale_to_m must be finite and positive')
+        for path in (dataset_root, image_path, intrinsics_path, input_path):
+            if not os.path.exists(path):
+                raise FileNotFoundError(path)
+        image = cv2.imread(image_path)
+        if image is None:
+            raise ValueError('Cannot decode the original image')
+        camera = inout.load_json(intrinsics_path)
+        cam_K = inout.load_cam_params(intrinsics_path)['K'] if isinstance(camera, dict) else np.asarray(camera, dtype=np.float32)
+        records = Tester._check_wapr_records(inout.load_json(input_path))
+        meshes = {}
+        for row in records:
+            object_id = row['object_id']
+            if row['score_6d'] < wbps_threshold or object_id in meshes:
+                continue
+            mesh_path = os.path.join(dataset_root, 'models', f'obj_{object_id:06d}.ply')
+            if not os.path.isfile(mesh_path):
+                raise FileNotFoundError(mesh_path)
+            mesh = trimesh.load(mesh_path, force='mesh', process=False)
+            mesh.apply_scale(mesh_scale_to_m)
+            if mesh.is_empty or not len(mesh.faces) or not np.isfinite(mesh.vertices).all():
+                raise ValueError(f'Expected a finite triangle mesh at {mesh_path}')
+            meshes[object_id] = mesh
+        report = Tester.postprocess_wapr(records, meshes, cam_K, image.shape, wbps_threshold,
+                                         nms_iou_threshold, device)
+        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+        with open(output_path, 'w', encoding='utf-8') as handle:
+            json.dump(report, handle, ensure_ascii=False, indent=2, allow_nan=False)
+        return report
 
     def __init__(self, bop_dataset_item: bop_dataset, show_op=True, hccepose_vis=None,
                  CUDA_DEVICE='0', top_K=None, crop_size=256, efficientnet_key=None,
@@ -193,6 +357,9 @@ class Tester:
 
         self.megapose_registered = False
         self.MegaPose_Item = None
+        self.wapr_registered = False
+        self.WAPR_Item = None
+        self.last_wapr_raw_records = None
         if acceleration is not None:
             hccepose_acceleration = acceleration
         if acceleration_cache_dir is not None:
@@ -203,8 +370,6 @@ class Tester:
         self.acceleration_cache_dir = hccepose_acceleration_cache_dir
 
         _repo_root = str(Path(__file__).resolve().parents[1])
-        from HccePose.ensure_rgbd_megapose_demo import ensure_acceleration_backend_environment
-
         ensure_acceleration_backend_environment(_repo_root, self.acceleration)
 
         self.model_yolo = YOLO(os.path.join(bop_dataset_item.dataset_path, 'yolo11', 
@@ -263,7 +428,6 @@ class Tester:
             self.HccePose_Item[obj_id] = HccePose_BF_Net_i
             self.HccePose_Item_info[obj_id] = info_i
             if self.acceleration in ['onnx', 'tensorrt']:
-                from HccePose.hccepose_acceleration import HccePoseOnnxRunner
                 cache_dir_i = self.acceleration_cache_dir
                 if cache_dir_i is None:
                     cache_dir_i = os.path.join(bop_dataset_item.dataset_path, 'HccePose', 'obj_%s'%str(obj_id).rjust(2, '0'), 'onnx_cache')
@@ -308,8 +472,6 @@ class Tester:
         返回:
             - 无。
         '''
-        from Refinement.refinement_group import Refinement_MP
-
         megapose_item = Refinement_MP(
             device=str(self.device),
             model_name_rgb=megapose_model_name_rgb or self.megapose_model_name_rgb,
@@ -402,21 +564,143 @@ class Tester:
         return pred_Rts, None, np.array([], dtype=np.int64), megapose_vis_image
 
     @torch.inference_mode()
+    def register_wapr(self):
+        """Register public WAPR with BOP millimeter models; weights load on first use.
+        用 BOP 毫米制模型注册公开 WAPR；首次非空推理时加载后端权重。
+        """
+        dataset = self.bop_dataset_item
+        diameters_mm = [dataset.model_info[str(obj_id)]['diameter'] for obj_id in dataset.obj_id_list]
+        wapr_item = Refinement_WAPR(device=str(self.device))
+        wapr_item.register_objects(dataset.obj_id_list, dataset.obj_model_list, diameters_mm)
+        self.WAPR_Item = wapr_item
+        self.wapr_registered = True
+
+    def _run_wapr_estimation(self, predictions, obj_ids, cam_K, image, depth_m,
+                             wbps_threshold, nms_iou_threshold, mode='estimate'):
+        """Estimate on the original frame, then filter every per-instance field together.
+        在原图上估计，再同步筛选所有逐实例字段；保存原始编号、米制位姿及评分。
+        """
+        instances = []
+        identifiers = []
+        skipped = []
+        for obj_id in obj_ids:
+            if obj_id not in predictions:
+                continue
+            prediction = predictions[obj_id]
+            count = len(prediction['pred_mask'])
+            masks = restore_full_frame_masks(prediction, image.shape) if mode != 'refine' else [None] * count
+            for index, mask in enumerate(masks):
+                seed_m = None
+                if mode != 'estimate':
+                    seed_mm = prediction['Rts'][index]
+                    if (prediction['pnp_success'][index] and np.isfinite(seed_mm).all()
+                            and seed_mm[2, 3] > 0 and np.allclose(seed_mm[3], [0, 0, 0, 1])):
+                        seed_m = seed_mm.astype(np.float32).copy()
+                        seed_m[:3, 3] *= 1e-3
+                    if mode == 'refine' and seed_m is None:
+                        reason = 'pnp_failed' if not prediction['pnp_success'][index] else 'invalid_pnp_pose'
+                        skipped.append({'object_id': int(obj_id), 'instance_index': index, 'status': reason})
+                        continue
+                if not self.wapr_registered:
+                    self.register_wapr()
+                item = {'mesh': self.WAPR_Item.meshes_by_id[obj_id],
+                        'diameter_m': self.WAPR_Item.diameters_m[obj_id], 'mask': mask}
+                if seed_m is not None:
+                    item['pose_4x4_m'] = seed_m
+                instances.append(item)
+                identifiers.append({'object_id': int(obj_id), 'instance_index': index})
+        outputs = self.WAPR_Item.inference_batch(cam_K, image, depth_m, instances, mode=mode) if instances else []
+        records = []
+        for identity, output, item in zip(identifiers, outputs, instances):
+            record = {**identity, 'pose_4x4_m': np.asarray(output['pose_4x4']).tolist(),
+                      'score_6d': float(output['score_6d']),
+                      'hypothesis_source': output.get('hypothesis_source', 'wapr')}
+            for name in ('hypothesis_index', 'hypothesis_count'):
+                if name in output:
+                    record[name] = int(output[name])
+            if mode != 'estimate':
+                record['pnp_success'] = bool(predictions[identity['object_id']]['pnp_success'][identity['instance_index']])
+                if 'pose_4x4_m' in item:
+                    record['pnp_pose_4x4_m'] = item['pose_4x4_m'].tolist()
+            records.append(record)
+        # Preserve raw estimates even when the following rendering/NMS step fails.
+        # 即使后续渲染或 NMS 失败，也保留本帧原始估计，便于调用方单独保存。
+        self.last_wapr_raw_records = records
+        meshes = self.WAPR_Item.meshes_by_id if instances else {}
+        report = self.postprocess_wapr(records, meshes, cam_K, image.shape, wbps_threshold,
+                                       nms_iou_threshold, device=str(self.device))
+        report['wapr_mode'] = mode
+        report['skipped_instances'] = skipped
+        for obj_id, prediction in predictions.items():
+            rows = [row for row in report['retained_records'] if row['object_id'] == obj_id]
+            kept_indices = np.asarray([row['instance_index'] for row in rows], dtype=np.int64)
+            count = len(prediction['pred_mask'])
+            # Runtime outputs are batch-first; scalar or shared metadata stays unchanged.
+            # 网络输出均以实例为首维；标量或共享元数据保持不变。
+            for name, value in list(prediction.items()):
+                if isinstance(value, torch.Tensor) and value.ndim and value.shape[0] == count:
+                    indices = torch.as_tensor(kept_indices, device=value.device)
+                    prediction[name] = value.index_select(0, indices)
+                elif isinstance(value, np.ndarray) and value.ndim and value.shape[0] == count:
+                    prediction[name] = value[kept_indices]
+            poses_m = np.asarray([row['pose_4x4_m'] for row in rows], dtype=np.float64).reshape(-1, 4, 4)
+            poses_mm = poses_m.copy()
+            poses_mm[:, :3, 3] *= 1000.0
+            prediction['Rts'] = poses_mm
+            prediction['wapr_scores'] = np.asarray([row['score_6d'] for row in rows], dtype=np.float64)
+            prediction['wapr_instance_indices'] = kept_indices
+            prediction['wapr_mode'] = mode
+            prediction['wapr_pose_sources'] = [row['hypothesis_source'] for row in rows]
+            prediction['wapr_raw_records'] = [row for row in records if row['object_id'] == obj_id]
+            prediction['wapr_decisions'] = [row for row in report['decisions'] if row['object_id'] == obj_id]
+            prediction['wapr_skipped_instances'] = [row for row in skipped if row['object_id'] == obj_id]
+        return report
+
+    @torch.inference_mode()
     def predict(self, cam_K, img, obj_ids, confidence_threshold=0.75, conf=0.75, iou=0.50, max_det=200, pnp_op='ransac+comb',
-                depth=None, use_megapose=False, megapose_vis=False, megapose_vis_stages=None):
+                depth=None, use_megapose=False, megapose_vis=False, megapose_vis_stages=None,
+                use_wapr=False, wbps_threshold=0.75, wapr_nms_iou_threshold=0.5, wapr_mode='estimate'):
         """Estimate object-to-camera poses from an OpenCV BGR image and original pixel intrinsics.
 
-        Depth, when supplied for MegaPose, is in meters. Each object entry contains
-        Rts (translations in millimeters) and a pnp_success flag per detection.
-        The flag describes the HccePose solver before optional MegaPose refinement.
+        Depth uses meters. WAPR modes are estimate (no PnP), hybrid (PnP plus WAPR
+        candidates), and refine (PnP seeds only). All apply WBPS and rendered-mask NMS.
+        深度使用米。WAPR 支持 estimate（不用 PnP）、hybrid（PnP 与 WAPR 候选混合）
+        和 refine（仅精修 PnP 初值）；统一执行 WBPS 筛选与渲染掩码 NMS，Rts 平移仍为毫米。
         """
+        if wapr_mode not in ('estimate', 'hybrid', 'refine'):
+            raise ValueError('WAPR mode must be estimate, hybrid or refine')
+        if not use_wapr and wapr_mode != 'estimate':
+            raise ValueError('Set use_wapr=True to select a WAPR mode')
+        run_pnp = not use_wapr or wapr_mode != 'estimate'
+        if use_wapr and use_megapose:
+            raise ValueError('Choose either WAPR mask estimation or MegaPose refinement for one predict call')
+        if use_wapr:
+            self.last_wapr_raw_records = None
+            if not np.isfinite(wbps_threshold) or not np.isfinite(wapr_nms_iou_threshold) or not 0 <= wapr_nms_iou_threshold <= 1:
+                raise ValueError('Use a finite WBPS threshold and a WAPR NMS IoU threshold in [0,1]')
+            if img.dtype != np.uint8 or img.ndim != 3 or img.shape[2] != 3:
+                raise ValueError('WAPR requires a uint8 BGR image')
+            if depth is None or np.shape(depth) != img.shape[:2]:
+                raise ValueError('WAPR requires registered depth matching the original image in meters')
+            if not np.isfinite(depth).all() or np.any(depth < 0):
+                raise ValueError('WAPR depth must be finite, nonnegative meters')
+            if np.shape(cam_K) != (3, 3) or not np.isfinite(cam_K).all() or cam_K[0, 0] <= 0 or cam_K[1, 1] <= 0:
+                raise ValueError('WAPR requires finite original-image pixel intrinsics')
+            obj_ids = list(obj_ids)
+            if (any(isinstance(obj_id, bool) or not isinstance(obj_id, Integral) for obj_id in obj_ids)
+                    or len(set(obj_ids)) != len(obj_ids)
+                    or any(obj_id not in self.bop_dataset_item.obj_id_list for obj_id in obj_ids)):
+                raise ValueError('WAPR object IDs must be unique and registered in the dataset')
+            original_image = img.copy()
+            original_depth_m = np.asarray(depth, dtype=np.float32).copy()
+            original_cam_K = cam_K.copy()
         if use_megapose and not self.megapose_registered:
             self.register_megapose()
 
         pnp_op_l = [['epnp', 'ransac', 'ransac+vvs', 'ransac+comb', 'ransac+vvs+comb'],[0,2,1]]
         # Combined PnP requires the object prior; single-solver modes can use older
         # checkpoints without it. Report the asset before running the detector.
-        if pnp_op not in ('epnp', 'ransac', 'ransac+vvs'):
+        if run_pnp and pnp_op not in ('epnp', 'ransac', 'ransac+vvs'):
             for obj_id in obj_ids:
                 if obj_id not in self.HccePose_Item_info:
                     continue
@@ -456,6 +740,7 @@ class Tester:
                 'yolo': 0.0,
                 'hccepose': 0.0,
                 'megapose': 0.0,
+                'wapr': 0.0,
                 'visualization': 0.0,
             }
             
@@ -517,7 +802,11 @@ class Tester:
                         results = []
                         coord_image_np = coord_image.detach().cpu().numpy()
                         
-                        if pnp_op in ['epnp', 'ransac', 'ransac+vvs']:
+                        if not run_pnp:
+                            # Only the masks are needed; do not fabricate PnP success flags.
+                            # WAPR 只需要掩码，不计算或伪造 PnP 成功标记。
+                            pass
+                        elif pnp_op in ['epnp', 'ransac', 'ransac+vvs']:
                             pred_m_f_c_np = [(pred_mask_np[i], pred_front_code_0_np[i], coord_image_np[i], cam_K) for i in range(pred_mask_np.shape[0])]
                             for pred_m_f_c_np_i in pred_m_f_c_np:
                                 result_i = solve_PnP(pred_m_f_c_np_i, pnp_op=pnp_op_l[1][pnp_op_l[0].index(pnp_op)])
@@ -540,8 +829,11 @@ class Tester:
                                 Rt_i[:3, 3:] = result_i['tvecs']
                                 Rt_list.append(Rt_i)
 
-                        pred_results['Rts'] = np.array(Rt_list)
-                        pred_results['pnp_success'] = np.asarray([result['success'] for result in results], dtype=bool)
+                        if run_pnp:
+                            pred_results['Rts'] = np.array(Rt_list)
+                            pred_results['pnp_success'] = np.asarray([result['success'] for result in results], dtype=bool)
+                            if use_wapr:
+                                pred_results['Rts_hccepose'] = pred_results['Rts'].copy()
                         stage_times['hccepose'] += time.time() - t_stage
 
                         if use_megapose:
@@ -567,6 +859,15 @@ class Tester:
 
                         results_dict[obj_id] = pred_results
             
+            if use_wapr:
+                t_stage = time.time()
+                # Preserve the public backend's precision policy outside HccePose AMP.
+                # WAPR 不继承 HccePose 的混合精度上下文，保持公开后端自身的精度策略。
+                with torch.amp.autocast('cuda', enabled=False):
+                    wapr_report = self._run_wapr_estimation(
+                        results_dict, obj_ids, original_cam_K, original_image, original_depth_m,
+                        wbps_threshold, wapr_nms_iou_threshold, mode=wapr_mode)
+                stage_times['wapr'] += time.time() - t_stage
             t2 = time.time()
             
             t_stage = time.time()
@@ -590,6 +891,8 @@ class Tester:
                 conf_s_l = []
                 for obj_id in results_dict:
                     pred_results = results_dict[obj_id]
+                    if len(pred_results['Rts']) == 0:
+                        continue
                     pred_front_code_raw = pred_results['pred_front_code_raw'].reshape((-1,128,128,3,8)).permute((0,1,2,4,3)).reshape((-1,128,128,24))
                     pred_back_code_raw = pred_results['pred_back_code_raw'].reshape((-1,128,128,3,8)).permute((0,1,2,4,3)).reshape((-1,128,128,24))
                     pred_front_code_l.append(torch.cat([pred_results['pred_front_code'], pred_front_code_raw], dim=-1))
@@ -631,8 +934,6 @@ class Tester:
                                               img_torch_hccepose, pred_mask_origin, 
                                               pred_front_code_origin, pred_back_code_origin)
             if megapose_vis:
-                from Refinement.MegaPose import _megapose_add_title, _megapose_vstack_images
-
                 panels = []
                 for obj_id, entry in results_dict.items():
                     image = entry.get('megapose_vis')
@@ -641,12 +942,15 @@ class Tester:
                 if panels:
                     results_dict['show_megapose'] = _megapose_vstack_images(panels)
             stage_times['visualization'] += time.time() - t_stage
+            if use_wapr:
+                results_dict['wapr_postprocess'] = wapr_report
             results_dict['time'] = t2 - t1
             other_time = max(0.0, results_dict['time'] - sum(stage_times.values()))
             results_dict['time_dict'] = {
                 'yolo': stage_times['yolo'],
                 'hccepose': stage_times['hccepose'],
                 'megapose': stage_times['megapose'],
+                'wapr': stage_times['wapr'],
                 'visualization': stage_times['visualization'],
                 'other': other_time,
             }

@@ -15,7 +15,7 @@
 # - Optional image codec download / 可选图像解码组件下载:
 #   python -c "import imageio; imageio.plugins.freeimage.download()"
 
-ultralytics==8.3.233
+ultralytics==8.3.70
 fvcore==0.1.5.post20221221
 pybind11==2.12.0
 trimesh==4.2.2

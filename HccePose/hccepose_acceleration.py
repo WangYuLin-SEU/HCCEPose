@@ -1,9 +1,9 @@
 # Author: Yulin Wang (yulinwang@seu.edu.cn)
 # School of Mechanical Engineering, Southeast University, China
 
-import os
 import ctypes
 import glob
+import os
 import site
 from pathlib import Path
 
@@ -37,6 +37,8 @@ def _import_onnx_modules():
         - onnx: 导入后的 ONNX Python 模块。
         - ort: 导入后的 ONNXRuntime Python 模块。
     '''
+    # Tester prepares these optional packages after importing this module.
+    # Tester 导入本模块后才准备这些可选依赖，因此必须在实际创建后端时加载。
     try:
         import onnx
         import onnxruntime as ort
@@ -109,6 +111,8 @@ def _tensorrt_lib_search_dirs():
             d = os.path.join(package_root, sub)
             if os.path.isdir(d):
                 out.append(d)
+    # TensorRT can be installed during preflight; locate the newly available package then.
+    # TensorRT 可在预检查中才安装，需在该阶段定位刚可用的包。
     try:
         import tensorrt as trt
 

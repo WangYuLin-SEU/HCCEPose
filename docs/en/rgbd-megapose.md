@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
 The millimeter-to-meter conversion applies to this public frame. Check your own sensor units and register depth to color before use. For RGB only, pass `depth=None` without creating dummy depth.
 
-When using `Refinement.refinement_test_utils.load_capture_frame(capture_dir, name, depth_scale_to_m=1e-3)`, keep raw depth units explicit. The default `1e-3` converts the public millimeter frames to meters; use `1` for meters or `1e-4` for tenths of a millimeter. The reader does not infer units from the depth median.
+When using `Refinement.refinement_group.load_capture_frame(capture_dir, name, depth_scale_to_m=1e-3)`, keep raw depth units explicit. The default `1e-3` converts the public millimeter frames to meters; use `1` for meters or `1e-4` for tenths of a millimeter. The reader does not infer units from the depth median.
 
 ## Outputs and instance alignment
 
@@ -73,8 +73,8 @@ Request debug images with `megapose_vis=True`; `megapose_vis_stages` selects int
 
 These public upstream images show the RGB-D and RGB models on the same frame. They are not new performance or accuracy measurements.
 
-![Public MegaPose RGB-D example](../../show_vis/rgbd_000003_megapose_rgbd.jpg)
+![Public MegaPose RGB-D example](../assets/figures/rgbd_000003_megapose_rgbd.jpg)
 
-![Public MegaPose RGB example](../../show_vis/rgbd_000003_megapose_rgb.jpg)
+![Public MegaPose RGB example](../assets/figures/rgbd_000003_megapose_rgb.jpg)
 
 See [MegaPose](https://github.com/megapose6d/megapose6d) for code and model terms. See [RGB-D comparison](depth-comparison.md) for comparison procedures and unit conversions.

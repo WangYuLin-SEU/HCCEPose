@@ -2,7 +2,7 @@
 
 ## Matching resources
 
-Meshes, model metadata, detector class order and per-object pose weights must match. Published resources are available from the [HCCEPose resource page](https://huggingface.co/datasets/SEU-WYL/HccePose). Application captures and weights are not bundled.
+Meshes, model metadata, detector class order and per-object pose weights must match. Published resources are available from the [HCCEPose resource page](https://huggingface.co/datasets/SEU-WYL/HccePose). A small set of captures is bundled under `sample_data/`; download model weights and training data separately.
 
 `dataset_root` follows the published loader layout:
 
@@ -18,9 +18,27 @@ objects/
 
 Set the dataset path, object IDs and image paths in the entry script. Use detector and pose checkpoints from a trusted source that permits your intended use. Check their hashes against the provider’s records before loading them.
 
+Bundled inputs are grouped under `sample_data/images/`, `sample_data/rgbd/` and `sample_data/videos/`; `tests/` contains code tests. The root `s4_p3_*.py` examples use those bundled directories. Hugging Face downloads retain their upstream names (`test_imgs/`, `test_imgs_RGBD/`, `test_videos/`), so point the example at the downloaded input directory when using additional files. The recipe below explicitly downloads to `data/`.
+
 ## Download one RGB-D example
 
-After [installation](installation.md), save the following code as a Python script at the project root and run it. Assets go under `data/`, preserving the Hugging Face layout. Use `data/demo-bin-picking/` as `dataset_root`; there is no need to rename it to `objects/`.
+After [installation](installation.md), run the minimal downloader from the project root:
+
+```bash
+python scripts/download_hf_assets.py --preset demo --dest data --endpoint hf
+```
+
+It fetches and validates the seven files below and writes a separate camera matrix. If the official endpoint is unreachable, retry with `--endpoint mirror`; both routes request the same fixed revision and keep validation enabled. If a service returns an error, keep the existing files and retry after connectivity is restored.
+
+If all seven files have already been prepared on a connected machine, copy the `data/` layout to the target and validate it offline:
+
+```bash
+HF_HUB_OFFLINE=1 python scripts/download_hf_assets.py --preset demo --dest data --endpoint hf
+```
+
+Offline mode does not waive the file-size, checkpoint-directory or weight-digest checks. Missing or damaged files still stop the command.
+
+The equivalent explicit recipe below can be saved as a Python script at the project root. Assets go under `data/`, preserving the Hugging Face layout. Use `data/demo-bin-picking/` as `dataset_root`; there is no need to rename it to `objects/`.
 
 ```python
 import hashlib

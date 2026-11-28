@@ -10,10 +10,300 @@ import tempfile
 from pathlib import Path
 
 import cv2
+import kornia
 import numpy as np
+import torch
+import trimesh
 
+from HccePose.bop_loader import inference_image_geometry
 from Refinement import MegaPose as megapose_module
 from Refinement.MegaPose import MEGAPOSE_PIP_PACKAGES
+
+# WAPR is optional for RGB/MegaPose users; import its public backend only if installed.
+# RGB/MegaPose 用户不必安装 WAPR；仅在已安装时导入其公开后端。
+try:
+    from wapr import recipe as wapr_recipe
+    from wapr.estimator import (
+        WAPREstimator,
+        center_from_mesh,
+        guess_translation,
+        make_view_rots,
+        resolve_view_counts,
+    )
+    from wapr.pose_groups import wbps_group_sizes
+except ModuleNotFoundError as exc:
+    if exc.name != 'wapr':
+        raise
+    WAPREstimator = None
+    wapr_recipe = None
+    center_from_mesh = None
+    guess_translation = None
+    make_view_rots = None
+    resolve_view_counts = None
+    wbps_group_sizes = None
+
+
+def convert_depth_to_meter(depth_raw, depth_scale_to_m=1e-3):
+    """Convert nonnegative raw depth with an explicit raw-to-meter scale.
+    使用显式系数将非负原始深度换算到米；公开毫米样例使用 1e-3。
+    """
+    if not np.isfinite(depth_scale_to_m) or depth_scale_to_m <= 0:
+        raise ValueError('depth_scale_to_m must be finite and positive')
+    depth_m = np.asarray(depth_raw, dtype=np.float32).copy()
+    if not np.isfinite(depth_m).all() or np.any(depth_m < 0):
+        raise ValueError('Raw depth must be finite and nonnegative')
+    depth_m *= depth_scale_to_m
+    return depth_m
+
+
+def list_capture_frame_names(capture_dir):
+    """List sorted frame stems for paired *_rgb.png RGB-D captures.
+    按顺序返回配套 RGB-D 数据中 *_rgb.png 文件的帧名前缀。
+    """
+    return sorted(name[:-8] for name in os.listdir(capture_dir) if name.endswith('_rgb.png'))
+
+
+def load_capture_frame(capture_dir, name, depth_scale_to_m=1e-3):
+    """Read BGR pixels, raw/meter depth and same-frame BOP camera intrinsics.
+    读取 BGR 彩色图、原始和米制深度及同帧 BOP 相机内参。
+    """
+    rgb_path = os.path.join(capture_dir, name + '_rgb.png')
+    depth_path = os.path.join(capture_dir, name + '_depth.png')
+    camera_path = os.path.join(capture_dir, name + '_camK.json')
+    image = cv2.imread(rgb_path)
+    depth = cv2.imread(depth_path, cv2.IMREAD_UNCHANGED)
+    with open(camera_path, encoding='utf-8') as handle:
+        camera = json.load(handle)
+    cam_K = np.array([[camera['fx'], 0, camera['cx']],
+                      [0, camera['fy'], camera['cy']], [0, 0, 1]], dtype=np.float32)
+    if image is None:
+        raise FileNotFoundError(f'Failed to load rgb image: {rgb_path}')
+    if depth is None:
+        raise FileNotFoundError(f'Failed to load depth image: {depth_path}')
+    depth_m = convert_depth_to_meter(depth, depth_scale_to_m)
+    return image, depth, depth_m, cam_K
+
+
+def _prepare_wapr_frame(image_bgr, depth_m, cam_K):
+    """Validate a registered BGR/meter frame and produce contiguous public-API inputs.
+    校验配准 BGR 与米制深度，生成公开接口使用的连续 RGB、深度和内参。
+    """
+    image_bgr = np.asarray(image_bgr)
+    depth_m = np.ascontiguousarray(depth_m, dtype=np.float32)
+    cam_K = np.ascontiguousarray(cam_K, dtype=np.float32)
+    if image_bgr.ndim != 3 or image_bgr.shape[2] != 3 or image_bgr.dtype != np.uint8:
+        raise ValueError('image_bgr must be uint8 H x W x 3')
+    if depth_m.shape != image_bgr.shape[:2] or not np.isfinite(depth_m).all() or (depth_m < 0).any():
+        raise ValueError('depth_m must match the image and contain finite, nonnegative meters')
+    if cam_K.shape != (3, 3) or not np.isfinite(cam_K).all() or cam_K[0, 0] <= 0 or cam_K[1, 1] <= 0:
+        raise ValueError('cam_K must contain finite 3 x 3 pixel intrinsics with positive focal lengths')
+    return np.ascontiguousarray(image_bgr[..., ::-1]), depth_m, cam_K
+
+
+def estimate_from_masks(estimator, image_bgr, depth_m, cam_K, instances):
+    """Call public WAPR with ordered full-frame masks and meter meshes/diameters.
+    使用顺序对应的原图掩码、米制网格及直径调用公开 WAPR 接口。
+    """
+    image_rgb, depth_m, cam_K = _prepare_wapr_frame(image_bgr, depth_m, cam_K)
+    prepared = []
+    for item in instances:
+        mask = np.asarray(item['mask'])
+        diameter_m = float(item['diameter_m'])
+        if mask.shape != depth_m.shape or not np.isfinite(mask).all():
+            raise ValueError('Each mask must be finite and match the full input frame')
+        if not np.isfinite(diameter_m) or diameter_m <= 0:
+            raise ValueError('diameter_m must be finite and positive')
+        foreground = mask > 0
+        if not foreground.any() or not np.any(foreground & (depth_m > 0)):
+            raise ValueError('Each mask needs foreground and positive observed depth')
+        prepared.append({'mesh': item['mesh'], 'diameter_m': diameter_m, 'mask': foreground})
+    if not prepared:
+        return []
+    # HccePose uses BGR; the public WAPR API requires contiguous RGB and meters.
+    # HccePose 使用 BGR；公开 WAPR 接口使用连续 RGB 数组及米制几何。
+    results = estimator.estimate_many_categories_many_instances(image_rgb, depth_m, cam_K, prepared)
+    if len(results) != len(prepared):
+        raise RuntimeError('WAPR result count differs from instance count')
+    for result in results:
+        pose = np.asarray(result['pose_4x4'])
+        score = float(result['score_6d'])
+        if pose.shape != (4, 4) or not np.isfinite(pose).all() or not np.isfinite(score):
+            raise RuntimeError('WAPR returned an invalid pose or score')
+    return results
+
+
+def restore_full_frame_masks(prediction, image_shape, mask_threshold=0.5):
+    """Undo detector resizing, padding and crop transforms; return full-frame masks.
+    还原检测缩放、补边和裁剪变换，返回原图掩码；mask_threshold 不是位姿评分阈值。
+    """
+    height, width = image_shape[:2]
+    if height <= 0 or width <= 0 or not np.isfinite(mask_threshold) or not 0 <= mask_threshold <= 1:
+        raise ValueError('Invalid image shape or foreground threshold')
+    _, scaled_h, scaled_w, padded_h, padded_w, top, left = inference_image_geometry(height, width)
+    masks = prediction['pred_mask']
+    transforms = prediction['Detect_Bbox_tfs_128']
+    if not isinstance(masks, torch.Tensor) or masks.ndim != 3 or min(masks.shape[1:]) < 1:
+        raise ValueError('pred_mask must be a tensor of shape [N,H,W] with nonempty crops')
+    if not isinstance(transforms, torch.Tensor) or transforms.shape != (len(masks), 3, 3):
+        raise ValueError('Expected one [3,3] crop transform per mask, in the same instance order')
+    if len(masks) == 0:
+        return np.zeros((0, height, width), dtype=bool)
+    if not torch.isfinite(masks).all() or not torch.isfinite(transforms).all():
+        raise ValueError('Crop masks and transforms must be finite')
+    transforms = transforms.to(dtype=torch.float32)
+    full_tensor = kornia.geometry.transform.warp_perspective(
+        masks[:, None].float(), torch.linalg.inv(transforms),
+        dsize=(padded_h, padded_w), mode='nearest', align_corners=False,
+    )[:, 0].detach().cpu()
+    full = np.array(full_tensor.numpy(), dtype=np.float32, copy=True)
+    output = []
+    for mask in full:
+        unpadded = mask[top:top + scaled_h, left:left + scaled_w]
+        restored = cv2.resize(unpadded, (width, height), interpolation=cv2.INTER_NEAREST)
+        output.append(restored > mask_threshold)
+    return np.asarray(output)
+
+
+class Refinement_WAPR:
+    """Use the fixed public WAPR components for estimate, hybrid and refine modes.
+    使用固定公开 WAPR 组件实现候选估计、混合候选与 PnP 初值精修。
+    """
+
+    def __init__(self, device='cuda:0'):
+        self.device = str(device)
+        self.estimator = None
+        self.meshes_by_id = {}
+        self.diameters_m = {}
+
+    def register_objects(self, object_ids, model_paths, diameters_mm):
+        """Register BOP millimeter meshes and diameters once for repeated frames.
+        一次注册 BOP 毫米制网格与直径，供多帧复用；不对网格重新居中。
+        """
+        if not len(object_ids) == len(model_paths) == len(diameters_mm):
+            raise ValueError('Expected one model and diameter per object ID')
+        meshes = {}
+        diameters = {}
+        for object_id, path, diameter_mm in zip(object_ids, model_paths, diameters_mm):
+            diameter_m = float(diameter_mm) * 1e-3
+            if object_id in meshes or not np.isfinite(diameter_m) or diameter_m <= 0:
+                raise ValueError('Object IDs must be unique and diameters finite and positive')
+            mesh = trimesh.load(path, force='mesh', process=False)
+            mesh.apply_scale(1e-3)
+            if mesh.is_empty or not len(mesh.faces) or not np.isfinite(mesh.vertices).all():
+                raise ValueError(f'Expected a finite triangle mesh at {path}')
+            meshes[object_id] = mesh
+            diameters[object_id] = diameter_m
+        self.meshes_by_id = meshes
+        self.diameters_m = diameters
+
+    def inference_batch(self, K, rgb, depth, instances, mode='estimate'):
+        """Return ordered poses in meters and scores for BGR/registered-depth inputs.
+        对 BGR 图和配准深度，按实例顺序返回米制位姿及评分。
+        estimate ignores pose seeds; hybrid optionally appends pose_4x4_m to WAPR
+        candidates; refine requires it and scores the original/refined pair.
+        estimate 不用初值；hybrid 可将 pose_4x4_m 加入 WAPR 候选；refine 必须有
+        初值，以原位姿和精修位姿组成评分组。Tester 随后统一执行 WBPS 筛选与 NMS。
+        """
+        if mode not in ('estimate', 'hybrid', 'refine'):
+            raise ValueError('WAPR mode must be estimate, hybrid or refine')
+        if mode == 'estimate' or not instances:
+            # Keep the existing public batched estimation path unchanged.
+            # 保持原有公开批量估计路径不变。
+            if instances and self.estimator is None:
+                if WAPREstimator is None:
+                    raise ImportError('Install the documented public WAPR version before RGB-D inference')
+                self.estimator = WAPREstimator(device=self.device)
+            return estimate_from_masks(self.estimator, rgb, depth, K, instances)
+
+        image_rgb, depth_m, cam_K = _prepare_wapr_frame(rgb, depth, K)
+        prepared = []
+        for item in instances:
+            diameter_m = float(item['diameter_m'])
+            if not np.isfinite(diameter_m) or diameter_m <= 0:
+                raise ValueError('diameter_m must be finite and positive')
+            seed = item.get('pose_4x4_m')
+            if seed is not None:
+                seed = np.asarray(seed, dtype=np.float32)
+                if (seed.shape != (4, 4) or not np.isfinite(seed).all() or seed[2, 3] <= 0
+                        or not np.allclose(seed[3], [0, 0, 0, 1])):
+                    raise ValueError('PnP seeds must be finite original-object 4x4 poses with positive meter depth')
+            if mode == 'refine' and seed is None:
+                raise ValueError('WAPR refine mode requires a valid PnP pose seed')
+            mask = np.zeros(depth_m.shape, dtype=np.uint8)
+            if mode == 'hybrid':
+                mask = np.asarray(item['mask'])
+                if mask.shape != depth_m.shape or not np.isfinite(mask).all():
+                    raise ValueError('Each mask must be finite and match the full input frame')
+                mask = (mask > 0).astype(np.uint8)
+                if not np.any(mask & (depth_m > 0)):
+                    raise ValueError('Each mask needs foreground and positive observed depth')
+            prepared.append((item['mesh'], diameter_m, seed, mask))
+        if instances and self.estimator is None:
+            if WAPREstimator is None:
+                raise ImportError('Install the documented public WAPR version before RGB-D inference')
+            self.estimator = WAPREstimator(device=self.device)
+        estimator = self.estimator
+        results = []
+        for mesh, diameter_m, seed, mask in prepared:
+            if mode == 'hybrid' and seed is None:
+                # A failed PnP row still has the unchanged public candidate route.
+                # PnP 失败的实例仍沿用公开候选估计路径，不使用单位矩阵伪造初值。
+                result = estimate_from_masks(estimator, rgb, depth_m, cam_K,
+                                             [{'mesh': mesh, 'diameter_m': diameter_m, 'mask': mask}])[0]
+                results.append({**result, 'hypothesis_source': 'wapr'})
+                continue
+            mesh = estimator._pose_meshes([mesh])[0]
+            center = center_from_mesh(mesh)
+            if mode == 'hybrid':
+                n_view, n_inplane = resolve_view_counts(None, None)
+                rotations = make_view_rots(n_view, n_inplane)
+                translation = guess_translation(depth_m, mask, cam_K)
+                if not np.isfinite(translation).all() or translation[2] <= 0:
+                    raise ValueError('WAPR candidates require positive observed depth')
+                initial = np.repeat(np.eye(4, dtype=np.float32)[None], len(rotations) + 1, axis=0)
+                initial[:-1, :3, :3] = rotations
+                initial[:-1, :3, 3] = translation
+                initial[-1] = seed
+                sources = ['wapr'] * len(rotations) + ['pnp_refined']
+                net_name = 'wapr_w_mask'
+            else:
+                initial = seed[None]
+                sources = ['pnp', 'pnp_refined']
+                net_name = 'wapr_wo_mask'
+            group_size = len(sources)
+            if group_size not in wbps_group_sizes:
+                raise ValueError(f'WAPR scoring group size {group_size} is unsupported by the fixed public backend')
+            initial_t = torch.as_tensor(initial, device=estimator.device, dtype=torch.float32)
+            # Compose only published refinement/scoring components and recipe values.
+            # 只组织公开的精修、评分组件及 recipe 参数，不引入另一套后端实现。
+            refined = estimator._refine(
+                estimator.nets[net_name], initial_t, image_rgb, depth_m, mask, cam_K,
+                mesh, center, diameter_m, iters=wapr_recipe.wapr_iters,
+                max_rot=wapr_recipe.wapr_max_rot_rad, crop_ratio=wapr_recipe.refine_crop_ratio,
+                use_mask=(mode == 'hybrid'),
+            )
+            refined = estimator._refine(
+                estimator.nets['sapr'], refined, image_rgb, depth_m, mask, cam_K,
+                mesh, center, diameter_m, iters=wapr_recipe.sapr_iters,
+                max_rot=wapr_recipe.sapr_max_rot_rad, crop_ratio=wapr_recipe.refine_crop_ratio,
+                use_mask=False,
+            )
+            candidates = refined if mode == 'hybrid' else torch.cat((initial_t, refined), dim=0)
+            if candidates.shape != (group_size, 4, 4) or not torch.isfinite(candidates).all():
+                raise RuntimeError('WAPR returned invalid refined poses')
+            within, between = estimator._wbps(
+                candidates, image_rgb, depth_m, mask, cam_K, mesh, center, diameter_m, group_size)
+            if within.shape != (1, group_size) or between.shape != (1, group_size):
+                raise RuntimeError('WBPS must preserve the independent instance scoring group')
+            if not torch.isfinite(within).all() or not torch.isfinite(between).all():
+                raise RuntimeError('WBPS returned nonfinite scores')
+            best = int(within.argmax(dim=1).item())
+            pose = candidates[best].detach().float().cpu().numpy()
+            score = (100.0 - float(between.max().item())) / 200.0
+            results.append({'pose_4x4': pose, 'score_6d': score,
+                            'hypothesis_source': sources[best], 'hypothesis_index': best,
+                            'hypothesis_count': group_size})
+        return results
 
 
 class Refinement_MP:

@@ -16,8 +16,21 @@ import cv2
 import numpy as np
 import pytest
 import torch
+import ultralytics
+from torchvision.transforms.functional import normalize
 
 project_dir = Path(__file__).resolve().parents[1]
+# Import project code relative to this test file, including external pytest launchers.
+# 从当前测试文件定位项目代码，支持从仓库外启动 pytest。
+sys.path.insert(0, str(project_dir))
+
+from HccePose import PnP_solver, network_model
+from HccePose.metric import add_s
+from HccePose.network_model import load_checkpoint
+from HccePose.tester import Tester as HccePoseTester
+from Refinement import MegaPose
+from Refinement.refinement_group import Refinement_MP, convert_depth_to_meter
+from yolo_train import label
 
 
 @pytest.fixture(scope='module')
@@ -35,10 +48,7 @@ def loader(tmp_path_factory):
 
 
 def test_detector_rgb_does_not_change_hcce_bgr_crops(loader):
-    from HccePose.tester import Tester
-    from torchvision.transforms.functional import normalize
-
-    tester = object.__new__(Tester)
+    tester = object.__new__(HccePoseTester)
     tester.bop_dataset_item = SimpleNamespace(obj_id_list=[1])
     tester.HccePose_Item_info = {1: {'keypoints_': [1]}}
     tester.device = torch.device('cpu')
@@ -166,7 +176,6 @@ def test_back_render_uses_complete_canonical_pose(loader, tmp_path):
 @pytest.mark.parametrize('symmetry', [{}, {'symmetries_discrete': []},
     {'symmetries_continuous': []}, {'symmetries_discrete': [np.eye(4).reshape(-1).tolist()]}])
 def test_empty_symmetry_metadata_keeps_add(loader, symmetry):
-    from HccePose.metric import add_s
     points = {'pts': np.array([[0., 0., 0.], [10., 0., 0.], [2., 1., 0.]])}
     gt = [[np.eye(3), np.zeros((3, 1))]]
     prediction = [[np.diag([-1., -1., 1.]), np.array([[10.], [0.], [0.]])]]
@@ -180,7 +189,6 @@ def test_empty_symmetry_metadata_keeps_add(loader, symmetry):
     {'symmetries_continuous': [{'axis': [0, 0, 1], 'offset': [0, 0, 0]}]},
 ])
 def test_nontrivial_symmetry_keeps_adds(loader, symmetry):
-    from HccePose.metric import add_s
     points = {'pts': np.array([[0., 0., 0.], [10., 0., 0.], [2., 1., 0.]])}
     gt = [[np.eye(3), np.zeros((3, 1))]]
     prediction = [[np.diag([-1., -1., 1.]), np.array([[10.], [0.], [0.]])]]
@@ -191,7 +199,6 @@ def test_nontrivial_symmetry_keeps_adds(loader, symmetry):
 
 @pytest.mark.parametrize('mode', [1, 2])
 def test_pnp_prior_branch_identity_is_solver_independent(monkeypatch, mode):
-    from HccePose import PnP_solver
     markers = {None: 1, 'b': 2, 'bf': 3, 'bfu': 4}
 
     def solve(*args, bfu=None, **kwargs):
@@ -212,7 +219,6 @@ def test_pnp_prior_branch_identity_is_solver_independent(monkeypatch, mode):
 
 @pytest.mark.parametrize('damage', ['none', 'optimizer_missing', 'optimizer_invalid', 'step_missing', 'score_missing', 'prior_missing', 'corrupt'])
 def test_resume_fails_explicitly_without_silent_restart(tmp_path, monkeypatch, damage):
-    from HccePose import network_model
     model = torch.nn.Linear(1, 1)
     optimizer = torch.optim.Adam(model.parameters())
     with torch.no_grad():
@@ -250,7 +256,6 @@ def test_resume_fails_explicitly_without_silent_restart(tmp_path, monkeypatch, d
 
 @pytest.mark.parametrize('exists', [True, False])
 def test_absent_checkpoint_starts_new_training_only(tmp_path, exists):
-    from HccePose.network_model import load_checkpoint
     path = tmp_path / 'checkpoints'
     if exists:
         path.mkdir()
@@ -267,7 +272,6 @@ def test_absent_checkpoint_starts_new_training_only(tmp_path, exists):
     ('', 'cuda:0', None), ('2,5', 'cuda:2', None), ('-1', 'cuda:0', None),
 ])
 def test_megapose_cuda_visibility_mapping(tmp_path, monkeypatch, visible, device, expected):
-    from Refinement.refinement_group import Refinement_MP
     if visible is None:
         monkeypatch.delenv('CUDA_VISIBLE_DEVICES', raising=False)
     else:
@@ -283,7 +287,6 @@ def test_megapose_cuda_visibility_mapping(tmp_path, monkeypatch, visible, device
 
 @pytest.mark.parametrize('raw,scale,expected', [(3000, 1e-3, 3.), (30000, 1e-4, 3.), (.4, 1., .4), (0, 1e-3, 0.)])
 def test_explicit_depth_units_do_not_depend_on_distance(raw, scale, expected):
-    from Refinement.refinement_test_utils import convert_depth_to_meter
     original = np.full((2, 3), raw, np.float32)
     converted = convert_depth_to_meter(original, scale)
     np.testing.assert_allclose(converted, expected)
@@ -292,7 +295,6 @@ def test_explicit_depth_units_do_not_depend_on_distance(raw, scale, expected):
 
 @pytest.mark.parametrize('scale', [0, -1, float('nan'), float('inf')])
 def test_invalid_depth_scale_is_rejected(scale):
-    from Refinement.refinement_test_utils import convert_depth_to_meter
     with pytest.raises(ValueError, match='depth_scale_to_m'):
         convert_depth_to_meter(np.ones((2, 3)), scale)
 
@@ -349,7 +351,6 @@ def test_yolo_wrapper_requires_weight_and_stops_on_failure(tmp_path, monkeypatch
 
 def test_yolo_conversion_entry_keeps_single_relative_root(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    from yolo_train import label
     info = tmp_path / 'xxx/xxx/demo-bin-picking/models/models_info.json'
     info.parent.mkdir(parents=True)
     info.write_text('{"2": {}, "1": {}}')
@@ -362,7 +363,6 @@ def test_yolo_conversion_entry_keeps_single_relative_root(tmp_path, monkeypatch)
 
 @pytest.mark.parametrize('absolute', [False, True])
 def test_yolo_model_save_path_matches_inference_layout(tmp_path, monkeypatch, absolute):
-    import ultralytics
     monkeypatch.chdir(tmp_path)
     config = Path('data/demo/yolo11/train_obj_s/yolo_configs/data_objs.yaml')
     config.parent.mkdir(parents=True)
@@ -413,7 +413,6 @@ def test_nan_recovery_resets_regular_and_sync_batch_norm(loader):
 @pytest.mark.parametrize('with_seed', [False, True])
 def test_megapose_job_reorders_pose_score_and_identity_together(tmp_path, monkeypatch, with_seed):
     pd = pytest.importorskip('pandas')
-    from Refinement import MegaPose
     poses = torch.eye(4).repeat(3, 1, 1)
     poses[:, 2, 3] = torch.tensor([300., 100., 200.])
     predictions = SimpleNamespace(infos=pd.DataFrame({'instance_id': [2, 0, 1],

@@ -54,6 +54,10 @@ results = tester.predict(
     use_megapose=False,
     megapose_vis=False,
     megapose_vis_stages=None,
+    use_wapr=False,
+    wbps_threshold=0.75,
+    wapr_nms_iou_threshold=0.5,
+    wapr_mode='estimate',
 )
 ```
 
@@ -69,6 +73,10 @@ results = tester.predict(
 | `depth` | Optional registered `H×W` depth in meters; enables the MegaPose RGB-D model. |
 | `use_megapose` | Requests refinement; registers MegaPose on first use if needed. |
 | `megapose_vis`, `megapose_vis_stages` | Request MegaPose debug images and select stages. |
+| `use_wapr` | Enable WAPR with registered meter depth. Registers automatically when a frame has eligible instances; cannot be combined with `use_megapose=True`. |
+| `wapr_mode` | `'estimate'` (default): no PnP; `'hybrid'`: PnP plus WAPR candidates; `'refine'`: PnP seeds only. Nondefault modes require `use_wapr=True`. |
+| `wbps_threshold` | Keep WAPR `score_6d >= 0.75` by default; independent of YOLO confidence. |
+| `wapr_nms_iou_threshold` | Same-category rendered CAD mask NMS IoU threshold, default `0.5`. |
 
 The public trainer’s 15-entry prior enumerates candidate combinations in `F, B, BF, BFU` order. `BF` alternates front/back points; `BFU` also uses points interpolated along the ray. Both combined solvers use this order, so enabling VVS does not change prior index meanings. Custom priors must follow the same order; do not reuse priors with unknown ordering.
 
@@ -86,4 +94,4 @@ if entry is not None:
     print(poses_mm[:, :3, 3])
 ```
 
-Undetected objects have no corresponding integer key. String keys contain timings and images. See the [results dictionary](results-api.md). Call WAPR through the separate [mask integration function](refinement-api.md).
+Undetected objects have no corresponding integer key. String keys contain timings, images and the WAPR report. WAPR requires registered meter depth. Only `wapr_mode='estimate'` skips PnP and omits `pnp_success`. `hybrid` and `refine` run the requested solver and preserve its status; `refine` skips failed or invalid seeds, whereas `hybrid` can still estimate them from masks. WAPR and NMS use the original frame and intrinsics. All batch fields contain only retained instances in original order; an object with all instances rejected or skipped remains present with empty arrays. See [results](results-api.md) and [the three modes](refinement-api.md).

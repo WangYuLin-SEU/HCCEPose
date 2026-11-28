@@ -4,28 +4,37 @@
 import os
 import sys
 
+# Resolve project-local modules from this script before importing them.
+# 导入前从当前脚本定位项目内模块，不依赖启动目录。
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_dir)
 
+from HccePose.ensure_rgbd_megapose_demo import prepare_rgbd_megapose_demo_environment
+
+CUDA_DEVICE = '0'
+
+# Prepare optional dependencies only when executing this recipe, before loading them.
+# 仅执行本示例时先准备可选依赖，再进行顶部模块导入；普通导入不会安装环境。
 if __name__ == '__main__':
-
-    # Repo root: robust first run (MegaPose setup, demo assets) regardless of shell cwd.
-    current_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(current_dir)
-    sys.path.insert(0, current_dir)
-
-    CUDA_DEVICE = '0'
-
-    from HccePose.ensure_rgbd_megapose_demo import prepare_rgbd_megapose_demo_environment
-
     prepare_rgbd_megapose_demo_environment(cuda_device=CUDA_DEVICE, project_root=current_dir)
 
-    import cv2
-    from HccePose.bop_loader import bop_dataset
-    from HccePose.test_script_utils import print_stage_time_breakdown, save_visual_artifacts
-    from HccePose.tester import Tester
-    from Refinement.refinement_test_utils import load_capture_frame, list_capture_frame_names
+import cv2
 
+from HccePose.bop_loader import bop_dataset
+from HccePose.test_script_utils import (
+    print_stage_time_breakdown,
+    save_visual_artifacts,
+)
+from HccePose.tester import Tester
+from Refinement.refinement_group import list_capture_frame_names, load_capture_frame
+
+
+if __name__ == '__main__':
     dataset_path = os.path.join(current_dir, 'demo-bin-picking')
-    capture_dir = os.path.join(current_dir, 'test_imgs_RGBD')
+    # Keep each RGB-D frame and its calibration together under sample_data.
+    # 每帧 RGB-D 与对应标定一起存放在 sample_data 下。
+    capture_dir = os.path.join(current_dir, 'sample_data', 'rgbd')
     bop_dataset_item = bop_dataset(dataset_path)
     obj_id = 1
     hccepose_vis = True

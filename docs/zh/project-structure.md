@@ -5,15 +5,19 @@
 ```text
 HccePose/                 RGB 推理、网络与 BOP 加载器
 s1_*.py ... s4_*.py       公开准备、训练与评测阶段
-Refinement/              WAPR 接入与可选 MegaPose 接口
-examples/inference/      predict_image.py、predict_wapr.py、postprocess_wapr.py
+Refinement/              共用 WAPR/MegaPose 接口与 RGB-D 读取
+s4_p3_*RGBD_wapr.py      WAPR 预测及自动评分筛选、NMS
+scripts/                 HF 下载与资源校验
 docs/zh/                 中文文档
 docs/en/                 英文文档
 docs/theme/              共享视觉主题
 docs/assets/             图片与展示素材
+docs/assets/figures/     论文、教程与效果图片
 pages/                   构建后的静态网站
-show_vis/                公开示例图片
 media/                   公开视频预览
+sample_data/images/      自带 RGB 输入图片
+sample_data/rgbd/        自带 RGB-D 帧与相机标定
+sample_data/videos/      自带输入视频
 tests/                   接口与文档检查
 ```
 

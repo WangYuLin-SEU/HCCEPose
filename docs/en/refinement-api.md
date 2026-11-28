@@ -4,21 +4,47 @@ RGB inference needs only color and intrinsics. Before adding depth, register pix
 
 ## Inputs and units
 
-| Item | HccePose / MegaPose integration | WAPR mask integration |
+| Item | HccePose / MegaPose integration | WAPR integration |
 | --- | --- | --- |
 | Color | OpenCV BGR `uint8 H×W×3` | Adapter accepts BGR and converts to the public API’s RGB order. |
 | Depth | Optional for MegaPose RGB; meters for RGB-D | Required finite, nonnegative `H×W` values in meters. |
 | Camera | Original-image `3×3` pixel intrinsics | Same pixel intrinsics as color, depth and full-frame masks. |
 | Model | BOP meshes registered in millimeters, converted internally | Both vertices and `diameter_m` in meters. |
-| Initial pose | MegaPose refines HccePose hypotheses | This mask-estimation entry point does not accept HccePose pose seeds. |
-| Translation output | `Tester` results remain millimeters | `pose_4x4` / example `pose_4x4_m` uses meters. |
+| Initial pose | MegaPose refines HccePose hypotheses | None for `estimate`; optional per instance for `hybrid`; required for `refine`. |
+| Translation output | `Tester` results remain millimeters | `Tester.Rts` uses millimeters; raw `pose_4x4` / `pose_4x4_m` uses meters. |
 
 Equal image dimensions do not prove registration. The adapter checks dimensions, but cannot verify sensor extrinsics or distortion correction; complete those before providing input.
+
+## Register and call WAPR through Tester
+
+```python
+# Optional eager registration; predict also registers automatically on first use.
+tester.register_wapr()
+results = tester.predict(cam_K, image_bgr, [1], depth=depth_m,
+                         use_wapr=True, wapr_mode='estimate', wbps_threshold=0.75,
+                         wapr_nms_iou_threshold=0.5)
+entry = results.get(1)
+if entry is not None:
+    print(entry['Rts'], entry['wapr_scores'], entry['wapr_instance_indices'])
+raw_records = results['wapr_postprocess']['raw_records']
+```
+
+Reuse the same `Tester` across frames. All three WAPR modes apply WBPS and per-object rendered-mask NMS, keeping masks, crops, confidences and poses aligned. `conf` remains YOLO confidence. An all-rejected object has zero rows; no detections gives an empty report without loading WAPR weights. Choose WAPR or MegaPose for each call. If NMS fails, prediction raises and `tester.last_wapr_raw_records` still contains this frame’s estimates; it is `None` until estimation completes.
+
+| `wapr_mode` | Initialization and scoring |
+| --- | --- |
+| `estimate` (default) | Skip PnP. Use the unchanged public multi-instance mask estimator and its candidate group. |
+| `hybrid` | Run PnP, append each valid seed to that instance's WAPR rotation/depth candidates, refine them and score the complete group once. A failed or invalid seed uses the public mask-estimation route instead. |
+| `refine` | Run PnP, refine valid seeds through unmasked WAPR and SAPR, then score the original/refined pair. Generate no global rotation candidates. Failed or invalid PnP instances are listed in `skipped_instances` without a pose or fabricated score. |
+
+With the fixed public recipe, estimation uses 12 candidates, a seeded hybrid group uses 13, and refinement scores 2. The original and refined pose are genuine stages of the same seed, not duplicate padding for WBPS. `within_group` selects a pose; `score_6d` uses the maximum `between_group` of that complete instance group, following the public score definition. Scores from separate runs are not merged to select a winner. Changing group composition can change scores, so check the explicit `0.75` gate for each mode.
+
+Seeded modes compose the [fixed public refinement and WBPS components](https://github.com/WangYuLin-SEU/WAPR/blob/4e591be318a828c91980c58ef8bbdc34e6599881/wapr/estimator.py). They process scoring groups separately; the default estimator retains its public cross-instance batched path. Recipe iterations, crop ratios, rotation caps and backend selection are unchanged. Unsupported group sizes or engine profiles raise; no silent backend switch or scoring-group padding is added. PnP uses the selected `pnp_op`; combined solvers still require a matching checkpoint prior.
 
 ## Restore crop masks to the original image
 
 ```python
-from Refinement.wapr_public import restore_full_frame_masks
+from Refinement.refinement_group import restore_full_frame_masks
 
 entry = predictions[obj_id]
 masks = restore_full_frame_masks(entry, image_bgr.shape)
@@ -34,7 +60,7 @@ Optional `mask_threshold=0.5` controls mask foreground only, not WAPR score acce
 import numpy as np
 import trimesh
 from wapr.estimator import WAPREstimator
-from Refinement.wapr_public import estimate_from_masks
+from Refinement.refinement_group import estimate_from_masks
 
 # Prepare same-frame image_bgr, depth_m, cam_K, masks, and millimeter mesh/diameter.
 mesh = trimesh.load(mesh_path, force='mesh', process=False)
@@ -70,7 +96,7 @@ Omitting depth selects RGB; registered meter depth selects RGB-D. Registration u
 
 ## Repeated processing and resources
 
-Reuse initialized HccePose and WAPR objects across frames. Importing `Refinement.wapr_public` does not install dependencies, download resources or initialize a GPU. Constructing the public backend may prepare its resources. Populate the caches described in [Installation](installation.md) before working offline.
+Reuse initialized HccePose and WAPR objects across frames. `Refinement.refinement_group` provides both `Refinement_MP` and `Refinement_WAPR`, along with shared RGB-D reading and mask restoration. Creating `Refinement_WAPR` does not load pose weights; its first nonempty inference call constructs the public backend, which may prepare resources. Populate the caches described in [Installation](installation.md) before working offline.
 
 
-For application-level score filtering and rendered-mask NMS after estimation, use the [optional postprocessing tutorial](wapr-postprocessing.md). This leaves the adapter return contract unchanged.
+`Tester` owns score filtering and rendered-mask NMS and applies them automatically in `predict`. Its static `postprocess_wapr` and `postprocess_saved_wapr` methods can recheck existing records without loading inference weights. The lower-level `estimate_from_masks` still returns raw mask estimates. `Refinement_WAPR.inference_batch(..., mode='estimate')` also supports `hybrid` and `refine`; supply original-object meter `pose_4x4_m` seeds in the instance dictionaries for those modes. The refinement group only wraps backend estimation and refinement, returning raw results. See [postprocessing](wapr-postprocessing.md).

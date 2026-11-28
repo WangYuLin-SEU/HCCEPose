@@ -19,7 +19,7 @@
 <p align="center">Predict front and back surface coordinates, then solve the object-to-camera pose from ultra-dense 2D–3D correspondences.</p>
 
 <p align="center">
-  <a href="show_vis/fig2.jpg"><img src="docs/assets/readme-showcase/method-en.svg" width="100%" alt="HccePose(BF) paper overview: front/back surface prediction, 2D–3D correspondences and pose estimation"></a>
+  <a href="docs/assets/figures/fig2.jpg"><img src="docs/assets/readme-showcase/method-en.svg" width="100%" alt="HccePose(BF) paper overview: front/back surface prediction, 2D–3D correspondences and pose estimation"></a>
 </p>
 <p align="center">
   <img src="docs/assets/readme-showcase/features-en.svg" width="100%" alt="RGB image · Front and back surfaces · Ultra-dense 2D–3D matches · Object-to-camera pose">
@@ -29,6 +29,8 @@
 ## Models and example data
 
 Pretrained weights, object models and example inputs are hosted on **[Hugging Face](https://huggingface.co/datasets/SEU-WYL/HccePose)**.
+
+Bundled inputs: [RGB images](sample_data/images/) · [RGB-D frames](sample_data/rgbd/) · [Videos](sample_data/videos/). Code tests are kept separately in `tests/`; downloaded resources follow the layout in the [assets guide](docs/en/assets.md).
 
 <table align="center">
   <thead>
@@ -70,16 +72,16 @@ For a first run, follow [Models and inputs](docs/en/assets.md#download-one-rgb-d
 The project provides RGB inference, WAPR integration, and an optional interface to an external MegaPose installation. Prepare matching detector and object pose weights, object meshes, camera intrinsics, and input images, then run an inference example. See [installation](docs/en/installation.md), [resource conventions](docs/en/assets.md) and [your first prediction](docs/en/quickstart.md).
 
 ```bash
-python examples/inference/predict_image.py
+python s4_p3_test_mi10_bin_picking.py
 ```
 
-Run this command from the project root after editing the resource paths and object IDs at the end of the entry script. Outputs are saved to `outputs/rgb/`.
+Run from the project root after checking the model path, object IDs and camera calibration. This RGB example reads bundled JPG images and saves visualizations beside them; see the tutorial for the separate 640×400 RGB-D frame.
 
 ## WAPR integration
 
-Install [WAPR](https://github.com/WangYuLin-SEU/WAPR/tree/4e591be318a828c91980c58ef8bbdc34e6599881) separately. The example restores instance masks predicted by HccePose for the current image to the full frame, then estimates poses using registered depth, camera intrinsics, and each object’s metric mesh and diameter. Each instance produces `pose_4x4_m` (object to camera, translation in meters) and a `score_6d` computed for that input. Input instance order is preserved. This API estimates poses from masks without HccePose pose seeds. See [WAPR usage](docs/en/rgbd-wapr.md).
+Install [WAPR](https://github.com/WangYuLin-SEU/WAPR/tree/4e591be318a828c91980c58ef8bbdc34e6599881) separately. The example uses registered RGB-D, camera intrinsics, and each object’s metric mesh and diameter. Choose `wapr_mode='estimate'` (default, no PnP), `'hybrid'` (PnP plus WAPR candidates), or `'refine'` (PnP refinement only). Raw `pose_4x4_m` translations use meters; `score_6d` is computed for the current input. See [WAPR usage](docs/en/rgbd-wapr.md).
 
-Optional score filtering and per-object CAD rendered-mask NMS are provided in [the postprocessing tutorial](docs/en/wapr-postprocessing.md) and `examples/inference/postprocess_wapr.py`. The raw inference JSON is kept separately.
+Run `s4_p3_test_mi10_bin_picking_RGBD_wapr.py` to call `Tester.predict(..., use_wapr=True)` with automatic WBPS filtering and per-object CAD rendered-mask NMS. Raw and filtered JSON files are saved separately; see [the postprocessing tutorial](docs/en/wapr-postprocessing.md).
 
 <p align="center"><sub>Saved outputs · WBPS ≥ 0.75 · Scores are not probabilities.</sub></p>
 
@@ -4926,15 +4928,15 @@ The following screenshots preserve the BOP leaderboard results shown in the orig
 
 ### 6D object localization
 
-![Historical BOP 6D object localization leaderboard](show_vis/bop-6D-loc.png)
+![Historical BOP 6D object localization leaderboard](docs/assets/figures/bop-6D-loc.png)
 
 ### 2D object segmentation
 
-![Historical BOP 2D object segmentation leaderboard](show_vis/bop-2D-seg.png)
+![Historical BOP 2D object segmentation leaderboard](docs/assets/figures/bop-2D-seg.png)
 
 ## New objects and the complete training workflow
 
-Public upstream includes mesh centering, rotational symmetry, BOP metadata, PBR rendering, YOLO training, front/back labels, per-object pose training and BOP evaluation scripts. Bilingual docs retain stage-by-stage procedures, public parameters, output layouts and example figures. Stage scripts remain in the repository root; for the original published revision, follow [Installation](docs/en/installation.md#public-training-and-rendering-source); use this project’s `examples/inference/` for application inference.
+Public upstream includes mesh centering, rotational symmetry, BOP metadata, PBR rendering, YOLO training, front/back labels, per-object pose training and BOP evaluation scripts. Bilingual docs retain stage-by-stage procedures, public parameters, output layouts and example figures. Stage and application scripts remain in the repository root; for the original published revision, follow [Installation](docs/en/installation.md#public-training-and-rendering-source).
 
 See [BOP evaluation](docs/en/bop-evaluation.md) for public weights, historical results and leaderboard images. Those historical results describe the original published settings, rather than other data, models or configurations.
 
@@ -4976,7 +4978,7 @@ See [project structure](docs/en/project-structure.md), [LICENSE](LICENSE) and [p
 <p align="center">联合预测物体前、后表面坐标，通过超密集 2D–3D 对应求解位姿。</p>
 
 <p align="center">
-  <a href="show_vis/fig2.jpg"><img src="docs/assets/readme-showcase/method-zh.svg" width="100%" alt="HccePose(BF) 论文方法图：前后表面坐标预测、2D–3D 对应与位姿求解"></a>
+  <a href="docs/assets/figures/fig2.jpg"><img src="docs/assets/readme-showcase/method-zh.svg" width="100%" alt="HccePose(BF) 论文方法图：前后表面坐标预测、2D–3D 对应与位姿求解"></a>
 </p>
 <p align="center">
   <img src="docs/assets/readme-showcase/features-zh.svg" width="100%" alt="RGB 图像输入 · 联合预测前后表面 · 超密集 2D–3D 对应 · 物体相对相机位姿">
@@ -4986,6 +4988,8 @@ See [project structure](docs/en/project-structure.md), [LICENSE](LICENSE) and [p
 ## 模型与示例数据
 
 预训练权重、物体模型及示例输入均可从 **[Hugging Face](https://huggingface.co/datasets/SEU-WYL/HccePose)** 获取。
+
+仓库自带输入：[RGB 图片](sample_data/images/) · [RGB-D 帧](sample_data/rgbd/) · [视频](sample_data/videos/)。代码测试单独放在 `tests/`；下载资源的目录结构见[资源说明](docs/zh/assets.md)。
 
 <table align="center">
   <thead>
@@ -5027,16 +5031,16 @@ See [project structure](docs/en/project-structure.md), [LICENSE](LICENSE) and [p
 项目提供 RGB 推理、WAPR 接入，以及可选的外部 MegaPose 接口。先准备匹配的检测器与物体位姿权重、物体网格、相机内参和输入图像，再运行推理示例。具体步骤见[安装说明](docs/zh/installation.md)、[资源约定](docs/zh/assets.md)和[第一次预测](docs/zh/quickstart.md)。
 
 ```bash
-python examples/inference/predict_image.py
+python s4_p3_test_mi10_bin_picking.py
 ```
 
-修改入口末尾的资源路径与物体编号后，在项目根目录运行上述命令。输出保存于 `outputs/rgb/`。
+核对模型路径、物体编号和相机标定后，从项目根目录运行。该 RGB 示例读取自带 JPG，并将可视化保存在输入旁；640×400 RGB-D 帧的运行方式见教程。
 
 ## WAPR 接入
 
-[WAPR](https://github.com/WangYuLin-SEU/WAPR/tree/4e591be318a828c91980c58ef8bbdc34e6599881) 需单独安装。示例将 HccePose 从当前图像预测的实例掩码映射回原图，结合配准深度、相机内参及各物体的米制网格和直径估计位姿。每个实例输出 `pose_4x4_m`（物体到相机，平移单位为米）和针对本次输入计算的 `score_6d`，保持输入实例顺序。该接口从掩码估计位姿，无需 HccePose 位姿初值。详见 [WAPR 使用说明](docs/zh/rgbd-wapr.md)。
+[WAPR](https://github.com/WangYuLin-SEU/WAPR/tree/4e591be318a828c91980c58ef8bbdc34e6599881) 需单独安装。示例使用配准 RGB-D、相机内参及各物体的米制网格和直径。`wapr_mode` 可选 `'estimate'`（默认，不用 PnP）、`'hybrid'`（PnP 加 WAPR 候选）或 `'refine'`（只精修 PnP）。原始 `pose_4x4_m` 平移单位为米，`score_6d` 针对当前输入计算。详见 [WAPR 使用说明](docs/zh/rgbd-wapr.md)。
 
-可选的分数筛选与同类 CAD 渲染掩码 NMS 见[后处理教程](docs/zh/wapr-postprocessing.md)及 `examples/inference/postprocess_wapr.py`，原始推理 JSON 单独保留。
+运行 `s4_p3_test_mi10_bin_picking_RGBD_wapr.py`，通过 `Tester.predict(..., use_wapr=True)` 完成 WAPR 预测、自动 WBPS 筛选和同类 CAD 渲染掩码 NMS；原始与筛选 JSON 分开保存，详见[后处理教程](docs/zh/wapr-postprocessing.md)。
 
 <p align="center"><sub>已保存结果 · WBPS ≥ 0.75 · 分数不是概率。</sub></p>
 
@@ -9883,15 +9887,15 @@ endsolid hccepose_retained_cad_frame
 
 ### 6D 物体定位
 
-![历史 BOP 6D 物体定位榜单](show_vis/bop-6D-loc.png)
+![历史 BOP 6D 物体定位榜单](docs/assets/figures/bop-6D-loc.png)
 
 ### 2D 物体分割
 
-![历史 BOP 2D 物体分割榜单](show_vis/bop-2D-seg.png)
+![历史 BOP 2D 物体分割榜单](docs/assets/figures/bop-2D-seg.png)
 
 ## 新物体与完整训练流程
 
-公开上游提供模型居中、旋转对称标注、BOP 元数据、PBR 渲染、YOLO 训练、前后表面标签、逐物体位姿训练和 BOP 评测脚本。双语 docs 保留逐阶段操作、公开参数、输出目录和示例图；阶段脚本仍位于仓库根目录，复现原始公开版本时参阅[安装说明](docs/zh/installation.md#公开训练与渲染源码)，应用推理使用本项目 `examples/inference/`。
+公开上游提供模型居中、旋转对称标注、BOP 元数据、PBR 渲染、YOLO 训练、前后表面标签、逐物体位姿训练和 BOP 评测脚本。双语 docs 保留逐阶段操作、公开参数、输出目录和示例图；阶段与应用脚本均位于仓库根目录，复现原始公开版本时参阅[安装说明](docs/zh/installation.md#公开训练与渲染源码)。
 
 公开 BOP 权重、历史结果和榜单见[BOP 评测](docs/zh/bop-evaluation.md)。这些历史结果对应原公开设置，不应套用于其他数据、模型或配置。
 

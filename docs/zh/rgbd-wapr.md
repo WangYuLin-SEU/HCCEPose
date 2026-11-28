@@ -2,7 +2,7 @@
 
 ## 掩码与深度，进入三维估计
 
-WAPR 需[单独安装](installation.md#可选-wapr)。本接入依据 [WAPR 公开版本](https://github.com/WangYuLin-SEU/WAPR/tree/4e591be318a828c91980c58ef8bbdc34e6599881)，将 HccePose 从当前图像预测的实例掩码映射回原图，再调用 `estimate_many_categories_many_instances`。该入口从区域估计位姿，不接收 HccePose 位姿初值。
+WAPR 需[单独安装](installation.md#可选-wapr)。本接入依据 [WAPR 公开版本](https://github.com/WangYuLin-SEU/WAPR/tree/4e591be318a828c91980c58ef8bbdc34e6599881)。默认 `estimate` 模式将 HccePose 实例掩码还原至原图，调用 `estimate_many_categories_many_instances`，不使用 PnP 初值；`hybrid` 将有效 PnP 初值与 WAPR 候选混合；`refine` 只精修 PnP 初值，不生成全局旋转候选。选择方法见[三种模式](refinement-api.md)。
 
 接入函数将 BGR 彩色图转为 RGB，再将配准深度、内参和实例信息传入 WAPR。
 
@@ -33,32 +33,34 @@ WAPR 需[单独安装](installation.md#可选-wapr)。本接入依据 [WAPR 公�
 
 示例场景的评分是已保存的展示记录。运行下面的接口会根据新的输入生成结果，不会自动改写网页场景，也不保证与本例具有相同的检测数量或分数。
 
-若需要分数门槛与 CAD 渲染掩码 NMS，参见[评分筛选与 NMS](wapr-postprocessing.md)。独立脚本保留原始输出，并调用 WAPR 公开的去重函数。
+根目录示例调用 `Tester.predict(..., use_wapr=True)`，由 Tester 在掩码估计后自动执行 WBPS 筛选及 CAD 渲染掩码 NMS，并保留原始输出。门槛分别通过 `wbps_threshold=0.75` 与 `wapr_nms_iou_threshold=0.5` 设置。接口见[注册与多帧调用](refinement-api.md)，策略见[评分筛选与 NMS](wapr-postprocessing.md)。
 
 ## 输入与运行
 
 准备 BGR 图像、配准深度、原图内参、米制物体网格与直径。示例从公开 BOP 毫米模型显式转换为米。
 
-编辑 `examples/inference/predict_wapr.py` 的路径、物体编号和深度单位换算，再运行：
+编辑 `s4_p3_test_mi10_bin_picking_RGBD_wapr.py` 的路径、物体编号、深度单位换算和 `wapr_mode`，再运行：
 
 ```bash
-python examples/inference/predict_wapr.py
+python s4_p3_test_mi10_bin_picking_RGBD_wapr.py
 ```
 
-使用[资源页下载的示例](assets.md#下载一个-rgb-d-示例)时，也可从项目根目录调用：
+使用[资源页下载的示例](assets.md#下载一个-rgb-d-示例)时，将脚本入口中的路径设置为：
 
 ```python
-from examples.inference.predict_wapr import main
-
+dataset_root = os.path.join(current_dir, 'data', 'demo-bin-picking')
+capture_dir = os.path.join(current_dir, 'data', 'test_imgs_RGBD')
+frame_name = '000003'
+image_path = os.path.join(capture_dir, frame_name + '_rgb.png')
+depth_path = os.path.join(capture_dir, frame_name + '_depth.png')
+intrinsics_path = os.path.join(capture_dir, frame_name + '_camera_matrix.json')
 # 此帧的原始深度单位为毫米；自有数据需核对传感器单位。
-records = main("data/demo-bin-picking", "data/test_imgs_RGBD/000003_rgb.png",
-               "data/test_imgs_RGBD/000003_depth.png", "data/test_imgs_RGBD/000003_camera_matrix.json",
-               [1], "outputs/wapr.json", depth_scale_to_m=1e-3)
+depth_scale_to_m = 1e-3
 ```
 
-输出 `outputs/wapr.json` 保留输入实例顺序，含物体编号、实例索引、`pose_4x4_m`（物体到相机，平移单位为米）及针对本次输入计算的 `score_6d`。评分并非概率，也不等于目标确认；应用应根据自身需求定义接收、去重和排序策略。
+`outputs/wapr.json` 保留原始实例顺序，含物体编号、实例索引、`pose_4x4_m`（物体到相机，平移单位为米）及针对本次输入计算的 `score_6d`。`outputs/wapr_filtered.json` 保存自动后处理报告。默认评分门槛为 0.75，同类渲染掩码 NMS 的 IoU 门槛为 0.5。评分并非概率，也不等于目标确认；应按应用核对这些阈值。
 
-物体编号必须出现在本数据集的 `models_info.json` 中，每个编号只填一次。若同一物体类别在图中出现多次，脚本会为每个检测实例分别输出记录；若所有请求的类别都未检出，输出为 `[]`。每张裁剪掩码须对应一个变换矩阵。数量不匹配、掩码为空或掩码区域内没有正深度时，调用会报错。
+物体编号必须出现在本数据集的 `models_info.json` 中，每个编号只填一次。同类多个检测实例分别输出记录；若所有请求类别都未检出，原始 JSON 为 `[]`，保留记录也为空。`estimate` 与 `hybrid` 中，每张裁剪掩码须有对应变换及正观测深度，无效掩码会报错。`refine` 不要求前景掩码，但必须有有效 PnP 初值；失败或无效的初值不伪造分数，另列于报告的 `skipped_instances`。
 
 
 ## 多物体、多实例与掩码顺序
@@ -70,7 +72,7 @@ records = main("data/demo-bin-picking", "data/test_imgs_RGBD/000003_rgb.png",
 ## 在自己的 Python 程序中接入
 
 ```python
-from Refinement.wapr_public import restore_full_frame_masks, estimate_from_masks
+from Refinement.refinement_group import restore_full_frame_masks, estimate_from_masks
 
 # predictions 来自当前帧；不同物体使用各自的 mesh 与 diameter_m。
 masks = restore_full_frame_masks(predictions[obj_id], image_bgr.shape)
@@ -91,4 +93,6 @@ results_wapr = estimate_from_masks(estimator, image_bgr, depth_m, cam_K, instanc
 
 JSON 不保存固定实验分数，不使用真值标签生成评分。资源缺失、内参格式错误、重复或未知编号在模型加载前报错；形状不符、非有限深度、没有有效深度的掩码和无效输出不会被当作成功结果。读取和单位转换见[结果字典](results-api.md)。
 
-多帧应用可复用 `Tester` 和 WAPR 估计器。文件入口便于首次接入，重复调用它会重复初始化模型；高频处理应参考[接口教程](refinement-api.md)组织循环。首次运行所需资源准备与实际推理需分开计时。
+原始与筛选输出必须使用不同路径，也不能指向输入图片、深度图或标定文件。软链接和硬链接造成的同文件情况会在加载模型前被拦截。
+
+多帧应用可复用 `Tester` 和 WAPR 估计器。每次重新运行入口脚本都会重新初始化模型；高频处理应参考[接口教程](refinement-api.md)组织循环。首次运行所需资源准备与实际推理需分开计时。

@@ -7,10 +7,10 @@ import json
 import os
 import subprocess
 import sys
-import types
 import zipfile
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pytest
 
@@ -18,7 +18,6 @@ project_dir = Path(__file__).resolve().parents[1]
 # Load the adjacent command helpers without depending on the working directory.
 # 定位项目中的命令辅助模块，不依赖启动目录。
 sys.path.insert(0, str(project_dir / 'scripts'))
-import _hf_demo as demo
 import download_hf_assets as hf
 import wget_hf_demo_assets as wget
 
@@ -29,28 +28,26 @@ def small_demo(tmp_path, monkeypatch):
     使用小型缓存夹具，不改生产元数据。
     """
     required = {}
-    for relative, (_, digest) in demo.REQUIRED_DEMO_FILES.items():
+    for relative, (_, digest) in hf.REQUIRED_DEMO_FILES.items():
         data = (json.dumps({'fx': 20, 'fy': 21, 'cx': 3, 'cy': 4}).encode()
                 if relative.endswith('_camK.json') else b'known demo fixture')
         p = tmp_path / relative
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_bytes(data)
         required[relative] = (len(data), hashlib.sha256(data).hexdigest() if digest else None)
-    monkeypatch.setattr(demo, 'REQUIRED_DEMO_FILES', required)
+    monkeypatch.setattr(hf, 'REQUIRED_DEMO_FILES', required)
     return tmp_path, required
 
 
 def test_demo_preset_and_pinned_sdk_boundary(small_demo, monkeypatch):
     root, required = small_demo
     calls = []
-    module = types.ModuleType('huggingface_hub')
-    module.snapshot_download = lambda **kwargs: calls.append(kwargs) or str(root)
-    monkeypatch.setitem(sys.modules, 'huggingface_hub', module)
+    monkeypatch.setattr(hf, 'snapshot_download', lambda **kwargs: calls.append(kwargs) or str(root))
     monkeypatch.delenv('HF_ENDPOINT', raising=False)
     patterns = hf._patterns_for_presets(['demo'])
     assert set(patterns) == set(required)
     hf._run_download(str(root), patterns)
-    assert calls[0]['revision'] == demo.HF_REVISION
+    assert calls[0]['revision'] == hf.HF_REVISION
     assert calls[0]['token'] is False
     assert calls[0]['repo_type'] == 'dataset'
     assert calls[0]['endpoint'] == 'https://huggingface.co'
@@ -61,7 +58,7 @@ def test_demo_preset_and_pinned_sdk_boundary(small_demo, monkeypatch):
 @pytest.mark.parametrize('damage', ['missing', 'empty', 'truncated', 'wrong_digest', 'extra_checkpoint'])
 def test_bad_cache_is_reported_without_camera_write_or_deletion(small_demo, damage):
     root, required = small_demo
-    checkpoint = root / demo.CHECKPOINT_PATH
+    checkpoint = root / hf.CHECKPOINT_PATH
     camera = root / 'test_imgs_RGBD/000003_camK.json'
     camera_before = camera.read_bytes()
     extra = None
@@ -72,12 +69,12 @@ def test_bad_cache_is_reported_without_camera_write_or_deletion(small_demo, dama
     elif damage == 'truncated':
         checkpoint.write_bytes(b'x')
     elif damage == 'wrong_digest':
-        checkpoint.write_bytes(b'x' * required[demo.CHECKPOINT_PATH][0])
+        checkpoint.write_bytes(b'x' * required[hf.CHECKPOINT_PATH][0])
     else:
         extra = checkpoint.parent / 'README.txt'
         extra.write_text('unexpected file')
     with pytest.raises((FileNotFoundError, RuntimeError)):
-        demo.validate_selected_demo(str(root), list(required))
+        hf.validate_selected_demo(str(root), list(required))
     assert camera.read_bytes() == camera_before
     assert not (camera.parent / '000003_camera_matrix.json').exists()
     if extra:
@@ -88,13 +85,13 @@ def test_bad_cache_is_reported_without_camera_write_or_deletion(small_demo, dama
 
 def test_subset_validation_does_not_require_unselected_weights(small_demo):
     root, required = small_demo
-    (root / demo.CHECKPOINT_PATH).unlink()
-    selected = demo.validate_selected_demo(str(root), ['test_imgs_RGBD/000003_camK.json'])
+    (root / hf.CHECKPOINT_PATH).unlink()
+    selected = hf.validate_selected_demo(str(root), ['test_imgs_RGBD/000003_camK.json'])
     assert selected == ['test_imgs_RGBD/000003_camK.json']
 
 
 def test_wget_pinned_tree_and_failure_are_not_partial_success(monkeypatch):
-    assert wget.dataset_resolve_base('https://example.invalid').endswith('/resolve/' + demo.HF_REVISION)
+    assert wget.dataset_resolve_base('https://example.invalid').endswith('/resolve/' + hf.HF_REVISION)
     urls = []
     class Response:
         def __enter__(self): return self
@@ -102,7 +99,7 @@ def test_wget_pinned_tree_and_failure_are_not_partial_success(monkeypatch):
         def read(self): return b'[]'
     monkeypatch.setattr(wget.urllib.request, 'urlopen', lambda url, **kwargs: urls.append(url) or Response())
     assert wget.tree_api_dataset('test_imgs_RGBD', 'https://example.invalid') == []
-    assert '/tree/' + demo.HF_REVISION + '/' in urls[0]
+    assert '/tree/' + hf.HF_REVISION + '/' in urls[0]
     def fail(*args): raise OSError('offline')
     monkeypatch.setattr(wget, 'tree_api_dataset', fail)
     with pytest.raises(RuntimeError, match='pinned resource tree'):
@@ -125,9 +122,8 @@ def test_wget_replaces_existing_file_only_after_complete_download(tmp_path, monk
 
 
 def test_retained_capture_reader_and_units(tmp_path):
-    import cv2
     sys.path.insert(0, str(project_dir))
-    reader = importlib.import_module('Refinement.refinement_test_utils')
+    reader = importlib.import_module('Refinement.refinement_group')
     assert cv2.imwrite(str(tmp_path / '000003_rgb.png'), np.zeros((4, 6, 3), np.uint8))
     assert cv2.imwrite(str(tmp_path / '000003_depth.png'), np.full((4, 6), 500, np.uint16))
     (tmp_path / '000003_camK.json').write_text(json.dumps({'fx': 10, 'fy': 11, 'cx': 2, 'cy': 1}))

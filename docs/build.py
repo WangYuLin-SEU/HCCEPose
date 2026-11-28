@@ -314,8 +314,8 @@ def main():
         "assets/docs/assets/hccepose-contours.svg": os.path.join(docs_dir, "assets", "hccepose-contours.svg"),
         "assets/media/public-result.mp4": os.path.join(project_dir, "media", "public-result.mp4"),
         "assets/media/public-poster.jpg": os.path.join(project_dir, "media", "public-poster.jpg"),
-        "assets/show_vis/fig2.jpg": os.path.join(project_dir, "show_vis", "fig2.jpg"),
-        "assets/show_vis/IMG_20251007_165718_show_6d_vis1.jpg": os.path.join(project_dir, "show_vis", "IMG_20251007_165718_show_6d_vis1.jpg"),
+        "assets/docs/assets/figures/fig2.jpg": os.path.join(docs_dir, "assets", "figures", "fig2.jpg"),
+        "assets/docs/assets/figures/IMG_20251007_165718_show_6d_vis1.jpg": os.path.join(docs_dir, "assets", "figures", "IMG_20251007_165718_show_6d_vis1.jpg"),
     }
     # Bundle the saved RGB-D display without importing or executing the pose estimator.
     # 仅打包已保存的 RGB-D 展示，不导入或执行位姿估计器。

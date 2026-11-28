@@ -54,6 +54,10 @@ results = tester.predict(
     use_megapose=False,
     megapose_vis=False,
     megapose_vis_stages=None,
+    use_wapr=False,
+    wbps_threshold=0.75,
+    wapr_nms_iou_threshold=0.5,
+    wapr_mode='estimate',
 )
 ```
 
@@ -69,6 +73,10 @@ results = tester.predict(
 | `depth` | 可选的配准深度，`H×W`，单位为米；提供后可用于 MegaPose RGB-D。 |
 | `use_megapose` | 请求 MegaPose 精修；未注册时在首次使用时注册。 |
 | `megapose_vis`、`megapose_vis_stages` | 请求 MegaPose 调试图及阶段选择。 |
+| `use_wapr` | 使用配准米制深度启用 WAPR；有可处理实例时自动注册，不能同时启用 `use_megapose=True`。 |
+| `wapr_mode` | `'estimate'`（默认）：不用 PnP；`'hybrid'`：PnP 加 WAPR 候选；`'refine'`：只精修 PnP 初值。非默认模式须启用 `use_wapr=True`。 |
+| `wbps_threshold` | 默认保留 WAPR `score_6d >= 0.75`，与 YOLO 置信度独立。 |
+| `wapr_nms_iou_threshold` | 同类 CAD 渲染掩码 NMS 的 IoU 门槛，默认 `0.5`。 |
 
 组合 PnP 模式需要 checkpoint 中的 `keypoints_` 先验；缺少时会在检测前报错，不会静默替换求解方式。输出中的 `pnp_success` 用于逐实例判断初始 PnP 是否成功。
 
@@ -86,4 +94,4 @@ if entry is not None:
     print(poses_mm[:, :3, 3])
 ```
 
-没有检出的物体不会有对应整数键；字符串键保存计时和图像等信息。完整字段见[结果字典](results-api.md)。WAPR 通过独立的[掩码接入函数](refinement-api.md)调用。
+没有检出的物体不会有对应整数键；字符串键保存计时、图像及 WAPR 报告。WAPR 要求配准米制深度。仅 `wapr_mode='estimate'` 跳过 PnP、不返回 `pnp_success`。`hybrid` 和 `refine` 运行所选求解器并保留其状态；`refine` 跳过失败或无效初值，`hybrid` 仍可从掩码估计这些实例。WAPR 和 NMS 使用原图及原图内参。所有批量字段只含保留实例，维持原始顺序；某物体全部被筛除或跳过时仍保留该键，数组为空。完整字段见[结果字典](results-api.md)，模式见[精修接口](refinement-api.md)。

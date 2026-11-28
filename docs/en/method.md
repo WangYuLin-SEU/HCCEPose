@@ -4,7 +4,7 @@
 
 The nearest and farthest intersections along a camera ray correspond to the front and back surfaces. HccePose(BF) predicts hierarchical continuous coordinate codes for both surfaces and pairs the decoded 3D points with image pixels.
 
-![Original HccePose(BF) paper figure: surface prediction, correspondences and pose solving](../../show_vis/fig2.jpg)
+![Original HccePose(BF) paper figure: surface prediction, correspondences and pose solving](../assets/figures/fig2.jpg)
 
 HccePose(BF) network architecture and pose estimation pipeline, from the published paper.
 
@@ -29,6 +29,6 @@ A detector may recognize several categories and multiple instances per category.
 
 ## Depth and optional backends
 
-MegaPose refines HccePose poses using RGB or registered RGB-D. The current public WAPR integration estimates poses and scores from original-image masks, registered depth and meter meshes, without HccePose pose seeds. These are distinct entry points; see [refinement interfaces](refinement-api.md) for inputs and units.
+MegaPose refines HccePose poses using RGB or registered RGB-D. WAPR accepts registered RGB-D and metric meshes: `estimate` uses masks without PnP, `hybrid` jointly scores PnP and WAPR candidates, and `refine` refines PnP seeds without global rotation candidates. All three apply WBPS filtering and same-category rendered-mask NMS. See [refinement interfaces](refinement-api.md) for inputs, units and mode selection.
 
 This page explains the published method. The original paper figure is preserved. See [Tester](tester-api.md) and [results](results-api.md) for actual calls and array shapes.

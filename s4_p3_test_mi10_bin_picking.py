@@ -18,7 +18,9 @@ if __name__ == '__main__':
     sys.path.insert(0, os.getcwd())
     current_dir = os.path.dirname(sys.argv[0])
     dataset_path = os.path.join(current_dir, 'demo-bin-picking')
-    test_img_path = os.path.join(current_dir, 'test_imgs')
+    # Bundled input images live separately from code tests.
+    # 仓库自带输入图片与代码测试分开存放。
+    test_img_path = os.path.join(current_dir, 'sample_data', 'images')
     bop_dataset_item = bop_dataset(dataset_path)
     obj_id = 1
     CUDA_DEVICE = '0'

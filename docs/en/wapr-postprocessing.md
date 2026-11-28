@@ -1,38 +1,38 @@
 # WAPR score filtering and rendered-mask NMS
 
-The [WAPR inference example](rgbd-wapr.md) saves every estimated pose and score. This optional second step applies a score gate, then removes overlapping pose projections with the [fixed public WAPR NMS implementation](https://github.com/WangYuLin-SEU/WAPR/blob/4e591be318a828c91980c58ef8bbdc34e6599881/wapr/suppression.py). It does not change the adapter or rerun the pose networks.
+The [WAPR inference example](rgbd-wapr.md) saves every estimated pose and score, then automatically applies a score gate and the [fixed public WAPR NMS implementation](https://github.com/WangYuLin-SEU/WAPR/blob/4e591be318a828c91980c58ef8bbdc34e6599881/wapr/suppression.py). Prediction and postprocessing run from one root script; a second command is not required.
 
 ## Prepare the same frame and models
 
-First run `examples/inference/predict_wapr.py` and keep its `outputs/wapr.json`. Supply the same image, original-image intrinsics and object meshes when postprocessing. The JSON must contain `object_id`, `instance_index`, `pose_4x4_m` and `score_6d` for each input instance.
+Run `s4_p3_test_mi10_bin_picking_RGBD_wapr.py`. It keeps raw predictions in `outputs/wapr.json` and writes the automatic postprocessing report to `outputs/wapr_filtered.json`, using the same image, original-image intrinsics and object meshes. Raw records contain `object_id`, `instance_index`, `pose_4x4_m` and `score_6d`.
 
 The script reads BOP meshes from `<dataset_root>/models/obj_XXXXXX.ply`. BOP vertices use millimeters, so `mesh_scale_to_m=1e-3` converts them to meters. Set it to `1` for meshes already in meters. Mesh coordinates and the saved pose must refer to the same original object frame; do not recenter the mesh afterward.
 
-The score gate runs on CPU. When any record passes it, rendered-mask NMS requires the CUDA renderer from the [WAPR installation](installation.md#optional-wapr), in the same Python environment. No pose-network weights are loaded again by this script. Missing meshes or renderer failures raise errors rather than silently returning an unfiltered list.
+The score gate runs on CPU. When any record passes it, rendered-mask NMS requires the CUDA renderer from the [WAPR installation](installation.md#optional-wapr), in the same Python environment. The integrated postprocessing stage reuses the prepared meshes without running the pose networks again. Missing meshes or renderer failures raise errors rather than silently returning an unfiltered list; raw JSON remains available if NMS fails.
 
-The script is available in the public source: [postprocess_wapr.py](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/examples/inference/postprocess_wapr.py).
+Source: [s4_p3_test_mi10_bin_picking_RGBD_wapr.py](https://github.com/WangYuLin-SEU/HCCEPose/blob/main/s4_p3_test_mi10_bin_picking_RGBD_wapr.py).
 
-## Run the optional script
+## Run prediction with automatic postprocessing
 
-The editable values at the bottom of `examples/inference/postprocess_wapr.py` use the [downloaded RGB-D example](assets.md#download-one-rgb-d-example). Check the paths, then run from the project root:
+The root script uses bundled `sample_data/rgbd/000003_*` inputs and the models prepared on the [resource page](assets.md#download-one-rgb-d-example). Check its paths and editable thresholds, then run:
 
 ```bash
-python examples/inference/postprocess_wapr.py
+python s4_p3_test_mi10_bin_picking_RGBD_wapr.py
 ```
 
-The raw JSON remains unchanged. The result is written separately to `outputs/wapr_filtered.json`. For Python applications:
+`Tester.predict` completes filtering and NMS automatically; the root script only reads inputs and saves the returned results. To compare another threshold on an existing raw file without rerunning prediction, use Tester's static method, without constructing a Tester or loading model weights:
 
 ```python
-from examples.inference.postprocess_wapr import main
+from HccePose.tester import Tester
 
 # These paths and poses must belong to the same frame.
-report = main(
+report = Tester.postprocess_saved_wapr(
     "data/demo-bin-picking",
     "data/test_imgs_RGBD/000003_rgb.png",
     "data/test_imgs_RGBD/000003_camera_matrix.json",
     "outputs/wapr.json",
     "outputs/wapr_filtered.json",
-    score_threshold=0.75,
+    wbps_threshold=0.75,
     nms_iou_threshold=0.5,
     device="cuda:0",
     mesh_scale_to_m=1e-3,
@@ -40,16 +40,18 @@ report = main(
 retained = report["retained_records"]
 ```
 
-You can also call `filter_records(records, meshes_by_id, cam_K, image.shape, score_threshold, nms_iou_threshold, device)` on in-memory records. `meshes_by_id` maps each qualifying BOP object ID to its meter mesh. Records keep the same schema as `predict_wapr.py`.
+`Tester.postprocess_wapr(records, meshes_by_id, cam_K, image.shape, wbps_threshold, nms_iou_threshold, device)` handles existing in-memory records. `meshes_by_id` maps each qualifying BOP ID to its meter mesh. All three WAPR prediction modes use this same method inside `Tester`; no filtering or NMS implementation is kept in the entry script or refinement group.
 
 ## Two different thresholds
 
 | Parameter | Example value | Behavior |
 | --- | --- | --- |
-| `score_threshold` | `0.75` | Apply the WBPS score gate to the returned `score_6d`: keep `score_6d >= 0.75` before NMS. This is an application choice, not a probability cutoff calibrated for every object. Scores above 1 are preserved. |
+| `score_threshold` in the script / `wbps_threshold` in Tester | `0.75` | Apply the WBPS score gate to the returned `score_6d`: keep `score_6d >= 0.75` before NMS. This is an application choice, not a probability cutoff calibrated for every object. Scores above 1 are preserved. |
 | `nms_iou_threshold` | `0.5` | Within the same `object_id`, consider higher scores first and suppress a lower-ranked pose when rendered-mask IoU is strictly greater than 0.5. Equality is kept. |
 
 The IoU value follows the [public WAPR example](https://github.com/WangYuLin-SEU/WAPR/blob/4e591be318a828c91980c58ef8bbdc34e6599881/examples/10_robi_zigzag.py). Both values are visible script variables for the application; they do not change WAPR's scientific defaults. Tune them for your objects and camera.
+
+`wapr_mode` selects `estimate`, `hybrid` or `refine`. The same numeric thresholds apply by default, but different candidate groups can produce different WBPS values; the gate is not calibrated equally across modes. See [the mode definitions](refinement-api.md).
 
 ## What the NMS compares
 
@@ -70,6 +72,8 @@ Highly overlapping projections can belong to distinct objects, particularly unde
 | `score_threshold`, `nms_iou_threshold`, `nms_method` | The policy used for this output. |
 
 A decision has status `kept`, `below_score_threshold` or `not_retained_by_mask_nms`. The last status includes empty projections as well as overlap suppression, so it is not automatically a confirmed duplicate. No skipped item is assigned a fake zero score.
+
+The inference report also records `wapr_mode` and `skipped_instances`. In `refine`, the latter lists PnP failures or invalid seeds; these unestimated instances have no raw score. Reprocessing an existing raw file applies only filtering and NMS to the available records; it does not reconstruct skipped instances or change inference mode.
 
 ## Relation to the website example
 

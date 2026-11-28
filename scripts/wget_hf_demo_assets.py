@@ -7,6 +7,9 @@ test_videos *_show_* (generated artifacts, not inputs).
 Use when huggingface_hub snapshot_download stalls or disconnects: same file layout
 as download_hf_assets.py (repo root paths).
 
+Hub paths are retained; bundled samples are separately stored under sample_data/.
+保留 Hub 的目录名称；仓库自带样例单独存放在 sample_data/。
+
 Run from repo root:
   python scripts/wget_hf_demo_assets.py
   python scripts/wget_hf_demo_assets.py --endpoint hf --jobs 8
@@ -29,7 +32,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # 从当前脚本定位相邻的共用清单，支持从仓库外启动。
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, script_dir)
-from _hf_demo import HF_REVISION, REQUIRED_DEMO_FILES, validate_selected_demo
+from download_hf_assets import HF_REVISION, validate_selected_demo
 
 DATASET = "SEU-WYL/HccePose"
 OFFICIAL_HUB = "https://huggingface.co"

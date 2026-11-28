@@ -2,7 +2,7 @@
 
 ## From masks and depth to 3D estimation
 
-Install WAPR [separately](installation.md#optional-wapr). This adapter targets the [published WAPR version](https://github.com/WangYuLin-SEU/WAPR/tree/4e591be318a828c91980c58ef8bbdc34e6599881). It restores instance masks predicted by HccePose for the current image to the full frame and calls `estimate_many_categories_many_instances`. This entry estimates poses from regions; it does not accept HccePose pose seeds.
+Install WAPR [separately](installation.md#optional-wapr). This adapter targets the [published WAPR version](https://github.com/WangYuLin-SEU/WAPR/tree/4e591be318a828c91980c58ef8bbdc34e6599881). The default `estimate` mode restores HccePose instance masks to the original frame and calls `estimate_many_categories_many_instances` without PnP seeds. `hybrid` combines valid PnP seeds with WAPR candidates; `refine` refines PnP seeds without generating global rotation candidates. See [mode selection](refinement-api.md).
 
 The adapter converts the BGR image to RGB and passes it to WAPR with registered depth, intrinsics and instance data.
 
@@ -33,32 +33,34 @@ Each tile pairs an original crop on the left with its pose projection on the rig
 
 Scores in this scene are saved display records. Running the interface below computes results for new input; it neither rewrites the website scene automatically nor guarantees the same detection counts or scores.
 
-For an optional score gate and CAD rendered-mask NMS, follow [score filtering and NMS](wapr-postprocessing.md). The separate script preserves raw output and calls the published WAPR suppression function.
+The root example calls `Tester.predict(..., use_wapr=True)`, which automatically applies WBPS filtering and CAD rendered-mask NMS after mask-based estimation, while preserving raw output. Use `wbps_threshold=0.75` and `wapr_nms_iou_threshold=0.5` to set these gates. See [registration and repeated-frame calls](refinement-api.md) and [score filtering and NMS](wapr-postprocessing.md).
 
 ## Inputs and execution
 
 Prepare a BGR image, registered depth, original-image intrinsics, meter meshes and meter diameters. The example explicitly converts published BOP millimeter models to meters.
 
-Edit the paths, object IDs and depth conversion in `examples/inference/predict_wapr.py`, then run:
+Edit the paths, object IDs, depth conversion and `wapr_mode` in `s4_p3_test_mi10_bin_picking_RGBD_wapr.py`, then run:
 
 ```bash
-python examples/inference/predict_wapr.py
+python s4_p3_test_mi10_bin_picking_RGBD_wapr.py
 ```
 
-For the [example downloaded on the resource page](assets.md#download-one-rgb-d-example), you can also call this from the project root:
+For the [example downloaded on the resource page](assets.md#download-one-rgb-d-example), set these paths in the script's entry block:
 
 ```python
-from examples.inference.predict_wapr import main
-
+dataset_root = os.path.join(current_dir, 'data', 'demo-bin-picking')
+capture_dir = os.path.join(current_dir, 'data', 'test_imgs_RGBD')
+frame_name = '000003'
+image_path = os.path.join(capture_dir, frame_name + '_rgb.png')
+depth_path = os.path.join(capture_dir, frame_name + '_depth.png')
+intrinsics_path = os.path.join(capture_dir, frame_name + '_camera_matrix.json')
 # This frame stores raw depth in millimeters; check sensor units for your own data.
-records = main("data/demo-bin-picking", "data/test_imgs_RGBD/000003_rgb.png",
-               "data/test_imgs_RGBD/000003_depth.png", "data/test_imgs_RGBD/000003_camera_matrix.json",
-               [1], "outputs/wapr.json", depth_scale_to_m=1e-3)
+depth_scale_to_m = 1e-3
 ```
 
-`outputs/wapr.json` preserves input instance order and contains object IDs, instance indices, `pose_4x4_m` (object to camera, translation in meters), and `score_6d` computed for the current input. A score is not a probability or object confirmation; define acceptance, deduplication and ranking policies for your application.
+`outputs/wapr.json` preserves raw instance order and contains object IDs, instance indices, `pose_4x4_m` (object to camera, translation in meters), and `score_6d` computed for this input. `outputs/wapr_filtered.json` stores the automatic postprocessing report. Its defaults are score ≥ 0.75 and same-category rendered-mask IoU NMS at 0.5. A score is not a probability or object confirmation; check the thresholds for your application.
 
-Request each object ID once and use IDs listed in the dataset’s `models_info.json`. Multiple detections of the same category produce separate records. If none of the requested objects is detected, the output is `[]`. Each crop mask needs its own transform. A count mismatch, an empty mask, or a mask with no positive depth raises an error.
+Request each object ID once and use IDs listed in the dataset’s `models_info.json`. Multiple detections of the same category produce separate records. If none is detected, the raw JSON is `[]` and the report has no retained records. In `estimate` and `hybrid`, each crop mask needs its own transform and positive observed depth; invalid masks raise. `refine` does not need foreground masks but requires valid PnP seeds. Failed or invalid PnP instances are skipped without fake scores; the report lists them separately in `skipped_instances`.
 
 
 ## Multiple objects, instances and mask order
@@ -70,7 +72,7 @@ Multiple regions do not necessarily represent distinct physical objects. Detecti
 ## Integrate into your Python application
 
 ```python
-from Refinement.wapr_public import restore_full_frame_masks, estimate_from_masks
+from Refinement.refinement_group import restore_full_frame_masks, estimate_from_masks
 
 # predictions belongs to this frame; supply each object's own mesh and diameter_m.
 masks = restore_full_frame_masks(predictions[obj_id], image_bgr.shape)
@@ -91,4 +93,6 @@ Mesh vertices, diameter and depth must already be in meters. `estimator` is a WA
 
 The JSON contains no fixed experimental scores and uses no ground-truth labels to generate them. Missing resources, invalid intrinsics and duplicate or unknown IDs raise before model loading. Shape mismatches, nonfinite depth, masks without valid depth and invalid outputs are not treated as successes. See [results](results-api.md) for reading and unit conversions.
 
-Multi-frame applications can reuse `Tester` and the WAPR estimator. The file entry point is convenient initially but reinitializes models on repeated calls; organize high-frequency loops using the [API tutorial](refinement-api.md). Separate first-time resource preparation from inference timing.
+The raw and filtered output paths must be separate and must not point to the input image, depth or calibration file. Symbolic-link and hard-link aliases are checked before model loading.
+
+Multi-frame applications can reuse `Tester` and the WAPR estimator. Running the file entry point again initializes the models again; organize high-frequency loops using the [API tutorial](refinement-api.md). Separate first-time resource preparation from inference timing.

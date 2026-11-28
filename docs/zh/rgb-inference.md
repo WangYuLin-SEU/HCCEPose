@@ -22,29 +22,35 @@ HccePose(BF) 从彩色图像估计已知物体的位姿。检测器可以识别�
 import os
 import sys
 
+import cv2
+import numpy as np
+
 project_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_dir)
 
-from examples.inference.predict_image import main
+from HccePose.bop_loader import bop_dataset, inout
+from HccePose.test_script_utils import save_visual_artifacts
+from HccePose.tester import Tester
 
 if __name__ == '__main__':
     data_root = os.path.join(project_dir, 'data')
-    results = main(
-        os.path.join(data_root, 'demo-bin-picking'),
-        os.path.join(data_root, 'test_imgs_RGBD', '000003_rgb.png'),
-        os.path.join(data_root, 'test_imgs_RGBD', '000003_camera_matrix.json'),
-        [1],
-        os.path.join(project_dir, 'outputs', 'rgb'),
-    )
+    image = cv2.imread(os.path.join(data_root, 'test_imgs_RGBD', '000003_rgb.png'))
+    camera = np.asarray(inout.load_json(os.path.join(data_root, 'test_imgs_RGBD', '000003_camera_matrix.json')))
+    tester = Tester(bop_dataset(os.path.join(data_root, 'demo-bin-picking')), hccepose_vis=True)
+    results = tester.predict(camera, image, [1])
+    output_dir = os.path.join(project_dir, 'outputs', 'rgb')
+    os.makedirs(output_dir, exist_ok=True)
+    save_visual_artifacts([(os.path.join(output_dir, key + '.jpg'), results.get(key))
+                           for key in ('show_2D_results', 'show_6D_vis0', 'show_6D_vis1', 'show_6D_vis2')])
 ```
 
-也可以编辑 `examples/inference/predict_image.py` 末尾的显式路径，再从项目根目录运行：
+对于仓库自带的 JPG 采集图，核对数据集路径和标定后，使用已有根目录示例：
 
 ```bash
-python examples/inference/predict_image.py
+python s4_p3_test_mi10_bin_picking.py
 ```
 
-`main()` 检查图像、内参和编号，初始化一次 `Tester`，返回完整结果字典，并将生成的图像写入输出目录。重复处理很多图片时，使用[Tester 接口](tester-api.md)在循环外初始化模型。
+根目录示例读取 `sample_data/images/`，并将可视化保存在输入旁。其 JPG 相机内参与上方下载的 640×400 帧不同，不能混用。重复处理很多图片时，使用[Tester 接口](tester-api.md)在循环外初始化模型。
 
 ## 图像通道、坐标与有效位姿
 
@@ -56,11 +62,11 @@ OpenCV 的 `cv2.imread` 返回 BGR `uint8`，直接传入 `predict`。输入内�
 
 下列图片来自公开上游的料箱抓取示例，仅用于解释输出形式。线框是按估计位姿投影的三维包围盒，不代表真值标签或场景中物体总数。
 
-![公开示例中的二维检测框](../../show_vis/IMG_20251007_165718_show_2d.jpg)
+![公开示例中的二维检测框](../assets/figures/IMG_20251007_165718_show_2d.jpg)
 
-![公开示例的裁剪掩码与正背面坐标编码](../../show_vis/IMG_20251007_165718_show_6d_vis0.jpg)
+![公开示例的裁剪掩码与正背面坐标编码](../assets/figures/IMG_20251007_165718_show_6d_vis0.jpg)
 
-![公开示例的整图位姿与坐标组合展示](../../show_vis/IMG_20251007_165718_show_6d_vis1.jpg)
+![公开示例的整图位姿与坐标组合展示](../assets/figures/IMG_20251007_165718_show_6d_vis1.jpg)
 
 `show_2D_results` 展示检测框；`show_6D_vis0` 展示实例裁剪、掩码和编码；`show_6D_vis1`、`show_6D_vis2` 展示整图投影。画面可能拼接多个面板，不能把输出尺寸当成输入原图尺寸。
 

@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
 毫米深度到米的系数仅适用于这个公开帧。自己的传感器应明确单位并完成彩色/深度配准。只用 RGB 时直接传 `depth=None`，不需要虚构深度图。
 
-使用 `Refinement.refinement_test_utils.load_capture_frame(capture_dir, name, depth_scale_to_m=1e-3)` 读取公开采集帧时，也需显式保持单位约定。默认系数 `1e-3` 把毫米转换为米；米制输入用 `1`，十分之一毫米输入用 `1e-4`，不再根据深度中位数猜单位。
+使用 `Refinement.refinement_group.load_capture_frame(capture_dir, name, depth_scale_to_m=1e-3)` 读取公开采集帧时，也需显式保持单位约定。默认系数 `1e-3` 把毫米转换为米；米制输入用 `1`，十分之一毫米输入用 `1e-4`，不再根据深度中位数猜单位。
 
 ## 输出与实例对应
 
@@ -73,8 +73,8 @@ if __name__ == '__main__':
 
 以下图像来自公开上游的同一帧示例，分别展示 RGB-D 和 RGB 模型的输出，不是新的性能或精度测量。
 
-![公开 MegaPose RGB-D 示例](../../show_vis/rgbd_000003_megapose_rgbd.jpg)
+![公开 MegaPose RGB-D 示例](../assets/figures/rgbd_000003_megapose_rgbd.jpg)
 
-![公开 MegaPose RGB 示例](../../show_vis/rgbd_000003_megapose_rgb.jpg)
+![公开 MegaPose RGB 示例](../assets/figures/rgbd_000003_megapose_rgb.jpg)
 
 源码与模型使用条件见 [MegaPose](https://github.com/megapose6d/megapose6d)。比较方法与单位换算见[RGB-D 对比](depth-comparison.md)。
